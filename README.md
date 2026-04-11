@@ -14,7 +14,6 @@
 * **Frontend:** [Flutter](https://flutter.dev) & [Dart](https://dart.dev)
 * **Backend:** [Supabase](https://supabase.com/)
 * **AI Integration:** `google_generative_ai` (Gemini API)
-* **Maps:** `Maps_flutter`
 * **Notifications:** `flutter_local_notifications`
 
 ## 🚀 Getting Started
