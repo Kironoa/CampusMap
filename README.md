@@ -26,7 +26,7 @@
 ### Installation
 1.  **Clone the repo:**
     ```bash
-    git clone [https://github.com/your-username/student-pal.git](https://github.com/your-username/student-pal.git)
+    git clone https://github.com/sinharoro/StudentPal.git
     ```
 2.  **Install dependencies:**
     ```bash
