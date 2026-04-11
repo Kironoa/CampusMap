@@ -4,17 +4,18 @@
 
 ## ✨ Core Features
 
-Smart Class Reminders: A specialized notification system that alerts you 10 minutes and 1 minute before your scheduled classes.
+* **Smart Class Reminders:** A specialized notification system that alerts you 10 minutes and 1 minute before your scheduled classes.
 
-AI Study Assistant: A generative AI chat powered by Gemini to help clarify complex concepts and assist with brainstorming.
+* **AI Study Assistant:** A generative AI chat powered by Gemini to help clarify complex concepts and assist with brainstorming.
 
-Automated Flashcards: Instantly convert uploaded study materials and lecture notes into interactive flashcards for better retention.
+* **Automated Flashcards:** Instantly convert uploaded study materials and lecture notes into interactive flashcards for better retention.
 
-Smart Questionnaires: Generate custom mock exams and practice quizzes directly from your uploaded files to test your knowledge.
+* **Smart Questionnaires:** Generate custom mock exams and practice quizzes directly from your uploaded files to test your knowledge.
 
-Resource Center: A centralized hub to manage and pick academic files and study materials efficiently.
+* **Resource Center:** A centralized hub to manage and pick academic files and study materials efficiently.
 
-Interactive Dashboard: Quick access to campus navigation via Google Maps and essential student categories.
+* **Interactive Dashboard:** Quick access to campus navigation via Google Maps and essential student categories.
+
 ## 🛠 Tech Stack
 
 * **Frontend:** [Flutter](https://flutter.dev) & [Dart](https://dart.dev)
