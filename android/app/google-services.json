@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "602563591556",
+    "project_id": "kironoa-sp",
+    "storage_bucket": "kironoa-sp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:602563591556:android:68fdaea6bc23cad51a71d1",
+        "android_client_info": {
+          "package_name": "com.example.mobile_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAAAHG_NtnGOjxH2qMMX_0eimRtRRQO1GI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
