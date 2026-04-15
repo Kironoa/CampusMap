@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:mobile_app/models/schedule_model.dart';
 import 'package:mobile_app/services/notification_service.dart';
 import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
@@ -25,11 +26,13 @@ class DatabaseHelper {
       databaseFactory = databaseFactoryFfi;
     }
 
-    String path = join(await getDatabasesPath(), 'student_pal.db');
+    // STABILITY FIX: Use getApplicationSupportDirectory for Windows to avoid permission issues
+    final directory = await getApplicationSupportDirectory();
+    final path = join(directory.path, 'student_pal.db');
 
     return await openDatabase(
       path,
-      version: 11,
+      version: 15, // Version 15 triggers the UNIQUE constraint logic
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE users(
@@ -45,6 +48,7 @@ class DatabaseHelper {
         await _createAssignmentsTable(db);
         await _createNotesTable(db);
         await _createResourcesTable(db);
+        await _createAiCacheTable(db);
 
         await db.insert('users', {
           'username': 'Kironoa',
@@ -81,9 +85,34 @@ class DatabaseHelper {
           await db.execute('DROP TABLE IF EXISTS study_resources');
           await _createResourcesTable(db);
         }
+
+        if (oldVersion < 12) {
+          await db.execute('ALTER TABLE notes ADD COLUMN content TEXT');
+        }
+
+        if (oldVersion < 13) {
+          var columns = await db.rawQuery('PRAGMA table_info(study_resources)');
+          bool hasContent =
+              columns.any((column) => column['name'] == 'content');
+          if (!hasContent) {
+            await db
+                .execute('ALTER TABLE study_resources ADD COLUMN content TEXT');
+          }
+        }
+
+        if (oldVersion < 14) {
+          await _createAiCacheTable(db);
+        }
+
+        if (oldVersion < 15) {
+          await db.execute('DROP TABLE IF EXISTS ai_cache');
+          await _createAiCacheTable(db);
+        }
       },
     );
   }
+
+  // --- TABLE CREATION HELPERS ---
 
   Future<void> _createSettingsTable(Database db) async {
     await db.execute('''
@@ -122,7 +151,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE notes(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        userId INTEGER, title TEXT, description TEXT, dateCreated TEXT
+        userId INTEGER, title TEXT, description TEXT, content TEXT, dateCreated TEXT
       )
     ''');
   }
@@ -135,10 +164,56 @@ class DatabaseHelper {
         fileName TEXT,
         localPath TEXT,
         category TEXT,
+        content TEXT,
         dateAdded TEXT
       )
     ''');
   }
+
+  Future<void> _createAiCacheTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE ai_cache(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        resourceId INTEGER,
+        type TEXT,
+        content TEXT,
+        createdAt TEXT,
+        UNIQUE(resourceId, type)
+      )
+    ''');
+  }
+
+  // --- AI CACHE METHODS ---
+
+  Future<String?> getCachedAIContent(int resourceId, String type) async {
+    final db = await database;
+    var res = await db.query("ai_cache",
+        where: "resourceId = ? AND type = ?", whereArgs: [resourceId, type]);
+    return res.isNotEmpty ? res.first['content'] as String : null;
+  }
+
+  Future<void> saveAIContentToCache(
+      int resourceId, String type, String content) async {
+    final db = await database;
+    await db.insert(
+        "ai_cache",
+        {
+          "resourceId": resourceId,
+          "type": type,
+          "content": content,
+          "createdAt": DateTime.now().toIso8601String(),
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  // FORCE CLEAN: Use this to wipe AI data if generation is inaccurate
+  Future<void> clearAllAiCache() async {
+    final db = await database;
+    await db.delete('ai_cache');
+    debugPrint("AI Cache cleared successfully.");
+  }
+
+  // --- DATA OPERATIONS (All Preserved) ---
 
   Future<Map<String, dynamic>> getSettings() async {
     final db = await database;
@@ -165,11 +240,9 @@ class DatabaseHelper {
   Future<Map<String, dynamic>?> checkLogin(
       String username, String password) async {
     final db = await database;
-    List<Map<String, dynamic>> results = await db.query(
-      'users',
-      where: 'username = ? AND password = ?',
-      whereArgs: [username, password],
-    );
+    List<Map<String, dynamic>> results = await db.query('users',
+        where: 'username = ? AND password = ?',
+        whereArgs: [username, password]);
     return results.isNotEmpty ? results.first : null;
   }
 
@@ -240,23 +313,27 @@ class DatabaseHelper {
     return await db.delete('assignments', where: 'id = ?', whereArgs: [id]);
   }
 
-  Future<int> insertNote(int userId, String title, String desc) async {
+  Future<int> insertNote(int userId, String title, String desc,
+      {String content = ''}) async {
     final db = await database;
     return await db.insert('notes', {
       'userId': userId,
       'title': title,
       'description': desc,
+      'content': content,
       'dateCreated': DateTime.now().toIso8601String()
     });
   }
 
-  Future<int> updateNote(int id, String title, String desc) async {
+  Future<int> updateNote(int id, String title, String desc,
+      {String content = ''}) async {
     final db = await database;
     return await db.update(
         'notes',
         {
           'title': title,
           'description': desc,
+          'content': content,
           'dateCreated': DateTime.now().toIso8601String()
         },
         where: 'id = ?',
@@ -275,13 +352,15 @@ class DatabaseHelper {
   }
 
   Future<int> insertResource(
-      int userId, String name, String localPath, String category) async {
+      int userId, String name, String localPath, String category,
+      {String content = ''}) async {
     final db = await database;
     return await db.insert('study_resources', {
       'userId': userId,
       'fileName': name,
       'localPath': localPath,
       'category': category,
+      'content': content,
       'dateAdded': DateTime.now().toIso8601String()
     });
   }
@@ -295,15 +374,10 @@ class DatabaseHelper {
         orderBy: 'dateAdded DESC');
   }
 
-  // ADDED: Method to handle resource renaming
   Future<int> updateResourceName(int id, String newName) async {
     final db = await database;
-    return await db.update(
-      'study_resources',
-      {'fileName': newName},
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    return await db.update('study_resources', {'fileName': newName},
+        where: 'id = ?', whereArgs: [id]);
   }
 
   Future<int> deleteResource(int id) async {
@@ -368,11 +442,34 @@ class DatabaseHelper {
       if (scheduledDate.isBefore(now)) {
         scheduledDate = scheduledDate.add(const Duration(days: 1));
       }
-
       await NotificationService().scheduleClassAlerts(
           id: id, subject: subject, startTime: scheduledDate);
     } catch (e) {
       debugPrint("Sync failed: $e");
     }
+  }
+
+  Future<List<Map<String, dynamic>>> searchNotesOffline(
+      int userId, String query) async {
+    final db = await database;
+    return await db.query('notes',
+        where:
+            'userId = ? AND (title LIKE ? OR description LIKE ? OR content LIKE ?)',
+        whereArgs: [userId, '%$query%', '%$query%', '%$query%'],
+        orderBy: 'dateCreated DESC');
+  }
+
+  Future<Map<String, dynamic>?> getNoteById(int id) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps =
+        await db.query('notes', where: 'id = ?', whereArgs: [id]);
+    return maps.isNotEmpty ? maps.first : null;
+  }
+
+  Future<Map<String, dynamic>?> getResourceById(int id) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps =
+        await db.query('study_resources', where: 'id = ?', whereArgs: [id]);
+    return maps.isNotEmpty ? maps.first : null;
   }
 }

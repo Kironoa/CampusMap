@@ -37,7 +37,6 @@ double res(BuildContext context, double value) {
 class StudentPalApp extends StatelessWidget {
   const StudentPalApp({super.key});
 
-  // Check persistent login state
   Future<Map<String, dynamic>> _checkAuthStatus() async {
     final prefs = await SharedPreferences.getInstance();
     final bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
@@ -244,8 +243,6 @@ class _StudentDashboardState extends State<StudentDashboard>
           subject: schedule.subject,
           startTime: scheduledTime,
         );
-
-        debugPrint("Scheduled: ${schedule.subject} at $scheduledTime");
       } catch (e) {
         debugPrint("Failed to schedule ${schedule.subject}: $e");
       }
@@ -316,7 +313,7 @@ class _StudentDashboardState extends State<StudentDashboard>
 
   Future<void> _handleLogout() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.clear(); // Clear persistent login data
+    await prefs.clear();
     if (!mounted) return;
 
     Navigator.of(context).pushAndRemoveUntil(
@@ -336,6 +333,119 @@ class _StudentDashboardState extends State<StudentDashboard>
     }
   }
 
+  void _showSingleScheduleDetail(
+      BuildContext context, Schedule schedule, Color accent) {
+    final theme = Theme.of(context);
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: theme.scaffoldBackgroundColor,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(
+            schedule.subject,
+            style: TextStyle(
+              color: theme.colorScheme.onSurface,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildPopupDetailRow(Icons.access_time_filled_rounded, "Time",
+                  "${schedule.startTime} - ${schedule.endTime}", accent),
+              SizedBox(height: res(context, 12)),
+              _buildPopupDetailRow(
+                  Icons.location_on_rounded, "Room", schedule.room, accent),
+              SizedBox(height: res(context, 12)),
+              _buildPopupDetailRow(
+                  Icons.calendar_today_rounded, "Days", schedule.days, accent),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text("Close",
+                  style: TextStyle(color: accent, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // POPUP DIALOG FOR ASSIGNMENTS
+  void _showAssignmentDetail(
+      BuildContext context, Map<String, dynamic> assignment, Color accent) {
+    final theme = Theme.of(context);
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: theme.scaffoldBackgroundColor,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(
+            assignment['title'] ?? "Assignment",
+            style: TextStyle(
+                color: theme.colorScheme.onSurface,
+                fontWeight: FontWeight.w900),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildPopupDetailRow(Icons.event_note_rounded, "Deadline",
+                  assignment['deadline'] ?? "No deadline set", accent),
+              if (assignment['description'] != null) ...[
+                SizedBox(height: res(context, 12)),
+                Text("Description",
+                    style: TextStyle(
+                        fontSize: res(context, 10),
+                        color: Colors.grey,
+                        fontWeight: FontWeight.bold)),
+                Text(assignment['description'],
+                    style: TextStyle(fontSize: res(context, 14))),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text("Close",
+                  style: TextStyle(color: accent, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildPopupDetailRow(
+      IconData icon, String label, String value, Color accent) {
+    return Row(
+      children: [
+        Icon(icon, color: accent, size: res(context, 20)),
+        SizedBox(width: res(context, 10)),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label,
+                style: TextStyle(
+                    fontSize: res(context, 10),
+                    color: Colors.grey,
+                    fontWeight: FontWeight.bold)),
+            Text(value,
+                style: TextStyle(
+                    fontSize: res(context, 14), fontWeight: FontWeight.w600)),
+          ],
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -345,10 +455,7 @@ class _StudentDashboardState extends State<StudentDashboard>
       backgroundColor: theme.scaffoldBackgroundColor,
       body: Stack(
         children: [
-          // Layer 1: Background Animation
           _buildBackground(dynamicAccent),
-
-          // Layer 2: Scrollable Dashboard Content
           SafeArea(
             child: CustomScrollView(
               physics: const BouncingScrollPhysics(),
@@ -366,9 +473,8 @@ class _StudentDashboardState extends State<StudentDashboard>
                     centerTitle: true,
                     title: Container(
                       padding: EdgeInsets.symmetric(
-                        horizontal: res(context, 20),
-                        vertical: res(context, 10),
-                      ),
+                          horizontal: res(context, 20),
+                          vertical: res(context, 10)),
                       child: _buildFloatingHeader(
                           dynamicAccent, context.read<ThemeProvider>()),
                     ),
@@ -414,13 +520,13 @@ class _StudentDashboardState extends State<StudentDashboard>
                         ),
                         SizedBox(height: res(context, 15)),
                         if (_recentAssignments.isEmpty)
-                          _buildAssignmentCard(
-                              "No Assignments", "Free day!", dynamicAccent)
+                          _buildAssignmentCard({
+                            "title": "No Assignments",
+                            "deadline": "Free day!"
+                          }, dynamicAccent)
                         else
-                          ..._recentAssignments.map((a) => _buildAssignmentCard(
-                              a['title'] ?? "Untitled",
-                              "Due: ${a['deadline'] ?? 'No date'}",
-                              dynamicAccent)),
+                          ..._recentAssignments.map(
+                              (a) => _buildAssignmentCard(a, dynamicAccent)),
                         SizedBox(height: res(context, 30)),
                         _buildSectionTitle("Resources", dynamicAccent),
                         SizedBox(height: res(context, 15)),
@@ -456,31 +562,26 @@ class _StudentDashboardState extends State<StudentDashboard>
               ],
             ),
           ),
-
-// Layer 3: AI Chat Head
           AIFloatingChatHead(
             onPressed: () {
               showModalBottomSheet(
                 context: context,
                 isScrollControlled: true,
                 backgroundColor: Colors.transparent,
-                // Ensures the content doesn't spill over the rounded corners
                 clipBehavior: Clip.antiAliasWithSaveLayer,
-                // Ensures the sheet respects the notch/dynamic island
                 useSafeArea: true,
                 builder: (context) => const ChatScreen(),
               );
             },
           ),
-        ], // End of Stack children
-      ), // End of Stack
+        ],
+      ),
     );
   }
 
   Widget _buildFloatingHeader(Color accent, ThemeProvider themeProvider) {
     final theme = Theme.of(context);
     final onSurface = theme.colorScheme.onSurface;
-
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -489,24 +590,18 @@ class _StudentDashboardState extends State<StudentDashboard>
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                "Hello!",
-                style: TextStyle(
-                  color: accent,
-                  fontSize: res(context, 9),
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              Text(
-                themeProvider.username,
-                style: TextStyle(
-                  color: onSurface,
-                  fontSize: res(context, 15),
-                  fontWeight: FontWeight.w900,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
+              Text("Hello!",
+                  style: TextStyle(
+                      color: accent,
+                      fontSize: res(context, 9),
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5)),
+              Text(themeProvider.username,
+                  style: TextStyle(
+                      color: onSurface,
+                      fontSize: res(context, 15),
+                      fontWeight: FontWeight.w900),
+                  overflow: TextOverflow.ellipsis),
             ],
           ),
         ),
@@ -524,15 +619,13 @@ class _StudentDashboardState extends State<StudentDashboard>
       color: theme.cardColor,
       elevation: 8,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: onSurface.withValues(alpha: 0.05)),
-      ),
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: onSurface.withValues(alpha: 0.05))),
       onSelected: (value) {
         if (value == 1) _pickImage();
-        if (value == 2) {
+        if (value == 2)
           Navigator.push(context,
               MaterialPageRoute(builder: (context) => const SettingsScreen()));
-        }
         if (value == 3) _handleLogout();
       },
       itemBuilder: (context) => [
@@ -545,9 +638,9 @@ class _StudentDashboardState extends State<StudentDashboard>
       child: Container(
         padding: const EdgeInsets.all(2),
         decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(color: accent.withValues(alpha: 0.2), width: 1.5),
-        ),
+            shape: BoxShape.circle,
+            border:
+                Border.all(color: accent.withValues(alpha: 0.2), width: 1.5)),
         child: CircleAvatar(
           radius: res(context, 14),
           backgroundColor: accent.withValues(alpha: 0.1),
@@ -576,14 +669,11 @@ class _StudentDashboardState extends State<StudentDashboard>
               color: isDestructive ? Colors.redAccent : accent,
               size: res(context, 18)),
           SizedBox(width: res(context, 12)),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: res(context, 13),
-              fontWeight: FontWeight.w600,
-              color: isDestructive ? Colors.redAccent : null,
-            ),
-          ),
+          Text(title,
+              style: TextStyle(
+                  fontSize: res(context, 13),
+                  fontWeight: FontWeight.w600,
+                  color: isDestructive ? Colors.redAccent : null)),
         ],
       ),
     );
@@ -603,35 +693,26 @@ class _StudentDashboardState extends State<StudentDashboard>
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  _timeString.split(' ')[0],
-                  style: TextStyle(
-                    color: onSurface,
-                    fontSize: res(context, 11),
-                    fontWeight: FontWeight.w900,
-                    fontFamily: 'monospace',
-                  ),
-                ),
+                Text(_timeString.split(' ')[0],
+                    style: TextStyle(
+                        color: onSurface,
+                        fontSize: res(context, 11),
+                        fontWeight: FontWeight.w900,
+                        fontFamily: 'monospace')),
                 SizedBox(width: res(context, 3)),
-                Text(
-                  _timeString.split(' ')[1],
-                  style: TextStyle(
-                    color: accent,
-                    fontSize: res(context, 8),
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
+                Text(_timeString.split(' ')[1],
+                    style: TextStyle(
+                        color: accent,
+                        fontSize: res(context, 8),
+                        fontWeight: FontWeight.w900)),
               ],
             ),
-            Text(
-              _dateString.toUpperCase(),
-              style: TextStyle(
-                color: onSurface.withValues(alpha: 0.6),
-                fontSize: res(context, 7),
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.5,
-              ),
-            ),
+            Text(_dateString.toUpperCase(),
+                style: TextStyle(
+                    color: onSurface.withValues(alpha: 0.6),
+                    fontSize: res(context, 7),
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5)),
           ],
         ),
       ),
@@ -645,15 +726,13 @@ class _StudentDashboardState extends State<StudentDashboard>
         return Stack(
           children: [
             _buildAnimatedBlob(
-              Alignment(0.7 + 0.1 * (_bgAnimationController.value), -0.8),
-              accent,
-              res(context, 350),
-            ),
+                Alignment(0.7 + 0.1 * (_bgAnimationController.value), -0.8),
+                accent,
+                res(context, 350)),
             _buildAnimatedBlob(
-              Alignment(-0.8, 0.6 + 0.1 * (_bgAnimationController.value)),
-              accent,
-              res(context, 450),
-            ),
+                Alignment(-0.8, 0.6 + 0.1 * (_bgAnimationController.value)),
+                accent,
+                res(context, 450)),
           ],
         );
       },
@@ -667,11 +746,11 @@ class _StudentDashboardState extends State<StudentDashboard>
         width: size,
         height: size,
         decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(
-            colors: [color.withValues(alpha: 0.12), color.withValues(alpha: 0)],
-          ),
-        ),
+            shape: BoxShape.circle,
+            gradient: RadialGradient(colors: [
+              color.withValues(alpha: 0.12),
+              color.withValues(alpha: 0)
+            ])),
       ),
     );
   }
@@ -683,30 +762,23 @@ class _StudentDashboardState extends State<StudentDashboard>
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Text(
-          title,
-          style: TextStyle(
-            color: theme.colorScheme.onSurface,
-            fontSize: res(context, 20),
-            fontWeight: FontWeight.w900,
-            letterSpacing: -0.5,
-          ),
-        ),
+        Text(title,
+            style: TextStyle(
+                color: theme.colorScheme.onSurface,
+                fontSize: res(context, 20),
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.5)),
         if (trailing != null)
           InkWell(
             onTap: onTrailingTap,
             borderRadius: BorderRadius.circular(8),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-              child: Text(
-                trailing,
-                style: TextStyle(
-                  color: accent,
-                  fontSize: res(context, 13),
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                child: Text(trailing,
+                    style: TextStyle(
+                        color: accent,
+                        fontSize: res(context, 13),
+                        fontWeight: FontWeight.w800))),
           ),
       ],
     );
@@ -716,24 +788,20 @@ class _StudentDashboardState extends State<StudentDashboard>
     return Row(
       children: [
         Expanded(
-          child: _buildCountdownCard(
-            "CURRENT",
-            _currentClass?.subject ?? "Free Time",
-            _formatCountdown(_currentClass),
-            accent.withValues(alpha: 0.4),
-            isActive: _currentClass != null,
-          ),
-        ),
+            child: _buildCountdownCard(
+                "CURRENT",
+                _currentClass?.subject ?? "Free Time",
+                _formatCountdown(_currentClass),
+                accent.withValues(alpha: 0.4),
+                isActive: _currentClass != null)),
         SizedBox(width: res(context, 14)),
         Expanded(
-          child: _buildCountdownCard(
-            "UPCOMING",
-            _nextClass?.subject ?? "None Scheduled",
-            _formatCountdown(_nextClass, isNext: true),
-            accent,
-            isActive: true,
-          ),
-        ),
+            child: _buildCountdownCard(
+                "UPCOMING",
+                _nextClass?.subject ?? "None Scheduled",
+                _formatCountdown(_nextClass, isNext: true),
+                accent,
+                isActive: true)),
       ],
     );
   }
@@ -749,36 +817,27 @@ class _StudentDashboardState extends State<StudentDashboard>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              label,
-              style: TextStyle(
-                color: accent,
-                fontSize: res(context, 10),
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1.5,
-              ),
-            ),
+            Text(label,
+                style: TextStyle(
+                    color: accent,
+                    fontSize: res(context, 10),
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.5)),
             SizedBox(height: res(context, 10)),
-            Text(
-              className,
-              style: TextStyle(
-                color: theme.colorScheme.onSurface,
-                fontSize: res(context, 15),
-                fontWeight: FontWeight.w800,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+            Text(className,
+                style: TextStyle(
+                    color: theme.colorScheme.onSurface,
+                    fontSize: res(context, 15),
+                    fontWeight: FontWeight.w800),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis),
             SizedBox(height: res(context, 4)),
-            Text(
-              time,
-              style: TextStyle(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                fontSize: res(context, 11),
-                fontWeight: FontWeight.w600,
-                fontFamily: 'monospace',
-              ),
-            ),
+            Text(time,
+                style: TextStyle(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                    fontSize: res(context, 11),
+                    fontWeight: FontWeight.w600,
+                    fontFamily: 'monospace')),
           ],
         ),
       ),
@@ -790,18 +849,13 @@ class _StudentDashboardState extends State<StudentDashboard>
     if (_todaySchedules.isEmpty) {
       return _buildGlassContainer(
         child: Center(
-          child: Padding(
-            padding: EdgeInsets.all(res(context, 20)),
-            child: Text(
-              "No classes scheduled.",
-              style: TextStyle(
-                fontSize: res(context, 14),
-                fontWeight: FontWeight.w600,
-                color: theme.colorScheme.onSurface,
-              ),
-            ),
-          ),
-        ),
+            child: Padding(
+                padding: EdgeInsets.all(res(context, 20)),
+                child: Text("No classes scheduled.",
+                    style: TextStyle(
+                        fontSize: res(context, 14),
+                        fontWeight: FontWeight.w600,
+                        color: theme.colorScheme.onSurface)))),
       );
     }
     return SizedBox(
@@ -814,49 +868,43 @@ class _StudentDashboardState extends State<StudentDashboard>
           final onSurface = theme.colorScheme.onSurface;
           return Padding(
             padding: EdgeInsets.only(right: res(context, 12)),
-            child: _buildGlassContainer(
-              width: res(context, 140),
-              child: Padding(
-                padding: EdgeInsets.all(res(context, 12)),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      item.subject,
-                      style: TextStyle(
-                        color: onSurface,
-                        fontWeight: FontWeight.bold,
-                        fontSize: res(context, 13),
+            child: GestureDetector(
+              onTap: () => _showSingleScheduleDetail(context, item, accent),
+              child: _buildGlassContainer(
+                width: res(context, 140),
+                child: Padding(
+                  padding: EdgeInsets.all(res(context, 12)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(item.subject,
+                          style: TextStyle(
+                              color: onSurface,
+                              fontWeight: FontWeight.bold,
+                              fontSize: res(context, 13)),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis),
+                      SizedBox(height: res(context, 4)),
+                      Text("${item.startTime} - ${item.endTime}",
+                          style: TextStyle(
+                              color: onSurface.withValues(alpha: 0.6),
+                              fontSize: res(context, 10))),
+                      SizedBox(height: res(context, 8)),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                            color: accent.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4)),
+                        child: Text(item.room,
+                            style: TextStyle(
+                                color: accent,
+                                fontSize: res(context, 9),
+                                fontWeight: FontWeight.bold)),
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    SizedBox(height: res(context, 4)),
-                    Text(
-                      "${item.startTime} - ${item.endTime}",
-                      style: TextStyle(
-                        color: onSurface.withValues(alpha: 0.6),
-                        fontSize: res(context, 10),
-                      ),
-                    ),
-                    SizedBox(height: res(context, 8)),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: accent.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        item.room,
-                        style: TextStyle(
-                            color: accent,
-                            fontSize: res(context, 9),
-                            fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -866,24 +914,29 @@ class _StudentDashboardState extends State<StudentDashboard>
     );
   }
 
-  Widget _buildAssignmentCard(String title, String dueDate, Color accent) {
+  // MODIFIED METHOD: ASSIGNMENTS ARE NOW CLICKABLE
+  Widget _buildAssignmentCard(Map<String, dynamic> assignment, Color accent) {
     final theme = Theme.of(context);
     return Padding(
       padding: EdgeInsets.only(bottom: res(context, 10)),
       child: _buildGlassContainer(
         child: ListTile(
+          onTap: () => _showAssignmentDetail(
+              context, assignment, accent), // ACTION ON TAP
           contentPadding: EdgeInsets.symmetric(horizontal: res(context, 15)),
           title: Text(
-            title,
+            assignment['title'] ?? "Untitled",
             style: TextStyle(
                 color: theme.colorScheme.onSurface,
                 fontWeight: FontWeight.bold,
                 fontSize: res(context, 14)),
           ),
-          subtitle: Text(dueDate,
-              style: TextStyle(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                  fontSize: res(context, 12))),
+          subtitle: Text(
+            "Due: ${assignment['deadline'] ?? 'No date'}",
+            style: TextStyle(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                fontSize: res(context, 12)),
+          ),
           trailing: Icon(Icons.chevron_right, color: accent),
         ),
       ),
@@ -932,37 +985,27 @@ class _StudentDashboardState extends State<StudentDashboard>
       child: ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: child ?? const SizedBox(),
-        ),
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: child ?? const SizedBox()),
       ),
     );
   }
 }
 
-// Added the class to the very bottom of the file
 class AIFloatingChatHead extends StatelessWidget {
   final VoidCallback onPressed;
-
   const AIFloatingChatHead({super.key, required this.onPressed});
-
   @override
   Widget build(BuildContext context) {
     return Positioned(
       bottom: 20,
       right: 20,
-      // Using FloatingActionButton fixes the "unclickable" issue
       child: FloatingActionButton(
-        heroTag: "ai_chat_btn",
-        backgroundColor: Theme.of(context).primaryColor,
-        elevation: 6,
-        onPressed: onPressed,
-        child: const Icon(
-          Icons.auto_awesome,
-          color: Colors.white,
-          size: 30,
-        ),
-      ),
+          heroTag: "ai_chat_btn",
+          backgroundColor: Theme.of(context).primaryColor,
+          elevation: 6,
+          onPressed: onPressed,
+          child: const Icon(Icons.auto_awesome, color: Colors.white, size: 30)),
     );
   }
 }
