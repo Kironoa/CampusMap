@@ -94,7 +94,8 @@ class _ChatScreenState extends State<ChatScreen> {
         color: const Color(0xFF0F0F0F), // Consistent dark background
         borderRadius:
             BorderRadius.vertical(top: Radius.circular(res(context, 30))),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 0.5),
+        border:
+            Border.all(color: Colors.white.withValues(alpha: 0.1), width: 0.5),
       ),
       child: Column(
         children: [
@@ -130,7 +131,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("STUDENT PAL AI",
+                      Text("STUDENT PAL",
                           style: TextStyle(
                               fontSize: res(context, 14),
                               fontWeight: FontWeight.w900,
@@ -178,8 +179,9 @@ class _ChatScreenState extends State<ChatScreen> {
                     constraints: BoxConstraints(
                         maxWidth: MediaQuery.of(context).size.width * 0.75),
                     decoration: BoxDecoration(
-                      color:
-                          isUser ? accentColor : Colors.white.withValues(alpha:0.05),
+                      color: isUser
+                          ? accentColor
+                          : Colors.white.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(20).copyWith(
                         bottomRight: isUser
                             ? const Radius.circular(0)
@@ -219,7 +221,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   child: Container(
                     padding: EdgeInsets.symmetric(horizontal: res(context, 20)),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha:0.05),
+                      color: Colors.white.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(25),
                       border: Border.all(color: Colors.white10),
                     ),
@@ -259,7 +261,7 @@ class _ChatScreenState extends State<ChatScreen> {
       child: Container(
         padding: EdgeInsets.all(res(context, 12)),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha:0.05),
+          color: Colors.white.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(15),
         ),
         child: SizedBox(

@@ -35,6 +35,7 @@ class AppThemes {
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
+      fontFamily: 'Poppins',
       colorScheme: ColorScheme.fromSeed(
         seedColor: accentColor,
         primary: accentColor,

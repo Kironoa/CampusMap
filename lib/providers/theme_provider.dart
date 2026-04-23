@@ -24,7 +24,7 @@ class ThemeProvider extends ChangeNotifier {
       final settings = await DatabaseHelper().getSettings();
       if (settings.isNotEmpty) {
         _username = settings['name'] ?? settings['username'] ?? "Student";
-        _uiScale = (settings['ui_scale'] ?? 1.0).toDouble();
+        _uiScale = (settings['uiScale'] ?? settings['ui_scale'] ?? 1.0).toDouble();
 
         if (settings['isDarkMode'] != null) {
           _brightness = (settings['isDarkMode'] == 1)
@@ -32,6 +32,16 @@ class ThemeProvider extends ChangeNotifier {
               : Brightness.light;
         } else if (settings['dark'] != null) {
           _brightness = (settings['dark'] == 1) ? Brightness.dark : Brightness.light;
+        }
+
+        if (settings['accentColor'] != null && settings['accentColor'] != 0) {
+          _accentColor = Color(settings['accentColor'] as int);
+        }
+
+        if (_uiScale >= 0.8 && _uiScale <= 1.2) {
+          // valid range
+        } else {
+          _uiScale = 1.0;
         }
 
         _isLoaded = true;
@@ -58,6 +68,11 @@ class ThemeProvider extends ChangeNotifier {
   Future<void> setScale(double scale) async {
     _uiScale = scale;
     notifyListeners();
+    try {
+      await DatabaseHelper().saveSettings(uiScale: scale);
+    } catch (e) {
+      debugPrint("Error saving scale: $e");
+    }
   }
 
   Future<void> setBrightness(Brightness newBrightness) async {
@@ -75,6 +90,11 @@ class ThemeProvider extends ChangeNotifier {
   void setColor(Color newColor) {
     _accentColor = newColor;
     notifyListeners();
+    try {
+      DatabaseHelper().saveSettings(accentColor: newColor.toARGB32());
+    } catch (e) {
+      debugPrint("Error saving color: $e");
+    }
   }
 }
 

@@ -100,6 +100,14 @@ class DatabaseHelper {
           await db.execute('CREATE INDEX IF NOT EXISTS idx_assignments_userId ON assignments(userId)');
           await db.execute('CREATE INDEX IF NOT EXISTS idx_notes_userId ON notes(userId)');
           await db.execute('CREATE INDEX IF NOT EXISTS idx_study_resources_userId ON study_resources(userId)');
+          final columns = await db.rawQuery('PRAGMA table_info(settings)');
+          final colNames = columns.map((c) => c['name'] as String).toList();
+          if (!colNames.contains('accentColor')) {
+            await db.execute('ALTER TABLE settings ADD COLUMN accentColor INTEGER DEFAULT 4278238035');
+          }
+          if (!colNames.contains('uiScale')) {
+            await db.execute('ALTER TABLE settings ADD COLUMN uiScale REAL DEFAULT 1.0');
+          }
         }
       },
     );
@@ -111,11 +119,13 @@ class DatabaseHelper {
         id INTEGER PRIMARY KEY,
         username TEXT,
         isDarkMode INTEGER DEFAULT 0,
-        isLoggedIn INTEGER DEFAULT 0
+        isLoggedIn INTEGER DEFAULT 0,
+        accentColor INTEGER DEFAULT 4278238035,
+        uiScale REAL DEFAULT 1.0
       )
     ''');
     await db.insert('settings',
-        {'id': 1, 'username': 'Student', 'isDarkMode': 0, 'isLoggedIn': 0});
+        {'id': 1, 'username': 'Student', 'isDarkMode': 0, 'isLoggedIn': 0, 'accentColor': 4278238035, 'uiScale': 1.0});
   }
 
   Future<void> _createSchedulesTable(Database db) async {
@@ -208,16 +218,50 @@ class DatabaseHelper {
     final db = await database;
     List<Map<String, dynamic>> results =
         await db.query('settings', where: 'id = 1');
-    return results.isNotEmpty ? results.first : {};
+    if (results.isEmpty) return {};
+    
+    final settings = results.first;
+    if (!settings.containsKey('accentColor') || !settings.containsKey('uiScale')) {
+      final columns = await db.rawQuery('PRAGMA table_info(settings)');
+      final colNames = columns.map((c) => c['name'] as String).toList();
+      if (!colNames.contains('accentColor')) {
+        await db.execute('ALTER TABLE settings ADD COLUMN accentColor INTEGER DEFAULT 4278238035');
+      }
+      if (!colNames.contains('uiScale')) {
+        await db.execute('ALTER TABLE settings ADD COLUMN uiScale REAL DEFAULT 1.0');
+      }
+      results = await db.query('settings', where: 'id = 1');
+      return results.isNotEmpty ? results.first : {};
+    }
+    return settings;
   }
 
-  Future<void> saveSettings({String? name, bool? dark, bool? loggedIn}) async {
+  Future<void> saveSettings({String? name, bool? dark, bool? loggedIn, int? accentColor, double? uiScale}) async {
     final db = await database;
     Map<String, dynamic> data = {};
     if (name != null) data['username'] = name;
     if (dark != null) data['isDarkMode'] = dark ? 1 : 0;
     if (loggedIn != null) data['isLoggedIn'] = loggedIn ? 1 : 0;
-    await db.update('settings', data, where: 'id = 1');
+    if (accentColor != null) data['accentColor'] = accentColor;
+    if (uiScale != null) data['uiScale'] = uiScale;
+    if (data.isEmpty) return;
+    try {
+      await db.update('settings', data, where: 'id = 1');
+    } catch (e) {
+      if (e.toString().contains('no such column')) {
+        final columns = await db.rawQuery('PRAGMA table_info(settings)');
+        final colNames = columns.map((c) => c['name'] as String).toList();
+        if (!colNames.contains('accentColor')) {
+          await db.execute('ALTER TABLE settings ADD COLUMN accentColor INTEGER DEFAULT 4278238035');
+        }
+        if (!colNames.contains('uiScale')) {
+          await db.execute('ALTER TABLE settings ADD COLUMN uiScale REAL DEFAULT 1.0');
+        }
+        await db.update('settings', data, where: 'id = 1');
+      } else {
+        rethrow;
+      }
+    }
   }
 
   Future<int> registerUser(String username, String password) async {

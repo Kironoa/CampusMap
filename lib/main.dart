@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:provider/provider.dart' as pm;
-import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile_app/models/user_session.dart';
 import 'package:mobile_app/screens/login_screen.dart';
 import 'package:mobile_app/screens/dashboard_screen.dart';
@@ -83,7 +82,7 @@ class _StudentPalAppState extends State<StudentPalApp> {
       debugShowCheckedModeBanner: false,
       title: 'Student Pal',
       theme: baseTheme.copyWith(
-        textTheme: GoogleFonts.poppinsTextTheme(baseTheme.textTheme),
+        textTheme: baseTheme.textTheme.apply(fontFamily: 'Poppins'),
       ),
       builder: (context, child) {
         return MediaQuery(

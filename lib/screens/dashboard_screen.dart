@@ -278,6 +278,26 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
     }
   }
 
+  Color _getDeadlineColor(String? deadlineRaw, Color defaultColor) {
+    if (deadlineRaw == null || deadlineRaw.isEmpty) return defaultColor;
+    try {
+      final deadline = DateTime.parse(deadlineRaw);
+      final now = DateTime.now();
+      final diff = deadline.difference(now);
+      if (diff.isNegative) return Colors.red;
+      if (diff.inHours <= 5) return Colors.red;
+      if (diff.inHours <= 15) return Colors.orange;
+      return Colors.green;
+    } catch (_) {
+      return defaultColor;
+    }
+  }
+
+  String _capitalize(String s) {
+    if (s.isEmpty) return '';
+    return s[0].toUpperCase() + s.substring(1);
+  }
+
   String _formatCountdown(Schedule? schedule, {bool isNext = false}) {
     if (schedule == null) {
       return isNext ? "No upcoming classes" : "No class active";
@@ -741,7 +761,7 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
                       fontSize: r(9),
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.5)),
-              Text(themeProvider.username,
+              Text(_capitalize(themeProvider.username),
                   style: TextStyle(
                       color: onSurface,
                       fontSize: r(15),
@@ -1048,7 +1068,7 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
           subtitle: Text(
             "Due: ${formatDeadline(assignment['deadline'])}",
             style: TextStyle(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                color: _getDeadlineColor(assignment['deadline'], theme.colorScheme.onSurface.withValues(alpha: 0.6)),
                 fontSize: r(12)),
           ),
           trailing: Icon(Icons.chevron_right, color: accent),

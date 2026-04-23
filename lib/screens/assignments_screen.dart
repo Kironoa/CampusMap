@@ -34,6 +34,21 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
     }
   }
 
+  Color _getDeadlineColor(String? deadlineRaw, Color defaultColor) {
+    if (deadlineRaw == null || deadlineRaw.isEmpty) return defaultColor;
+    try {
+      final deadline = DateTime.parse(deadlineRaw);
+      final now = DateTime.now();
+      final diff = deadline.difference(now);
+      if (diff.isNegative) return Colors.red;
+      if (diff.inHours <= 5) return Colors.red;
+      if (diff.inHours <= 15) return Colors.orange;
+      return Colors.green;
+    } catch (_) {
+      return defaultColor;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -183,7 +198,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
                           children: [
                             Text("DUE: ${formatDeadline(item.deadline)}",
                                 style: TextStyle(
-                                    color: priorityColor,
+                                    color: _getDeadlineColor(item.deadline, priorityColor),
                                     fontWeight: FontWeight.bold,
                                     fontSize: res(context, 11))),
                             Icon(Icons.more_vert_rounded,
@@ -410,7 +425,8 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
                       _detailItem(
                           Icons.event_note_rounded,
                           "Deadline",
-                          formatDeadline(item.deadline)),
+                          formatDeadline(item.deadline),
+                          valueColor: _getDeadlineColor(item.deadline, theme.colorScheme.primary)),
                       _detailItem(
                           Icons.notes_rounded,
                           "Description",
@@ -491,14 +507,14 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
     );
   }
 
-  Widget _detailItem(IconData icon, String label, String value) {
+  Widget _detailItem(IconData icon, String label, String value, {Color? valueColor}) {
     final theme = Theme.of(context);
     return Padding(
       padding: EdgeInsets.symmetric(vertical: res(context, 8)),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: res(context, 20), color: theme.colorScheme.primary),
+          Icon(icon, size: res(context, 20), color: valueColor ?? theme.colorScheme.primary),
           SizedBox(width: res(context, 15)),
           Expanded(
             child: Column(
@@ -517,6 +533,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
                   style: TextStyle(
                     fontSize: res(context, 15),
                     fontWeight: FontWeight.w500,
+                    color: valueColor,
                   ),
                 ),
               ],
