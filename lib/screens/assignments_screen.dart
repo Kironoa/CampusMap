@@ -24,6 +24,16 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
   final AssignmentService _assignmentService = AssignmentService();
   late Future<List<Assignment>> _assignmentsFuture;
 
+  String formatDeadline(String? raw) {
+    if (raw == null || raw.isEmpty) return 'No date';
+    try {
+      final dt = DateTime.parse(raw);
+      return DateFormat('MMM dd, yyyy hh:mm a').format(dt);
+    } catch (_) {
+      return raw;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -118,11 +128,6 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
     final priorityColor =
         priority == "High" ? theme.colorScheme.error : theme.colorScheme.primary;
 
-    final deadline = item.deadlineDate;
-    final formattedDate = deadline != null
-        ? DateFormat('MMM dd, hh:mm a').format(deadline)
-        : "No Deadline";
-
     return IntrinsicHeight(
       child: Row(
         children: [
@@ -176,7 +181,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text("DUE: $formattedDate",
+                            Text("DUE: ${formatDeadline(item.deadline)}",
                                 style: TextStyle(
                                     color: priorityColor,
                                     fontWeight: FontWeight.bold,
@@ -344,7 +349,6 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
 
   void _viewDetailsSheet(Assignment item) {
     final theme = Theme.of(context);
-    final deadline = item.deadlineDate;
 
     showModalBottomSheet(
       context: context,
@@ -406,10 +410,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
                       _detailItem(
                           Icons.event_note_rounded,
                           "Deadline",
-                          deadline != null
-                              ? DateFormat('MMM dd, yyyy • hh:mm a')
-                                  .format(deadline)
-                              : "No Deadline Set"),
+                          formatDeadline(item.deadline)),
                       _detailItem(
                           Icons.notes_rounded,
                           "Description",

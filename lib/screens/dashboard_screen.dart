@@ -268,6 +268,16 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
     });
   }
 
+  String formatDeadline(String? raw) {
+    if (raw == null || raw.isEmpty) return 'No date';
+    try {
+      final dt = DateTime.parse(raw);
+      return DateFormat('MMM dd, yyyy hh:mm a').format(dt);
+    } catch (_) {
+      return raw;
+    }
+  }
+
   String _formatCountdown(Schedule? schedule, {bool isNext = false}) {
     if (schedule == null) {
       return isNext ? "No upcoming classes" : "No class active";
@@ -401,7 +411,7 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildPopupDetailRow(Icons.event_note_rounded, "Deadline",
-                  assignment['deadline'] ?? "No deadline set", accent),
+                  formatDeadline(assignment['deadline']), accent),
               if (assignment['description'] != null) ...[
                 SizedBox(height: res(context, 12)),
                 Text("Description",
@@ -1036,7 +1046,7 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
                 fontSize: r(14)),
           ),
           subtitle: Text(
-            "Due: ${assignment['deadline'] ?? 'No date'}",
+            "Due: ${formatDeadline(assignment['deadline'])}",
             style: TextStyle(
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 fontSize: r(12)),

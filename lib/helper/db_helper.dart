@@ -255,7 +255,7 @@ class DatabaseHelper {
   Future<int> insertAssignment(int userId, String subject, String title,
       String desc, String? deadline) async {
     final db = await database;
-    return await db.insert('assignments', {
+    final id = await db.insert('assignments', {
       'userId': userId,
       'subject': subject,
       'title': title,
@@ -263,12 +263,33 @@ class DatabaseHelper {
       'isCompleted': 0,
       'deadline': deadline
     });
+
+    final deadlineDate = DateTime.tryParse(deadline ?? '');
+    if (deadlineDate != null && id > 0) {
+      try {
+        await NotificationService().scheduleAssignmentAlerts(
+          id: id,
+          title: title,
+          deadline: deadlineDate,
+        );
+      } catch (e) {
+        debugPrint("Failed to schedule assignment notifications: $e");
+      }
+    }
+
+    return id;
   }
 
   Future<int> updateAssignment(int id, String subject, String title,
       String desc, String? deadline) async {
+    try {
+      await NotificationService().cancelAssignmentNotifications(id);
+    } catch (e) {
+      debugPrint("Failed to cancel assignment notifications: $e");
+    }
+
     final db = await database;
-    return await db.update(
+    final result = await db.update(
         'assignments',
         {
           'subject': subject,
@@ -278,6 +299,23 @@ class DatabaseHelper {
         },
         where: 'id = ?',
         whereArgs: [id]);
+
+    if (result > 0) {
+      final deadlineDate = DateTime.tryParse(deadline ?? '');
+      if (deadlineDate != null) {
+        try {
+          await NotificationService().scheduleAssignmentAlerts(
+            id: id,
+            title: title,
+            deadline: deadlineDate,
+          );
+        } catch (e) {
+          debugPrint("Failed to reschedule assignment notifications: $e");
+        }
+      }
+    }
+
+    return result;
   }
 
   Future<List<Map<String, dynamic>>> getAssignments(int userId) async {
@@ -287,6 +325,11 @@ class DatabaseHelper {
   }
 
   Future<int> deleteAssignment(int id) async {
+    try {
+      await NotificationService().cancelAssignmentNotifications(id);
+    } catch (e) {
+      debugPrint("Failed to cancel assignment notifications: $e");
+    }
     final db = await database;
     return await db.delete('assignments', where: 'id = ?', whereArgs: [id]);
   }
