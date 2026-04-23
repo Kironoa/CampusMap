@@ -17,6 +17,9 @@ import 'package:mobile_app/screens/notes_screen.dart';
 import 'package:mobile_app/screens/assignments_screen.dart';
 import 'package:mobile_app/screens/login_screen.dart';
 import 'package:mobile_app/screens/chat_screen.dart';
+import 'package:mobile_app/screens/quizzes_screen.dart';
+import 'package:mobile_app/screens/flashcards_screen.dart';
+import 'package:mobile_app/screens/summaries_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -293,15 +296,36 @@ class _StudentDashboardState extends State<StudentDashboard>
     if (schedule == null) {
       return isNext ? "No upcoming classes" : "No class active";
     }
-    final target =
-        isNext ? _parseTime(schedule.startTime) : _parseTime(schedule.endTime);
-    final duration = target.difference(DateTime.now());
-    if (duration.isNegative) return "Completed";
-    String twoDigits(int n) => n.toString().padLeft(2, "0");
-    String h = duration.inHours > 0 ? "${twoDigits(duration.inHours)}h " : "";
-    return isNext
-        ? "In $h${twoDigits(duration.inMinutes.remainder(60))}m"
-        : "$h${twoDigits(duration.inMinutes.remainder(60))}m left";
+    final now = DateTime.now();
+    final currentMinutes = now.hour * 60 + now.minute;
+    
+    if (isNext) {
+      final target = _parseTime(schedule.startTime);
+      final duration = target.difference(now);
+      if (duration.isNegative) return "Completed";
+      String twoDigits(int n) => n.toString().padLeft(2, "0");
+      String h = duration.inHours > 0 ? "${twoDigits(duration.inHours)}h " : "";
+      return "In $h${twoDigits(duration.inMinutes.remainder(60))}m";
+    } else {
+      int endMinutes = schedule.endMinutes;
+      final startMinutes = schedule.startMinutes;
+      if (endMinutes < startMinutes) {
+        if (currentMinutes >= startMinutes) {
+          endMinutes += 1440;
+        }
+      }
+      int targetHour = endMinutes ~/ 60;
+      int targetMinute = endMinutes % 60;
+      var targetTime = DateTime(now.year, now.month, now.day, targetHour, targetMinute);
+      if (targetTime.isBefore(now)) {
+        targetTime = targetTime.add(const Duration(days: 1));
+      }
+      final duration = targetTime.difference(now);
+      if (duration.isNegative) return "Completed";
+      String twoDigits(int n) => n.toString().padLeft(2, "0");
+      String h = duration.inHours > 0 ? "${twoDigits(duration.inHours)}h " : "";
+      return "$h${twoDigits(duration.inMinutes.remainder(60))}m left";
+    }
   }
 
   @override
@@ -541,6 +565,42 @@ class _StudentDashboardState extends State<StudentDashboard>
                                 builder: (context) =>
                                     NotesScreen(userId: widget.userId)),
                           ).then((_) => _loadDashboardData()),
+                        ),
+                        _buildResourceTile(
+                          "Flashcards",
+                          Icons.style_rounded,
+                          "Review your active decks",
+                          dynamicAccent,
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    FlashcardsScreen(userId: widget.userId)),
+                          ),
+                        ),
+                        _buildResourceTile(
+                          "Sample Quizzes",
+                          Icons.psychology_alt_rounded,
+                          "Test your knowledge",
+                          dynamicAccent,
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    QuizzesScreen(userId: widget.userId)),
+                          ),
+                        ),
+                        _buildResourceTile(
+                          "Summaries",
+                          Icons.article_outlined,
+                          "Quick review of key points",
+                          dynamicAccent,
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    SummariesScreen(userId: widget.userId)),
+                          ),
                         ),
                         _buildResourceTile(
                           "Library Access",
@@ -886,7 +946,7 @@ class _StudentDashboardState extends State<StudentDashboard>
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis),
                       SizedBox(height: res(context, 4)),
-                      Text("${item.startTime} - ${item.endTime}",
+                      Text("${item.displayStartTime} - ${item.displayEndTime}",
                           style: TextStyle(
                               color: onSurface.withValues(alpha: 0.6),
                               fontSize: res(context, 10))),
@@ -984,9 +1044,11 @@ class _StudentDashboardState extends State<StudentDashboard>
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
-        child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: child ?? const SizedBox()),
+        child: RepaintBoundary(
+          child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: child ?? const SizedBox()),
+        ),
       ),
     );
   }

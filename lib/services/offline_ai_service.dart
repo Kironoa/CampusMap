@@ -1,28 +1,54 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:mobile_app/helper/db_helper.dart';
+import 'package:mobile_app/models/study_note_model.dart';
 import 'package:mobile_app/services/ai_service.dart';
+import 'package:mobile_app/services/notes_service.dart';
+import 'package:mobile_app/services/study_resource_service.dart';
 
 class OfflineAIService {
   final DatabaseHelper _db = DatabaseHelper();
   final AIService _onlineAI = AIService();
+  final NotesService _notesService = NotesService();
+  final StudyResourceService _resourceService = StudyResourceService();
 
-  /// SMART GENERATION: The main entry point for ResourceScreen.
+  InferenceModel? _localModel;
+
+  /// Call this during your Splash Screen or App Initialization
+  Future<void> initLocalAI() async {
+    try {
+      await FlutterGemma.initialize();
+      _localModel = await FlutterGemma.getActiveModel(
+        // Increased maxTokens to 4096 to support dynamic/long outputs (like 20 flashcards)
+        maxTokens: 4096,
+        preferredBackend: PreferredBackend.gpu,
+      );
+    } catch (e) {
+      debugPrint('Local AI Init Failed: $e');
+    }
+  }
+
   Future<String> generateContent({
     required String prompt,
     required int resourceId,
-    required String type, // "SUMMARY", "FLASHCARDS", or "QUIZ"
+    required String type,
+    int count = 5,
+    bool forceRefresh = false,
   }) async {
     try {
-      // 1. Check Local Cache first
-      final String? cachedContent =
-          await _db.getCachedAIContent(resourceId, type);
-      if (cachedContent != null && cachedContent.isNotEmpty)
-        return cachedContent;
+      if (!forceRefresh) {
+        final String? cachedContent =
+            await _db.getCachedAIContent(resourceId, type);
+        if (cachedContent != null && cachedContent.isNotEmpty) {
+          return cachedContent;
+        }
+      }
 
-      // 2. Check Connection
       final List<ConnectivityResult> connectivityResult =
-          await (Connectivity().checkConnectivity());
-      bool isOnline = !connectivityResult.contains(ConnectivityResult.none);
+          await Connectivity().checkConnectivity();
+      final bool isOnline =
+          !connectivityResult.contains(ConnectivityResult.none);
 
       String finalResult;
 
@@ -30,112 +56,148 @@ class OfflineAIService {
         try {
           finalResult = await _onlineAI.sendMessage(prompt);
           if (finalResult.isEmpty ||
-              finalResult.contains("Error") ||
-              finalResult.contains("limit")) {
-            finalResult = await _generateLocalInference(prompt, type);
+              finalResult.contains('Error') ||
+              finalResult.contains('limit')) {
+            finalResult =
+                await _generateLocalInference(prompt, type, count: count);
           }
-        } catch (e) {
-          finalResult = await _generateLocalInference(prompt, type);
+        } catch (_) {
+          finalResult =
+              await _generateLocalInference(prompt, type, count: count);
         }
       } else {
-        finalResult = await _generateLocalInference(prompt, type);
+        finalResult = await _generateLocalInference(prompt, type, count: count);
       }
 
-      // 3. Save to Cache
-      if (finalResult.isNotEmpty && !finalResult.startsWith("Service Error")) {
+      if (finalResult.isNotEmpty && !finalResult.startsWith('Local AI Error')) {
         await _db.saveAIContentToCache(resourceId, type, finalResult);
       }
 
       return finalResult;
     } catch (e) {
-      return "Service Error: $e";
+      return 'Service Error: $e';
     }
   }
 
-  /// LOCAL INFERENCE: Patterns-based extraction for accuracy
-  Future<String> _generateLocalInference(String prompt, String type) async {
-    // Extract raw text from the prompt
-    String textContent = prompt.split("Text:").last.trim();
-
-    List<String> sentences = textContent
-        .split(RegExp(r'(?<=[.!?])\s+'))
-        .where((s) => s.length > 25)
-        .toList();
-
-    if (sentences.isEmpty) return "Local AI: Not enough content found.";
-
-    if (type == "FLASHCARDS") {
-      StringBuffer buffer = StringBuffer();
-      // Regex to find definitions (Concept IS definition)
-      final defReg =
-          RegExp(r'\b(is|are|refers to|means|defines)\b', caseSensitive: false);
-
-      int count = 0;
-      for (String s in sentences) {
-        if (defReg.hasMatch(s)) {
-          var parts = s.split(defReg);
-          if (parts.length >= 2 && parts[0].trim().length > 3) {
-            buffer.writeln("Q: What is ${parts[0].trim()}?");
-            buffer.writeln("A: ${s.trim()}\n");
-            count++;
-          }
-        }
-        if (count >= 5) break;
-      }
-      return buffer.isNotEmpty
-          ? buffer.toString()
-          : "Q: Key Concept?\nA: ${sentences[0]}";
-    } else if (type == "QUIZ") {
-      StringBuffer buffer = StringBuffer();
-      for (int i = 0; i < (sentences.length > 3 ? 3 : sentences.length); i++) {
-        buffer.writeln(
-            "${i + 1}. Which statement is true regarding '${sentences[i].substring(0, 15)}...'?");
-        buffer.writeln("A) ${sentences[i]}");
-        buffer.writeln("B) It is false.");
-        buffer.writeln("C) It is not mentioned.");
-        buffer.writeln("D) None of the above.");
-        buffer.writeln("Answer: A\n");
-      }
-      return buffer.toString();
+  Future<String> _generateLocalInference(String prompt, String type,
+      {int count = 5}) async {
+    if (_localModel == null) {
+      return "Local AI Error: Offline model not ready. Please download the 'Offline Pack' in settings.";
     }
 
-    return "Offline Summary: ${sentences.take(2).join(' ')}";
-  }
-
-  /// MAIN SEARCH: For the Offline Chat Screen
-  Future<String> getOfflineResponse(int userId, String query) async {
-    if (query.trim().isEmpty) return "Ask me something about your studies!";
     try {
-      final List<Map<String, dynamic>> results =
-          await _db.searchNotesOffline(userId, query.toLowerCase().trim());
+      final chat = await _localModel!.createChat();
+
+      String systemInstruction = "";
+      switch (type.toLowerCase()) {
+        case 'flashcard':
+        case 'flashcards':
+          systemInstruction =
+              "Create exactly $count Q&A flashcards based on the text. Format: Q: [Question] A: [Answer]. Content: ";
+          break;
+        case 'quiz':
+          systemInstruction =
+              "Create a $count-question Multiple Choice Quiz. For EACH question use this exact format:\nQ: [Question]\nA) [Option]\nB) [Option]\nC) [Option]\nD) [Option]\nCorrect: [Letter]\n\nContent: ";
+          break;
+        case 'summary':
+        default:
+          systemInstruction =
+              "Provide a concise summary of the following student notes: ";
+      }
+
+      // The `prompt` already contains the full, formatted instructions
+      // written by the calling screen (notes_screen.dart). We pass it
+      // directly to avoid duplicate / conflicting instructions.
+      // The switch-case above is kept only as a fallback for direct calls
+      // that supply a bare content string without a format header.
+      final bool promptAlreadyFormatted =
+          prompt.toLowerCase().contains('format:') ||
+              prompt.toLowerCase().contains('generate') ||
+              prompt.toLowerCase().contains('summarize');
+
+      final String messageText =
+          promptAlreadyFormatted ? prompt : "$systemInstruction\n$prompt";
+
+      await chat.addQueryChunk(
+        Message.text(text: messageText, isUser: true),
+      );
+
+      final response = await chat.generateChatResponse();
+      await chat.close();
+
+      try {
+        final dynamic dynamicResponse = response;
+        final String? resultText = dynamicResponse.text?.toString();
+
+        if (resultText != null && resultText.isNotEmpty) {
+          return resultText.trim();
+        }
+      } catch (_) {
+        return response.toString().trim();
+      }
+
+      return "Local AI: No text content generated.";
+    } catch (e) {
+      return "Local AI Error: Inference failed - $e";
+    }
+  }
+
+  Future<String> getOfflineResponse(int userId, String query) async {
+    if (query.trim().isEmpty) return 'Ask me something about your studies!';
+
+    try {
+      final List<StudyNote> results = await _notesService.searchNotesOffline(
+        userId,
+        query.toLowerCase().trim(),
+      );
       if (results.isEmpty) return "No local matches found for '$query'.";
 
-      List<String> findings = [];
-      for (var item in results) {
-        bool isNote = item.containsKey('title');
-        findings.add(
-            "${isNote ? "📝" : "📄"} **${isNote ? "NOTE" : "FILE"}: ${item['title'] ?? item['fileName']}**\n${item['content'] ?? item['description']}\n");
-      }
-      return "Found ${results.length} items:\n\n${findings.join("\n---\n")}";
+      final findings = results
+          .map((item) =>
+              'NOTE: ${item.title}\n${item.content ?? item.description ?? ''}\n')
+          .toList();
+
+      return 'Found ${results.length} items:\n\n${findings.join("\n---\n")}';
     } catch (e) {
-      return "Offline AI Error: $e";
+      return 'Offline AI Error: $e';
     }
   }
 
-  String buildSummaryPrompt(String content) => "Summary:\n\n$content";
+  Future<void> downloadOfflineModel(Function(int) onProgress) async {
+    await FlutterGemma.installModel(modelType: ModelType.gemmaIt)
+        .fromNetwork(
+          'https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/gemma3-1b-it-int4.task',
+        )
+        .withProgress((progress) => onProgress(progress))
+        .install();
+
+    await initLocalAI();
+  }
+
+  String buildSummaryPrompt(String content) => 'Summary:\n\n$content';
+
   String buildFlashcardPrompt(String content, {int count = 5}) =>
-      "Q/A Format:\n\nText:\n$content";
+      'Generate $count Flashcards:\n\nText:\n$content';
+
   String buildQuizPrompt(String content, int count) =>
-      "Quiz:\n\nText:\n$content";
+      'Generate a $count-question Quiz:\n\nText:\n$content';
 
   Future<Map<String, String>> getContentForGeneration(
       int id, bool isNote) async {
-    final data =
-        isNote ? await _db.getNoteById(id) : await _db.getResourceById(id);
-    if (data == null) return {"title": "Unknown", "content": ""};
+    if (isNote) {
+      final note = await _notesService.getNoteById(id);
+      if (note == null) return {'title': 'Unknown', 'content': ''};
+      return {
+        'title': note.title,
+        'content': note.content ?? note.description ?? '',
+      };
+    }
+
+    final resource = await _resourceService.getResourceById(id);
+    if (resource == null) return {'title': 'Unknown', 'content': ''};
     return {
-      "title": (isNote ? data['title'] : data['fileName']) ?? "Untitled",
-      "content": data['content'] ?? data['description'] ?? "",
+      'title': resource.fileName,
+      'content': resource.content ?? '',
     };
   }
 }

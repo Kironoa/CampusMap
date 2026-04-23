@@ -5,6 +5,9 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
+const String noteChannelId = 'student_pal_note_reminders';
+const String noteChannelName = 'Study Note Reminders';
+
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
   factory NotificationService() => _instance;
@@ -17,7 +20,6 @@ class NotificationService {
   static const String channelName = 'Student Pal Reminders';
 
   Future<void> init() async {
-    // 1. Timezone Initialization
     tz_data.initializeTimeZones();
     try {
       var tzName = await FlutterTimezone.getLocalTimezone();
@@ -26,8 +28,6 @@ class NotificationService {
       // Default to Manila if lookup fails
       tz.setLocalLocation(tz.getLocation('Asia/Manila'));
     }
-
-    // 2. Local Notification Settings
     const config = InitializationSettings(
       android: AndroidInitializationSettings('@mipmap/ic_launcher'),
       iOS: DarwinInitializationSettings(),
@@ -39,8 +39,6 @@ class NotificationService {
         debugPrint("Notification tapped: ${details.payload}");
       },
     );
-
-    // 3. Create Android Channel
     if (Platform.isAndroid) {
       await _notifications
           .resolvePlatformSpecificImplementation<
@@ -54,18 +52,25 @@ class NotificationService {
               enableVibration: true,
             ),
           );
+      await _notifications
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(
+            const AndroidNotificationChannel(
+              noteChannelId,
+              noteChannelName,
+              importance: Importance.high,
+              playSound: true,
+              enableVibration: false,
+            ),
+          );
     }
   }
-
-  // REPLACED: Removed Firebase _setupFirebase and showNotification(RemoteMessage)
-  // Local notifications are now purely handled via _schedule
 
   Future<void> requestPermissions() async {
     if (Platform.isAndroid) {
       final android = _notifications.resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>();
-
-      // Requesting permissions for Android 13+ stability
       await android?.requestNotificationsPermission();
       await android?.requestExactAlarmsPermission();
     } else if (Platform.isIOS) {
@@ -76,8 +81,6 @@ class NotificationService {
     }
   }
 
-  // --- CLASS SCHEDULE METHODS ---
-
   Future<void> scheduleClassAlerts({
     required int id,
     required String subject,
@@ -85,7 +88,6 @@ class NotificationService {
   }) async {
     final now = DateTime.now();
 
-    // 10 Minutes Before
     await _schedule(
       id: id + 1000,
       title: 'Class Reminder',
@@ -94,7 +96,6 @@ class NotificationService {
       now: now,
     );
 
-    // 1 Minute Before
     await _schedule(
       id: id + 1001,
       title: 'Class Starting Soon',
@@ -154,5 +155,35 @@ class NotificationService {
       ),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
     );
+  }
+
+  Future<void> scheduleNoteReminders({
+    required int noteId,
+    required String noteTitle,
+    required DateTime reminderTime,
+  }) async {
+    final now = DateTime.now();
+    final id = noteId + 2000;
+
+    if (reminderTime.isAfter(now)) {
+      await _schedule(
+        id: id,
+        title: 'Study Reminder',
+        body: 'Time to review: $noteTitle',
+        time: reminderTime,
+        now: now,
+      );
+    }
+  }
+
+  Future<void> cancelNoteReminder(int noteId) async {
+    final id = noteId + 2000;
+    await _notifications.cancel(id: id);
+  }
+
+  Future<void> cancelAllNoteReminders() async {
+    for (int i = 0; i < 1000; i++) {
+      await _notifications.cancel(id: i + 2000);
+    }
   }
 }

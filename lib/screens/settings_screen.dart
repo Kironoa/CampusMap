@@ -7,8 +7,6 @@ import 'package:mobile_app/widgets/about.dart';
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
-  // Helper for responsive font sizes
-
   double res(BuildContext context, double size) {
     return size * (MediaQuery.of(context).size.width / 375);
   }

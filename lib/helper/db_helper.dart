@@ -3,6 +3,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:path/path.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_app/models/schedule_model.dart';
+import 'package:mobile_app/models/class_model.dart';
 import 'package:mobile_app/services/notification_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
@@ -26,13 +27,12 @@ class DatabaseHelper {
       databaseFactory = databaseFactoryFfi;
     }
 
-    // STABILITY FIX: Use getApplicationSupportDirectory for Windows to avoid permission issues
     final directory = await getApplicationSupportDirectory();
     final path = join(directory.path, 'student_pal.db');
 
     return await openDatabase(
       path,
-      version: 15, // Version 15 triggers the UNIQUE constraint logic
+      version: 16,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE users(
@@ -68,51 +68,38 @@ class DatabaseHelper {
           await _createAssignmentsTable(db);
           await _createNotesTable(db);
         }
+        if (oldVersion < 7) await _createSettingsTable(db);
         if (oldVersion < 8) {
           var columns = await db.rawQuery('PRAGMA table_info(assignments)');
-          bool hasDeadline =
-              columns.any((column) => column['name'] == 'deadline');
-          if (!hasDeadline) {
+          if (!columns.any((column) => column['name'] == 'deadline')) {
             await db
                 .execute('ALTER TABLE assignments ADD COLUMN deadline TEXT');
           }
         }
-        if (oldVersion < 7) await _createSettingsTable(db);
-
-        if (oldVersion < 9) {
-          await _createResourcesTable(db);
-        } else if (oldVersion < 11) {
+        if (oldVersion < 11) {
           await db.execute('DROP TABLE IF EXISTS study_resources');
           await _createResourcesTable(db);
         }
-
         if (oldVersion < 12) {
           await db.execute('ALTER TABLE notes ADD COLUMN content TEXT');
         }
-
         if (oldVersion < 13) {
           var columns = await db.rawQuery('PRAGMA table_info(study_resources)');
-          bool hasContent =
-              columns.any((column) => column['name'] == 'content');
-          if (!hasContent) {
+          if (!columns.any((column) => column['name'] == 'content')) {
             await db
                 .execute('ALTER TABLE study_resources ADD COLUMN content TEXT');
           }
         }
-
-        if (oldVersion < 14) {
-          await _createAiCacheTable(db);
-        }
-
         if (oldVersion < 15) {
           await db.execute('DROP TABLE IF EXISTS ai_cache');
           await _createAiCacheTable(db);
         }
+        if (oldVersion < 16) {
+          debugPrint("Upgraded to Version 16: Ready for Manual Notes AI");
+        }
       },
     );
   }
-
-  // --- TABLE CREATION HELPERS ---
 
   Future<void> _createSettingsTable(Database db) async {
     await db.execute('''
@@ -174,7 +161,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE ai_cache(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        resourceId INTEGER,
+        resourceId INTEGER, 
         type TEXT,
         content TEXT,
         createdAt TEXT,
@@ -182,8 +169,6 @@ class DatabaseHelper {
       )
     ''');
   }
-
-  // --- AI CACHE METHODS ---
 
   Future<String?> getCachedAIContent(int resourceId, String type) async {
     final db = await database;
@@ -206,14 +191,10 @@ class DatabaseHelper {
         conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
-  // FORCE CLEAN: Use this to wipe AI data if generation is inaccurate
   Future<void> clearAllAiCache() async {
     final db = await database;
     await db.delete('ai_cache');
-    debugPrint("AI Cache cleared successfully.");
   }
-
-  // --- DATA OPERATIONS (All Preserved) ---
 
   Future<Map<String, dynamic>> getSettings() async {
     final db = await database;
@@ -253,7 +234,6 @@ class DatabaseHelper {
           await db.query('users', where: 'id = ?', whereArgs: [userId]);
       return results.isNotEmpty ? results.first : null;
     } catch (e) {
-      debugPrint("Get User Error: $e");
       return null;
     }
   }
@@ -267,39 +247,29 @@ class DatabaseHelper {
   Future<int> insertAssignment(int userId, String subject, String title,
       String desc, String? deadline) async {
     final db = await database;
-    try {
-      return await db.insert('assignments', {
-        'userId': userId,
-        'subject': subject,
-        'title': title,
-        'description': desc,
-        'isCompleted': 0,
-        'deadline': deadline
-      });
-    } catch (e) {
-      debugPrint("Insert Assignment Error: $e");
-      return -1;
-    }
+    return await db.insert('assignments', {
+      'userId': userId,
+      'subject': subject,
+      'title': title,
+      'description': desc,
+      'isCompleted': 0,
+      'deadline': deadline
+    });
   }
 
   Future<int> updateAssignment(int id, String subject, String title,
       String desc, String? deadline) async {
     final db = await database;
-    try {
-      return await db.update(
-          'assignments',
-          {
-            'subject': subject,
-            'title': title,
-            'description': desc,
-            'deadline': deadline
-          },
-          where: 'id = ?',
-          whereArgs: [id]);
-    } catch (e) {
-      debugPrint("Update Assignment Error: $e");
-      return -1;
-    }
+    return await db.update(
+        'assignments',
+        {
+          'subject': subject,
+          'title': title,
+          'description': desc,
+          'deadline': deadline
+        },
+        where: 'id = ?',
+        whereArgs: [id]);
   }
 
   Future<List<Map<String, dynamic>>> getAssignments(int userId) async {
@@ -325,19 +295,18 @@ class DatabaseHelper {
     });
   }
 
-  Future<int> updateNote(int id, String title, String desc,
-      {String content = ''}) async {
+  Future<int> updateNote(int id, String? title, String? desc,
+      {String? content}) async {
     final db = await database;
-    return await db.update(
-        'notes',
-        {
-          'title': title,
-          'description': desc,
-          'content': content,
-          'dateCreated': DateTime.now().toIso8601String()
-        },
-        where: 'id = ?',
-        whereArgs: [id]);
+    Map<String, dynamic> data = {
+      'dateCreated': DateTime.now().toIso8601String()
+    };
+
+    if (title != null) data['title'] = title;
+    if (desc != null) data['description'] = desc;
+    if (content != null) data['content'] = content;
+
+    return await db.update('notes', data, where: 'id = ?', whereArgs: [id]);
   }
 
   Future<List<Map<String, dynamic>>> getNotes(int userId) async {
@@ -349,6 +318,23 @@ class DatabaseHelper {
   Future<int> deleteNote(int id) async {
     final db = await database;
     return await db.delete('notes', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<List<Map<String, dynamic>>> searchNotesOffline(
+      int userId, String query) async {
+    final db = await database;
+    return await db.query('notes',
+        where:
+            'userId = ? AND (title LIKE ? OR description LIKE ? OR content LIKE ?)',
+        whereArgs: [userId, '%$query%', '%$query%', '%$query%'],
+        orderBy: 'dateCreated DESC');
+  }
+
+  Future<Map<String, dynamic>?> getNoteById(int id) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps =
+        await db.query('notes', where: 'id = ?', whereArgs: [id]);
+    return maps.isNotEmpty ? maps.first : null;
   }
 
   Future<int> insertResource(
@@ -385,6 +371,13 @@ class DatabaseHelper {
     return await db.delete('study_resources', where: 'id = ?', whereArgs: [id]);
   }
 
+  Future<Map<String, dynamic>?> getResourceById(int id) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps =
+        await db.query('study_resources', where: 'id = ?', whereArgs: [id]);
+    return maps.isNotEmpty ? maps.first : null;
+  }
+
   Future<int> insertSchedule(Schedule schedule, int currentUserId) async {
     final db = await database;
     Map<String, dynamic> row = schedule.toMap();
@@ -416,15 +409,45 @@ class DatabaseHelper {
     final db = await database;
     try {
       await NotificationService().cancelNotification(id);
-    } catch (e) {
-      debugPrint("Notification cancel failed: $e");
-    }
+    } catch (_) {}
     return await db.delete('schedules', where: 'id = ?', whereArgs: [id]);
   }
 
-  Future<List<Map<String, dynamic>>> getDatabaseData(String tableName) async {
+  Future<List<ClassModel>> getAllClassModels(int currentUserId) async {
+    debugPrint('[DatabaseHelper] getAllClassModels: Fetching all classes for userId=$currentUserId');
     final db = await database;
-    return await db.query(tableName);
+    final List<Map<String, dynamic>> maps = await db
+        .query('schedules', where: 'userId = ?', whereArgs: [currentUserId]);
+    final classes = maps.map((m) => ClassModel.fromMap(m)).toList();
+    debugPrint('[DatabaseHelper] getAllClassModels: Found ${classes.length} classes');
+    return classes;
+  }
+
+  Future<int> insertClassModel(ClassModel classModel, int currentUserId) async {
+    debugPrint('[DatabaseHelper] insertClassModel: Creating class "${classModel.subject}" for userId=$currentUserId');
+    debugPrint('[DatabaseHelper] insertClassModel: startTime=${classModel.startTime}, endTime=${classModel.endTime}');
+    final db = await database;
+    final row = classModel.toMap();
+    row['userId'] = currentUserId;
+    row.remove('id');
+    final id = await db.insert('schedules', row);
+    await _syncScheduleNotification(id, classModel.subject, classModel.startTime);
+    debugPrint('[DatabaseHelper] insertClassModel: SUCCESS id=$id');
+    return id;
+  }
+
+  Future<void> updateClassModel(ClassModel classModel) async {
+    debugPrint('[DatabaseHelper] updateClassModel: Updating class id=${classModel.id}');
+    debugPrint('[DatabaseHelper] updateClassModel: startTime=${classModel.startTime}, endTime=${classModel.endTime}');
+    final db = await database;
+    final row = classModel.toMap();
+    row.remove('id');
+    row.remove('userId');
+    await db.update('schedules', row, where: 'id = ?', whereArgs: [classModel.id]);
+    debugPrint('[DatabaseHelper] updateClassModel: SUCCESS');
+    if (classModel.id != null) {
+      await _syncScheduleNotification(classModel.id!, classModel.subject, classModel.startTime);
+    }
   }
 
   Future<void> _syncScheduleNotification(
@@ -447,29 +470,5 @@ class DatabaseHelper {
     } catch (e) {
       debugPrint("Sync failed: $e");
     }
-  }
-
-  Future<List<Map<String, dynamic>>> searchNotesOffline(
-      int userId, String query) async {
-    final db = await database;
-    return await db.query('notes',
-        where:
-            'userId = ? AND (title LIKE ? OR description LIKE ? OR content LIKE ?)',
-        whereArgs: [userId, '%$query%', '%$query%', '%$query%'],
-        orderBy: 'dateCreated DESC');
-  }
-
-  Future<Map<String, dynamic>?> getNoteById(int id) async {
-    final db = await database;
-    final List<Map<String, dynamic>> maps =
-        await db.query('notes', where: 'id = ?', whereArgs: [id]);
-    return maps.isNotEmpty ? maps.first : null;
-  }
-
-  Future<Map<String, dynamic>?> getResourceById(int id) async {
-    final db = await database;
-    final List<Map<String, dynamic>> maps =
-        await db.query('study_resources', where: 'id = ?', whereArgs: [id]);
-    return maps.isNotEmpty ? maps.first : null;
   }
 }

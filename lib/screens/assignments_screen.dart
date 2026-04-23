@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'package:intl/intl.dart';
+import 'package:mobile_app/models/assignment_model.dart';
 import 'package:provider/provider.dart';
 import 'package:mobile_app/services/theme_provider.dart';
-import 'package:mobile_app/helper/db_helper.dart';
+import 'package:mobile_app/services/assignment_service.dart';
 import 'package:mobile_app/widgets/text_field.dart';
 
 double res(BuildContext context, double value) {
@@ -20,8 +21,8 @@ class AssignmentsScreen extends StatefulWidget {
 }
 
 class _AssignmentsScreenState extends State<AssignmentsScreen> {
-  final dbHelper = DatabaseHelper();
-  late Future<List<Map<String, dynamic>>> _assignmentsFuture;
+  final AssignmentService _assignmentService = AssignmentService();
+  late Future<List<Assignment>> _assignmentsFuture;
 
   @override
   void initState() {
@@ -31,7 +32,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
 
   void _refreshAssignments() {
     setState(() {
-      _assignmentsFuture = dbHelper.getAssignments(widget.userId);
+      _assignmentsFuture = _assignmentService.getAssignments(widget.userId);
     });
   }
 
@@ -75,7 +76,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: FutureBuilder<List<Map<String, dynamic>>>(
+      body: FutureBuilder<List<Assignment>>(
         future: _assignmentsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -111,15 +112,13 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
     );
   }
 
-  Widget _buildAssignmentTile(
-      Map<String, dynamic> item, int index, int totalItems) {
+  Widget _buildAssignmentTile(Assignment item, int index, int totalItems) {
     final theme = Theme.of(context);
-    final priority = item['priority'] ?? "Normal";
+    const priority = "Normal";
     final priorityColor =
         priority == "High" ? Colors.redAccent : theme.colorScheme.primary;
 
-    final deadlineStr = item['deadline'];
-    final deadline = deadlineStr != null ? DateTime.parse(deadlineStr) : null;
+    final deadline = item.deadlineDate;
     final formattedDate = deadline != null
         ? DateFormat('MMM dd, hh:mm a').format(deadline)
         : "No Deadline";
@@ -189,7 +188,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
                           ],
                         ),
                         SizedBox(height: res(context, 8)),
-                        Text(item['title'],
+                        Text(item.title,
                             style: TextStyle(
                                 color: theme.colorScheme.onSurface,
                                 fontSize: res(context, 17),
@@ -201,7 +200,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
                                 size: res(context, 14),
                                 color: theme.colorScheme.secondary),
                             SizedBox(width: res(context, 4)),
-                            Text(item['subject'] ?? "General",
+                            Text(item.subject ?? "General",
                                 style: TextStyle(
                                     color: theme.colorScheme.secondary,
                                     fontSize: res(context, 13),
@@ -220,18 +219,16 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
     );
   }
 
-  void _showForm({Map<String, dynamic>? assignment}) {
+  void _showForm({Assignment? assignment}) {
     final isEdit = assignment != null;
     final theme = Theme.of(context);
     final subjectCtrl =
-        TextEditingController(text: isEdit ? assignment['subject'] : "");
+        TextEditingController(text: isEdit ? assignment.subject : "");
     final titleCtrl =
-        TextEditingController(text: isEdit ? assignment['title'] : "");
+        TextEditingController(text: isEdit ? assignment.title : "");
     final descCtrl =
-        TextEditingController(text: isEdit ? assignment['description'] : "");
-    DateTime? tempDeadline = isEdit && assignment['deadline'] != null
-        ? DateTime.parse(assignment['deadline'])
-        : null;
+        TextEditingController(text: isEdit ? assignment.description : "");
+    DateTime? tempDeadline = assignment?.deadlineDate;
 
     showModalBottomSheet(
       context: context,
@@ -282,6 +279,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
                   trailing:
                       Icon(Icons.chevron_right_rounded, color: theme.hintColor),
                   onTap: () async {
+                    if (!context.mounted) return;
                     final date = await showDatePicker(
                         context: context,
                         initialDate: tempDeadline ?? DateTime.now(),
@@ -311,26 +309,23 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
                           borderRadius: BorderRadius.circular(18))),
                   onPressed: () async {
                     if (titleCtrl.text.isNotEmpty) {
-                      final dl = tempDeadline?.toIso8601String();
-                      if (isEdit) {
-                        await dbHelper.updateAssignment(
-                            assignment['id'],
-                            subjectCtrl.text,
-                            titleCtrl.text,
-                            descCtrl.text,
-                            dl);
-                        _showGlassAlert(
-                            "Task Updated", theme.colorScheme.primary);
-                      } else {
-                        await dbHelper.insertAssignment(
-                            widget.userId,
-                            subjectCtrl.text,
-                            titleCtrl.text,
-                            descCtrl.text,
-                            dl);
-                        _showGlassAlert(
-                            "Task Saved", theme.colorScheme.primary);
-                      }
+                      final assignmentData = Assignment(
+                        id: assignment?.id,
+                        userId: widget.userId,
+                        subject: subjectCtrl.text,
+                        title: titleCtrl.text,
+                        description: descCtrl.text,
+                        deadline: tempDeadline?.toIso8601String(),
+                      );
+                      await _assignmentService.saveAssignment(
+                        widget.userId,
+                        assignmentData,
+                      );
+                      if (!context.mounted) return;
+                      _showGlassAlert(
+                        isEdit ? "Task Updated" : "Task Saved",
+                        theme.colorScheme.primary,
+                      );
                       _refreshAssignments();
                       if (mounted) Navigator.pop(context);
                     }
@@ -347,26 +342,35 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
     );
   }
 
-  void _viewDetailsSheet(Map<String, dynamic> item) {
+  void _viewDetailsSheet(Assignment item) {
     final theme = Theme.of(context);
-    final deadlineStr = item['deadline'];
-    final deadline = deadlineStr != null ? DateTime.parse(deadlineStr) : null;
+    final deadline = item.deadlineDate;
 
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      isScrollControlled: true,
+      isScrollControlled:
+          true, // Crucial for letting the sheet expand with keyboard/long text
       builder: (context) => BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Container(
-          padding: EdgeInsets.all(res(context, 25)),
+          // Limits the height to 80% of the screen so it doesn't feel like a full page
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.8,
+          ),
+          padding: EdgeInsets.fromLTRB(
+            res(context, 25),
+            res(context, 15), // Reduced top padding for the handle
+            res(context, 25),
+            res(context, 25),
+          ),
           decoration: BoxDecoration(
             color: theme.colorScheme.surface.withValues(alpha: 0.9),
             borderRadius:
                 BorderRadius.vertical(top: Radius.circular(res(context, 30))),
           ),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisSize: MainAxisSize.min, // Keeps it compact if text is short
             children: [
               // Drag Handle
               Container(
@@ -379,35 +383,51 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
               ),
               SizedBox(height: res(context, 25)),
 
-              // Title
-              Text(
-                item['title'],
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: res(context, 22),
-                  fontWeight: FontWeight.bold,
+              // Scrollable Content Area
+              Flexible(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    children: [
+                      // Title
+                      Text(
+                        item.title,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: res(context, 22),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: res(context, 20)),
+
+                      // Detail Items
+                      _detailItem(Icons.book_rounded, "Subject",
+                          item.subject ?? "General"),
+                      _detailItem(
+                          Icons.event_note_rounded,
+                          "Deadline",
+                          deadline != null
+                              ? DateFormat('MMM dd, yyyy • hh:mm a')
+                                  .format(deadline)
+                              : "No Deadline Set"),
+                      _detailItem(
+                          Icons.notes_rounded,
+                          "Description",
+                          (item.description == null ||
+                                  item.description!.isEmpty)
+                              ? "No additional notes."
+                              : item.description!),
+
+                      // Extra spacing inside scroll area to prevent buttons from hiding text
+                      SizedBox(height: res(context, 20)),
+                    ],
+                  ),
                 ),
               ),
+
               SizedBox(height: res(context, 20)),
 
-              _detailItem(
-                  Icons.book_rounded, "Subject", item['subject'] ?? "General"),
-              _detailItem(
-                  Icons.event_note_rounded,
-                  "Deadline",
-                  deadline != null
-                      ? DateFormat('MMM dd, yyyy • hh:mm a').format(deadline)
-                      : "No Deadline Set"),
-              _detailItem(
-                  Icons.notes_rounded,
-                  "Description",
-                  (item['description'] == null || item['description'].isEmpty)
-                      ? "No additional notes."
-                      : item['description']),
-
-              SizedBox(height: res(context, 30)),
-
-              // Action Buttons
+              // Action Buttons - Stays at the bottom
               Row(
                 children: [
                   Expanded(
@@ -422,7 +442,9 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
                       ),
                       onPressed: () {
                         Navigator.pop(context);
-                        _confirmDelete(item['id']);
+                        if (item.id != null) {
+                          _confirmDelete(item.id!);
+                        }
                       },
                       child: Text(
                         "DELETE",
@@ -461,7 +483,6 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
                   ),
                 ],
               ),
-              SizedBox(height: res(context, 20)),
             ],
           ),
         ),
@@ -519,9 +540,10 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
               child: const Text("BACK")),
           TextButton(
               onPressed: () async {
-                await dbHelper.deleteAssignment(id);
+                await _assignmentService.deleteAssignment(id);
                 _refreshAssignments();
-                if (mounted) Navigator.pop(context);
+                if (!context.mounted) return;
+                Navigator.pop(context);
                 _showGlassAlert("Task removed", Colors.redAccent);
               },
               child: const Text("DELETE",

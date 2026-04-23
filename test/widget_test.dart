@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mobile_app/screens/dashboard_screen.dart';
+import 'package:mobile_app/screens/login_screen.dart';
 
 void main() {
   testWidgets('Dashboard UI content test', (WidgetTester tester) async {
     // 1. Pump the Dashboard directly for a faster UI-specific test
     // Wrap it in a MaterialApp so it has access to the Poppins font and theme
-    await tester.pumpWidget(const MaterialApp(home: StudentPalApp()));
+    await tester.pumpWidget(const MaterialApp(home: StudentPalLogin()));
 
     // 2. Verify the Header
     expect(find.text('Student Pal'), findsOneWidget);

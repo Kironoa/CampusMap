@@ -1,10 +1,7 @@
 import 'package:google_generative_ai/google_generative_ai.dart';
 
 class AIService {
-  // Use your NEW API Key from the NEW project here
   static const String _apiKey = "AIzaSyBFheu_5ytEB5ph5VIXtLMBmUkbrw1Gtek";
-
-  // SINGLETON PATTERN: Prevents multiple connections that eat quota
   static final AIService _instance = AIService._internal();
   factory AIService() => _instance;
 

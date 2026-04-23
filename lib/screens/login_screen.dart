@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_app/models/app_user.dart';
 import 'package:mobile_app/screens/dashboard_screen.dart';
 import 'package:mobile_app/screens/signup_screen.dart';
 import 'package:mobile_app/glass_modal.dart';
-import 'package:mobile_app/helper/db_helper.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:mobile_app/services/auth_service.dart';
 
 class StudentPalLogin extends StatefulWidget {
   const StudentPalLogin({super.key});
@@ -14,6 +14,7 @@ class StudentPalLogin extends StatefulWidget {
 
 class _StudentPalLoginState extends State<StudentPalLogin> {
   bool isPressed = false;
+  final AuthService _authService = AuthService();
   final TextEditingController _userController = TextEditingController();
   final TextEditingController _passController = TextEditingController();
 
@@ -46,19 +47,10 @@ class _StudentPalLoginState extends State<StudentPalLogin> {
     }
 
     try {
-      final user = await DatabaseHelper().checkLogin(username, password);
+      final user = await _authService.login(username, password);
 
       if (user != null) {
-        final String dbName = user['username'];
-        final int dbId = user['id'];
-
-        // SAVE LOGIN SESSION
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('isLoggedIn', true);
-        await prefs.setInt('userId', dbId);
-        await prefs.setString('username', dbName);
-
-        _showSuccessModal(dbName, dbId);
+        _showSuccessModal(user);
       } else {
         _showErrorModal("Invalid username or password.");
       }
@@ -68,7 +60,7 @@ class _StudentPalLoginState extends State<StudentPalLogin> {
     }
   }
 
-  void _showSuccessModal(String name, int userId) {
+  void _showSuccessModal(AppUser user) {
     GlassModal.show(
       context,
       title: "Sumakses!",
@@ -78,7 +70,7 @@ class _StudentPalLoginState extends State<StudentPalLogin> {
           buildGlassIcon(Icons.check_rounded, const Color(0xFF00FF75)),
           const SizedBox(height: 20),
           Text(
-            "Welcome, @$name enjoy and study well.",
+            "Welcome, @${user.username} enjoy and study well.",
             textAlign: TextAlign.center,
             style: const TextStyle(color: Colors.white70),
           ),
@@ -90,7 +82,7 @@ class _StudentPalLoginState extends State<StudentPalLogin> {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-                builder: (context) => StudentDashboard(userId: userId),
+                builder: (context) => StudentDashboard(userId: user.id),
               ),
             );
           }

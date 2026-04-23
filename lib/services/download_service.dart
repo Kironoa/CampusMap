@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
 class ModelDownloader {
@@ -13,25 +14,25 @@ class ModelDownloader {
 
       // 2. Check if it already exists
       if (await File(savePath).exists()) {
-        print("Model already downloaded at: $savePath");
+        debugPrint("Model already downloaded at: $savePath");
         return File(savePath);
       }
 
       // 3. Start download
-      print("Downloading model...");
+      debugPrint("Downloading model...");
       await _dio.download(
         url,
         savePath,
         onReceiveProgress: (received, total) {
           if (total != -1) {
-            print("${(received / total * 100).toStringAsFixed(0)}%");
+            debugPrint("${(received / total * 100).toStringAsFixed(0)}%");
           }
         },
       );
 
       return File(savePath);
     } catch (e) {
-      print("Download Error: $e");
+      debugPrint("Download Error: $e");
       return null;
     }
   }

@@ -1,18 +1,19 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:mobile_app/models/user_session.dart';
 import 'package:mobile_app/screens/login_screen.dart';
 import 'package:mobile_app/screens/dashboard_screen.dart';
+import 'package:mobile_app/services/auth_service.dart';
 import 'package:mobile_app/services/notification_service.dart';
 import 'package:mobile_app/services/theme_provider.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
-import 'package:shared_preferences/shared_preferences.dart';
 
-// 1. Global Supabase Client Access
 final supabase = Supabase.instance.client;
 
 void main() async {
@@ -56,26 +57,19 @@ void main() async {
   }
 
   runApp(
-    ChangeNotifierProvider.value(
-      value: themeProvider,
-      child: const StudentPalApp(),
+    ProviderScope(
+      child: ChangeNotifierProvider.value(
+        value: themeProvider,
+        child: StudentPalApp(),
+      ),
     ),
   );
 }
 
 class StudentPalApp extends StatelessWidget {
-  const StudentPalApp({super.key});
+  StudentPalApp({super.key});
 
-  // Check Auth Status (Now updated for Supabase style or kept as Prefs)
-  Future<Map<String, dynamic>> _checkAuth() async {
-    // Option A: Keep using SharedPreferences
-    final prefs = await SharedPreferences.getInstance();
-    final bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
-    final int? userId = prefs.getInt('userId');
-
-    // Option B: You can eventually use supabase.auth.currentSession != null
-    return {'isLoggedIn': isLoggedIn, 'userId': userId};
-  }
+  final AuthService _authService = AuthService();
 
   @override
   Widget build(BuildContext context) {
@@ -96,8 +90,8 @@ class StudentPalApp extends StatelessWidget {
           child: child!,
         );
       },
-      home: FutureBuilder<Map<String, dynamic>>(
-        future: _checkAuth(),
+      home: FutureBuilder<UserSession>(
+        future: _authService.loadSession(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Scaffold(
@@ -108,11 +102,10 @@ class StudentPalApp extends StatelessWidget {
             );
           }
 
-          final bool isLoggedIn = snapshot.data?['isLoggedIn'] ?? false;
-          final int? userId = snapshot.data?['userId'];
+          final session = snapshot.data ?? UserSession.loggedOut;
 
-          if (isLoggedIn && userId != null) {
-            return StudentDashboard(userId: userId);
+          if (session.hasActiveUser) {
+            return StudentDashboard(userId: session.userId!);
           } else {
             return const Scaffold(
               resizeToAvoidBottomInset: false,

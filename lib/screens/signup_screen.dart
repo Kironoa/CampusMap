@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_app/helper/db_helper.dart';
 import 'package:mobile_app/glass_modal.dart';
+import 'package:mobile_app/services/auth_service.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -11,6 +11,7 @@ class SignUpScreen extends StatefulWidget {
 
 class _SignUpScreenState extends State<SignUpScreen> {
   bool isPressed = false;
+  final AuthService _authService = AuthService();
   final TextEditingController _userController = TextEditingController();
   final TextEditingController _passController = TextEditingController();
   final TextEditingController _confirmPassController = TextEditingController();
@@ -50,19 +51,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
 
     try {
-      final db = await DatabaseHelper().database;
-      final existing = await db.query(
-        'users',
-        where: 'username = ?',
-        whereArgs: [username],
-      );
-
-      if (existing.isNotEmpty) {
+      if (await _authService.usernameExists(username)) {
         _showModal("Nah!", "Username taken.", isError: true);
         return;
       }
 
-      await DatabaseHelper().registerUser(username, password);
+      await _authService.register(username, password);
       if (!mounted) return;
 
       GlassModal.show(
