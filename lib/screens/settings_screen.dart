@@ -7,8 +7,9 @@ import 'package:mobile_app/widgets/about.dart';
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
-  double res(BuildContext context, double size) {
-    return size * (MediaQuery.of(context).size.width / 375);
+  double res(BuildContext context, double value) {
+    final provider = Provider.of<ThemeProvider>(context, listen: false);
+    return value * provider.uiScale;
   }
 
   @override
@@ -48,100 +49,96 @@ class SettingsScreen extends StatelessWidget {
           builder: (context, constraints) {
             return SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
-              child: Transform.scale(
-                scale: scale,
-                alignment: Alignment.topCenter,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildSectionHeader("Appearance", primaryColor),
-                    ListTile(
-                      leading:
-                          Icon(isDark ? Icons.dark_mode : Icons.light_mode),
-                      title: const Text("Brightness Mode"),
-                      subtitle: Text(
-                          isDark ? "Dark Mode Active" : "Light Mode Active"),
-                      trailing: Switch(
-                        value: isDark,
-                        activeThumbColor: primaryColor,
-                        onChanged: (value) {
-                          themeProvider.setBrightness(
-                              value ? Brightness.dark : Brightness.light);
-                        },
-                      ),
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.palette_outlined),
-                      title: const Text("Theme Color"),
-                      subtitle: const Text("Select your favorite accent"),
-                      trailing: Container(
-                        width: 24,
-                        height: 24,
-                        decoration: BoxDecoration(
-                          color: primaryColor,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      onTap: () => _showThemeDialog(context),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16.0,
-                        vertical: 8.0,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                "Interface Scale",
-                                style: TextStyle(fontSize: 16),
-                              ),
-                              Text(
-                                "${(scale * 100).round()}%",
-                                style: TextStyle(
-                                  color: primaryColor,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                          Slider(
-                            value: scale,
-                            min: 0.8,
-                            max: 1.2,
-                            divisions: 4,
-                            label: "${(scale * 100).round()}%",
-                            activeColor: primaryColor,
-                            onChanged: (double value) {
-                              themeProvider.setScale(value);
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Divider(indent: 16, endIndent: 16),
-                    _buildSectionHeader("General", primaryColor),
-                    _buildListTile(
-                        Icons.notifications_none, "Notifications", () {}),
-                    _buildListTile(
-                        Icons.lock_outline, "Privacy & Security", () {}),
-                    _buildListTile(
-                      Icons.info_outline,
-                      "About",
-                      () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const AboutScreen()),
-                        );
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildSectionHeader("Appearance", primaryColor, context),
+                  ListTile(
+                    leading:
+                        Icon(isDark ? Icons.dark_mode : Icons.light_mode),
+                    title: const Text("Brightness Mode"),
+                    subtitle: Text(
+                        isDark ? "Dark Mode Active" : "Light Mode Active"),
+                    trailing: Switch(
+                      value: isDark,
+                      activeThumbColor: primaryColor,
+                      onChanged: (value) {
+                        themeProvider.setBrightness(
+                            value ? Brightness.dark : Brightness.light);
                       },
                     ),
-                    SizedBox(height: 40 * scale),
-                  ],
-                ),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.palette_outlined),
+                    title: const Text("Theme Color"),
+                    subtitle: const Text("Select your favorite accent"),
+                    trailing: Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: primaryColor,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    onTap: () => _showThemeDialog(context),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: res(context, 16.0),
+                      vertical: res(context, 8.0),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              "Interface Scale",
+                              style: TextStyle(fontSize: res(context, 16)),
+                            ),
+                            Text(
+                              "${(scale * 100).round()}%",
+                              style: TextStyle(
+                                color: primaryColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Slider(
+                          value: scale,
+                          min: 0.8,
+                          max: 1.2,
+                          divisions: 4,
+                          label: "${(scale * 100).round()}%",
+                          activeColor: primaryColor,
+                          onChanged: (double value) {
+                            themeProvider.setScale(value);
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  Divider(indent: res(context, 16), endIndent: res(context, 16)),
+                  _buildSectionHeader("General", primaryColor, context),
+                  _buildListTile(
+                      Icons.notifications_none, "Notifications", () {}),
+                  _buildListTile(
+                      Icons.lock_outline, "Privacy & Security", () {}),
+                  _buildListTile(
+                    Icons.info_outline,
+                    "About",
+                    () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const AboutScreen()),
+                      );
+                    },
+                  ),
+                  SizedBox(height: res(context, 40)),
+                ],
               ),
             );
           },
@@ -150,9 +147,9 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionHeader(String title, Color color) {
+  Widget _buildSectionHeader(String title, Color color, BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
+      padding: EdgeInsets.fromLTRB(res(context, 16.0), res(context, 16.0), res(context, 16.0), res(context, 8.0)),
       child: Text(
         title,
         style: TextStyle(
@@ -218,7 +215,7 @@ class SettingsScreen extends StatelessWidget {
                           ? const Icon(Icons.check, color: Colors.white)
                           : null,
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: res(context, 4)),
                     Text(
                       entry.key,
                       style: const TextStyle(fontSize: 12),

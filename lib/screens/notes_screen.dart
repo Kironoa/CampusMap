@@ -367,33 +367,35 @@ Text: ${note.description ?? note.content ?? ''}
               visualDensity: VisualDensity.compact,
               icon: Icon(Icons.grid_view_rounded, color: accentColor, size: 22),
               onPressed: () => Navigator.pop(context),
+),
             ),
-          ),
-          body: _notesFuture == null
-              ? Center(child: CircularProgressIndicator(color: accentColor))
-              : FutureBuilder<List<StudyNote>>(
-                  future: _notesFuture,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return Center(
-                          child: CircularProgressIndicator(color: accentColor));
-                    }
-                    final data = snapshot.data ?? [];
-                    if (data.isEmpty) return _buildEmptyState(theme);
+            body: SafeArea(
+              child: _notesFuture == null
+                  ? Center(child: CircularProgressIndicator(color: accentColor))
+                  : FutureBuilder<List<StudyNote>>(
+                      future: _notesFuture,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return Center(
+                              child: CircularProgressIndicator(color: accentColor));
+                        }
+                        final data = snapshot.data ?? [];
+                        if (data.isEmpty) return _buildEmptyState(theme);
 
-                    return ListView.builder(
-                      padding: EdgeInsets.fromLTRB(
-                        res(context, 20),
-                        res(context, 10),
-                        res(context, 20),
-                        res(context, 100),
-                      ),
-                      itemCount: data.length,
-                      itemBuilder: (context, index) =>
-                          _buildNoteTile(data[index], index, data.length),
-                    );
-                  },
-                ),
+                        return ListView.builder(
+                          padding: EdgeInsets.fromLTRB(
+                            res(context, 20),
+                            res(context, 10),
+                            res(context, 20),
+                            res(context, 100),
+                          ),
+                          itemCount: data.length,
+                          itemBuilder: (context, index) =>
+                              _buildNoteTile(data[index], index, data.length),
+                        );
+                      },
+                    ),
+            ),
           floatingActionButtonLocation:
               FloatingActionButtonLocation.centerFloat,
           floatingActionButton: FloatingActionButton.extended(
@@ -601,7 +603,7 @@ Text: ${note.description ?? note.content ?? ''}
                       },
                       child: Text("DELETE",
                           style: TextStyle(
-                              color: Colors.redAccent,
+                              color: theme.colorScheme.error,
                               fontWeight: FontWeight.bold,
                               fontSize: res(context, 14))),
                     ),

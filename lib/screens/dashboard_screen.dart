@@ -9,7 +9,7 @@ import 'package:mobile_app/models/schedule_model.dart';
 import 'package:mobile_app/helper/db_helper.dart';
 import 'package:mobile_app/screens/resource_screen.dart' hide res;
 import 'package:mobile_app/screens/schedule_screen.dart' hide res;
-import 'package:mobile_app/screens/settings_screen.dart' hide res;
+import 'package:mobile_app/screens/settings_screen.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/services/notification_service.dart';
 import 'package:mobile_app/screens/notes_screen.dart' hide res;

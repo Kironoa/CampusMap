@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/glass_modal.dart';
 import 'package:mobile_app/services/auth_service.dart';
+import 'package:mobile_app/providers/theme_provider.dart';
+import 'package:provider/provider.dart';
+
+double res(BuildContext context, double value) {
+  final provider = Provider.of<ThemeProvider>(context, listen: false);
+  return value * provider.uiScale;
+}
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -18,7 +25,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   Widget buildGlassIcon(IconData icon, Color color) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(res(context, 12)),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
         shape: BoxShape.circle,
@@ -41,7 +48,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final confirmPass = _confirmPassController.text.trim();
 
     if (username.isEmpty || password.isEmpty || confirmPass.isEmpty) {
-      _showModal("Nah!", "Fields cannot be empty.", isError: true);
+      _showModal("Error", "Fields cannot be empty.", isError: true);
       return;
     }
 
@@ -52,25 +59,26 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     try {
       if (await _authService.usernameExists(username)) {
-        _showModal("Nah!", "Username taken.", isError: true);
+        _showModal("Error", "Username taken.", isError: true);
         return;
       }
 
       await _authService.register(username, password);
       if (!mounted) return;
 
+      final theme = Theme.of(context);
       GlassModal.show(
         context,
         title: "Success!",
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            buildGlassIcon(Icons.check_rounded, const Color(0xFF00FF75)),
-            const SizedBox(height: 20),
-            const Text(
+            buildGlassIcon(Icons.check_rounded, theme.colorScheme.primary),
+            SizedBox(height: res(context, 20)),
+            Text(
               "Account Created Successfully!",
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white70),
+              style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.7)),
             ),
           ],
         ),
@@ -82,6 +90,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   void _showModal(String title, String msg, {bool isError = false}) {
+    final theme = Theme.of(context);
     GlassModal.show(
       context,
       title: title,
@@ -90,10 +99,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
         children: [
           buildGlassIcon(
             isError ? Icons.close_rounded : Icons.info_outline,
-            isError ? Colors.redAccent : const Color(0xFF00FF75),
+            isError ? theme.colorScheme.error : theme.colorScheme.primary,
           ),
-          const SizedBox(height: 20),
-          Text(msg, style: const TextStyle(color: Colors.white70)),
+          SizedBox(height: res(context, 20)),
+          Text(msg, style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.7))),
         ],
       ),
     );
@@ -109,83 +118,90 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         automaticallyImplyLeading: false,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: IconThemeData(color: theme.colorScheme.onSurface),
       ),
-      body: Center(
-        child: SingleChildScrollView(
-          child: GestureDetector(
-            onTapDown: (_) => setState(() => isPressed = true),
-            onTapUp: (_) => setState(() => isPressed = false),
-            onTapCancel: () => setState(() => isPressed = false),
-            child: AnimatedScale(
-              scale: isPressed ? 0.96 : 1.0,
-              duration: const Duration(milliseconds: 150),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                width: 350,
-                padding: const EdgeInsets.all(2),
-                decoration: _buildOuterDecoration(),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF171717),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 25.0,
-                      vertical: 30,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            child: GestureDetector(
+              onTapDown: (_) => setState(() => isPressed = true),
+              onTapUp: (_) => setState(() => isPressed = false),
+              onTapCancel: () => setState(() => isPressed = false),
+              child: AnimatedScale(
+                scale: isPressed ? 0.96 : 1.0,
+                duration: const Duration(milliseconds: 150),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  width: MediaQuery.of(context).size.width * 0.88,
+                  padding: EdgeInsets.all(res(context, 2)),
+                  decoration: _buildOuterDecoration(theme),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: theme.cardColor,
+                      borderRadius: BorderRadius.circular(res(context, 20)),
                     ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text(
-                          "Register",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 25),
-                        _buildField(
-                          Icons.person,
-                          "Username",
-                          controller: _userController,
-                        ),
-                        const SizedBox(height: 10),
-                        _buildField(
-                          Icons.lock,
-                          "Password",
-                          isPassword: true,
-                          controller: _passController,
-                        ),
-                        const SizedBox(height: 10),
-                        _buildField(
-                          Icons.lock_reset,
-                          "Confirm",
-                          isPassword: true,
-                          controller: _confirmPassController,
-                        ),
-                        const SizedBox(height: 30),
-                        _buildButton("Register"),
-                        const SizedBox(height: 15),
-                        GestureDetector(
-                          onTap: () => Navigator.pop(context),
-                          child: const Text(
-                            "Back to Login",
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: res(context, 25.0),
+                        vertical: res(context, 30),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            "Register",
                             style: TextStyle(
-                              color: Colors.white38,
-                              fontSize: 12,
+                              color: theme.colorScheme.onSurface,
+                              fontSize: res(context, 22),
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                        ),
-                      ],
+                          SizedBox(height: res(context, 25)),
+                          _buildField(
+                            context,
+                            Icons.person,
+                            "Username",
+                            controller: _userController,
+                          ),
+                          SizedBox(height: res(context, 10)),
+                          _buildField(
+                            context,
+                            Icons.lock,
+                            "Password",
+                            isPassword: true,
+                            controller: _passController,
+                          ),
+                          SizedBox(height: res(context, 10)),
+                          _buildField(
+                            context,
+                            Icons.lock_reset,
+                            "Confirm",
+                            isPassword: true,
+                            controller: _confirmPassController,
+                          ),
+                          SizedBox(height: res(context, 30)),
+                          _buildButton(context, "Register"),
+                          SizedBox(height: res(context, 15)),
+                          GestureDetector(
+                            onTap: () => Navigator.pop(context),
+                            child: Text(
+                              "Back to Login",
+                              style: TextStyle(
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.38),
+                                fontSize: res(context, 12),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -197,19 +213,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
-  BoxDecoration _buildOuterDecoration() {
+  BoxDecoration _buildOuterDecoration(ThemeData theme) {
     return BoxDecoration(
-      borderRadius: BorderRadius.circular(22),
-      gradient: const LinearGradient(
-        colors: [Color(0xFF00FF75), Color(0xFF3700FF)],
+      borderRadius: BorderRadius.circular(res(context, 22)),
+      gradient: LinearGradient(
+        colors: [theme.colorScheme.primary, theme.colorScheme.secondary],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ),
       boxShadow: [
         BoxShadow(
           color:
-              const Color(0xFF00FF75).withValues(alpha: isPressed ? 0.5 : 0.2),
-          blurRadius: isPressed ? 35 : 20,
+              theme.colorScheme.primary.withValues(alpha: isPressed ? 0.5 : 0.2),
+          blurRadius: isPressed ? res(context, 35) : res(context, 20),
           spreadRadius: 1,
         ),
       ],
@@ -217,52 +233,55 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Widget _buildField(
+    BuildContext context,
     IconData icon,
     String hint, {
     bool isPassword = false,
     TextEditingController? controller,
   }) {
+    final theme = Theme.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF171717),
-        borderRadius: BorderRadius.circular(25),
-        boxShadow: const [
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(res(context, 25)),
+        boxShadow: [
           BoxShadow(
-            color: Color(0xFF050505),
-            offset: Offset(2, 5),
-            blurRadius: 10,
+            color: Colors.black.withValues(alpha: 0.3),
+            offset: Offset(res(context, 2), res(context, 5)),
+            blurRadius: res(context, 10),
           ),
         ],
       ),
       child: TextField(
         controller: controller,
         obscureText: isPassword,
-        style: const TextStyle(color: Color(0xFFD3D3D3)),
+        style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.8)),
         decoration: InputDecoration(
-          prefixIcon: Icon(icon, color: Colors.white, size: 18),
+          prefixIcon: Icon(icon, color: theme.colorScheme.onSurface, size: 18),
           hintText: hint,
-          hintStyle: const TextStyle(color: Colors.white24, fontSize: 14),
+          hintStyle: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.24), fontSize: res(context, 14)),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 15),
+          contentPadding: EdgeInsets.symmetric(vertical: res(context, 15)),
         ),
       ),
     );
   }
 
-  Widget _buildButton(String text) {
+  Widget _buildButton(BuildContext context, String text) {
+    final theme = Theme.of(context);
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: const Color(0xFF252525),
-        borderRadius: BorderRadius.circular(5),
+        color: theme.cardColor.withValues(alpha: 0.8),
+        borderRadius: BorderRadius.circular(res(context, 5)),
       ),
       child: TextButton(
         onPressed: _handleSignUp,
         child: Text(
           text,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 14,
+          style: TextStyle(
+            color: theme.colorScheme.onSurface,
+            fontSize: res(context, 14),
             fontWeight: FontWeight.bold,
           ),
         ),

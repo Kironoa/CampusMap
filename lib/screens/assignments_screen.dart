@@ -116,7 +116,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
     final theme = Theme.of(context);
     const priority = "Normal";
     final priorityColor =
-        priority == "High" ? Colors.redAccent : theme.colorScheme.primary;
+        priority == "High" ? theme.colorScheme.error : theme.colorScheme.primary;
 
     final deadline = item.deadlineDate;
     final formattedDate = deadline != null
