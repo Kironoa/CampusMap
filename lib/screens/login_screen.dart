@@ -67,7 +67,7 @@ class _StudentPalLoginState extends State<StudentPalLogin> {
     }
   }
 
-void _showSuccessModal(AppUser user) {
+  void _showSuccessModal(AppUser user) {
     final theme = Theme.of(context);
     GlassModal.show(
       context,
@@ -80,7 +80,8 @@ void _showSuccessModal(AppUser user) {
           Text(
             "Welcome, @${user.username} enjoy and study well.",
             textAlign: TextAlign.center,
-            style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.7)),
+            style: TextStyle(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7)),
           ),
         ],
       ),
@@ -112,7 +113,8 @@ void _showSuccessModal(AppUser user) {
           Text(
             message,
             textAlign: TextAlign.center,
-            style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.7)),
+            style: TextStyle(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7)),
           ),
         ],
       ),
@@ -176,7 +178,10 @@ void _showSuccessModal(AppUser user) {
                           borderRadius: BorderRadius.circular(res(context, 20)),
                         ),
                         child: Padding(
-                          padding: EdgeInsets.symmetric(horizontal: res(context, 25.0)),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: res(context, 40.0),
+                            vertical: res(context, 40.0),
+                          ),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -206,13 +211,16 @@ void _showSuccessModal(AppUser user) {
                               SizedBox(height: res(context, 30)),
                               Row(
                                 children: [
-                                  Expanded(child: _buildButton(context, "Login")),
+                                  Expanded(
+                                      child: _buildButton(context, "Login")),
                                   SizedBox(width: res(context, 10)),
-                                  Expanded(child: _buildButton(context, "Sign Up")),
+                                  Expanded(
+                                      child: _buildButton(context, "Sign Up")),
                                 ],
                               ),
                               SizedBox(height: res(context, 15)),
-                              _buildButton(context, "Forgot Password", isFullWidth: true),
+                              _buildButton(context, "Forgot Password",
+                                  isFullWidth: true),
                             ],
                           ),
                         ),
@@ -238,8 +246,8 @@ void _showSuccessModal(AppUser user) {
       ),
       boxShadow: [
         BoxShadow(
-          color:
-              theme.colorScheme.primary.withValues(alpha: isPressed ? 0.5 : 0.2),
+          color: theme.colorScheme.primary
+              .withValues(alpha: isPressed ? 0.5 : 0.2),
           blurRadius: isPressed ? res(context, 35) : res(context, 20),
           spreadRadius: 1,
         ),
@@ -270,11 +278,14 @@ void _showSuccessModal(AppUser user) {
       child: TextField(
         controller: controller,
         obscureText: isPassword,
-        style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.8)),
+        style: TextStyle(
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.8)),
         decoration: InputDecoration(
           prefixIcon: Icon(icon, color: theme.colorScheme.onSurface, size: 18),
           hintText: hint,
-          hintStyle: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.24), fontSize: res(context, 14)),
+          hintStyle: TextStyle(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.24),
+              fontSize: res(context, 14)),
           border: InputBorder.none,
           contentPadding: EdgeInsets.symmetric(vertical: res(context, 15)),
         ),
@@ -282,7 +293,8 @@ void _showSuccessModal(AppUser user) {
     );
   }
 
-  Widget _buildButton(BuildContext context, String text, {bool isFullWidth = false}) {
+  Widget _buildButton(BuildContext context, String text,
+      {bool isFullWidth = false}) {
     final theme = Theme.of(context);
     return Container(
       width: isFullWidth ? double.infinity : null,
@@ -304,7 +316,9 @@ void _showSuccessModal(AppUser user) {
         child: Text(
           text,
           style: TextStyle(
-              color: theme.colorScheme.onSurface, fontSize: res(context, 13), fontWeight: FontWeight.w500),
+              color: theme.colorScheme.onSurface,
+              fontSize: res(context, 13),
+              fontWeight: FontWeight.w500),
         ),
       ),
     );

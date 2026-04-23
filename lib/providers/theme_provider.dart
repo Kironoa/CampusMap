@@ -89,4 +89,8 @@ class ThemeProviderNotifier extends Notifier<ThemeProvider> {
     Future.microtask(() => provider.loadSettings());
     return provider;
   }
+
+  Future<void> updateUsername(String name) async {
+    await state.updateUsername(name);
+  }
 }

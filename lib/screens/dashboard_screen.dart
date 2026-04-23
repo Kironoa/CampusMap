@@ -64,8 +64,8 @@ class _LiveClockWidgetState extends State<LiveClockWidget> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: onSurface.withValues(alpha: 0.1)),
       ),
-      padding: EdgeInsets.symmetric(
-          horizontal: widget.r(10), vertical: widget.r(6)),
+      padding:
+          EdgeInsets.symmetric(horizontal: widget.r(10), vertical: widget.r(6)),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -137,25 +137,46 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
 
   Future<void> _fetchUserData() async {
     final user = await _dbHelper.getUser(widget.userId);
-    if (user != null && user['profilePath'] != null) {
-      setState(() => _profileImagePath = user['profilePath']);
+    if (user != null) {
+      if (user['profilePath'] != null) {
+        setState(() => _profileImagePath = user['profilePath']);
+      }
+      final username = user['username'] as String?;
+      if (username != null && username.isNotEmpty) {
+        ref.read(themeProviderProvider).updateUsername(username);
+      }
     }
   }
 
   DateTime _parseTime(String timeStr) {
+    final now = DateTime.now();
+    final trimmed = timeStr.trim();
+
     try {
-      final now = DateTime.now();
-      final parts = timeStr.trim().split(' ');
-      final timeParts = parts[0].split(':');
-      int hour = int.parse(timeParts[0]);
-      int minute = int.parse(timeParts[1]);
-      final period = parts[1].toUpperCase();
-      if (period == "PM" && hour < 12) hour += 12;
-      if (period == "AM" && hour == 12) hour = 0;
-      return DateTime(now.year, now.month, now.day, hour, minute);
-    } catch (e) {
-      return DateTime.now();
-    }
+      return DateFormat("h:mm a").parse(trimmed).copyWith(
+            year: now.year,
+            month: now.month,
+            day: now.day,
+          );
+    } catch (_) {}
+
+    try {
+      return DateFormat("HH:mm").parse(trimmed).copyWith(
+            year: now.year,
+            month: now.month,
+            day: now.day,
+          );
+    } catch (_) {}
+
+    try {
+      return DateFormat("h:mm").parse(trimmed).copyWith(
+            year: now.year,
+            month: now.month,
+            day: now.day,
+          );
+    } catch (_) {}
+
+    return now;
   }
 
   void _updateCurrentAndNextClass() {
@@ -167,6 +188,7 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
       return;
     }
     final now = DateTime.now();
+    debugPrint("Current time: $now");
     Schedule? foundCurrent;
     Schedule? foundNext;
     Duration minNextGap = const Duration(days: 1);
@@ -174,10 +196,16 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
     for (var schedule in _todaySchedules) {
       final start = _parseTime(schedule.startTime);
       final end = _parseTime(schedule.endTime);
-      if (now.isAfter(start) && now.isBefore(end)) foundCurrent = schedule;
+      debugPrint("Schedule ${schedule.subject}: start=$start, end=$end");
+      if (now.isAfter(start) && now.isBefore(end)) {
+        debugPrint("  -> Matched as current");
+        foundCurrent = schedule;
+      }
       if (start.isAfter(now)) {
         final gap = start.difference(now);
+        debugPrint("  -> Gap: $gap");
         if (gap < minNextGap) {
+          debugPrint("  -> New next (gap: $gap)");
           minNextGap = gap;
           foundNext = schedule;
         }
@@ -192,15 +220,25 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
   Future<void> _loadDashboardData() async {
     final allSchedules = await _dbHelper.getAllSchedules(widget.userId);
     DateTime now = DateTime.now();
-    String currentDayName = DateFormat('EEEE').format(now);
+    String currentDayName = DateFormat('EEEE').format(now).toLowerCase();
     final allAssignments = await _dbHelper.getAssignments(widget.userId);
+
+    final dayMap = {
+      'monday': ['monday', 'mon', 'm'],
+      'tuesday': ['tuesday', 'tue', 't'],
+      'wednesday': ['wednesday', 'wed', 'w'],
+      'thursday': ['thursday', 'thu', 'th'],
+      'friday': ['friday', 'fri', 'f'],
+      'saturday': ['saturday', 'sat', 's'],
+      'sunday': ['sunday', 'sun', 'su'],
+    };
+    final currentDayAliases = dayMap[currentDayName] ?? [];
 
     if (mounted) {
       setState(() {
         _todaySchedules = allSchedules.where((s) {
-          String scheduleDays = s.days.toUpperCase();
-          return scheduleDays.contains(currentDayName.toUpperCase()) ||
-              scheduleDays.contains(currentDayName[0].toUpperCase());
+          final scheduleDays = s.days.toLowerCase();
+          return currentDayAliases.any((alias) => scheduleDays.contains(alias));
         }).toList();
         _todaySchedules.sort(
           (a, b) => _parseTime(a.startTime).compareTo(_parseTime(b.startTime)),
@@ -236,11 +274,12 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
     }
     final now = DateTime.now();
     final currentMinutes = now.hour * 60 + now.minute;
-    
+
     if (isNext) {
       final target = _parseTime(schedule.startTime);
       final duration = target.difference(now);
       if (duration.isNegative) return "Completed";
+      if (duration.inSeconds < 60) return "Starting now";
       String twoDigits(int n) => n.toString().padLeft(2, "0");
       String h = duration.inHours > 0 ? "${twoDigits(duration.inHours)}h " : "";
       return "In $h${twoDigits(duration.inMinutes.remainder(60))}m";
@@ -254,12 +293,14 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
       }
       int targetHour = endMinutes ~/ 60;
       int targetMinute = endMinutes % 60;
-      var targetTime = DateTime(now.year, now.month, now.day, targetHour, targetMinute);
+      var targetTime =
+          DateTime(now.year, now.month, now.day, targetHour, targetMinute);
       if (targetTime.isBefore(now)) {
         targetTime = targetTime.add(const Duration(days: 1));
       }
       final duration = targetTime.difference(now);
       if (duration.isNegative) return "Completed";
+      if (duration.inSeconds < 60) return "Ending now";
       String twoDigits(int n) => n.toString().padLeft(2, "0");
       String h = duration.inHours > 0 ? "${twoDigits(duration.inHours)}h " : "";
       return "$h${twoDigits(duration.inMinutes.remainder(60))}m left";
@@ -426,7 +467,8 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
           SafeArea(
             child: CustomScrollView(
               controller: _scrollController,
-              physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+              physics: const BouncingScrollPhysics(
+                  parent: AlwaysScrollableScrollPhysics()),
               cacheExtent: 500,
               slivers: [
                 SliverAppBar(
@@ -442,10 +484,8 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
                     centerTitle: true,
                     title: Container(
                       padding: EdgeInsets.symmetric(
-                          horizontal: r(20),
-                          vertical: r(10)),
-                      child: _buildFloatingHeader(
-                          dynamicAccent, r),
+                          horizontal: r(20), vertical: r(10)),
+                      child: _buildFloatingHeader(dynamicAccent, r),
                     ),
                   ),
                 ),
@@ -458,12 +498,14 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: EdgeInsets.symmetric(horizontal: r(20)),
-                    child: _buildSectionTitle("Class Progress", dynamicAccent, r),
+                    child:
+                        _buildSectionTitle("Class Progress", dynamicAccent, r),
                   ),
                 ),
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: EdgeInsets.only(left: r(20), right: r(20), top: r(15)),
+                    padding:
+                        EdgeInsets.only(left: r(20), right: r(20), top: r(15)),
                     child: RepaintBoundary(
                       child: _buildProgressRow(dynamicAccent, r),
                     ),
@@ -471,7 +513,8 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
                 ),
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: EdgeInsets.only(left: r(20), right: r(20), top: r(30)),
+                    padding:
+                        EdgeInsets.only(left: r(20), right: r(20), top: r(30)),
                     child: _buildSectionTitle(
                       "Today's Schedule",
                       dynamicAccent,
@@ -489,7 +532,8 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
                 ),
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: EdgeInsets.only(left: r(20), right: r(20), top: r(15)),
+                    padding:
+                        EdgeInsets.only(left: r(20), right: r(20), top: r(15)),
                     child: RepaintBoundary(
                       child: _buildHorizontalSchedule(dynamicAccent, r),
                     ),
@@ -497,7 +541,8 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
                 ),
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: EdgeInsets.only(left: r(20), right: r(20), top: r(30)),
+                    padding:
+                        EdgeInsets.only(left: r(20), right: r(20), top: r(30)),
                     child: _buildSectionTitle(
                       "Assignments",
                       dynamicAccent,
@@ -515,7 +560,8 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
                 ),
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: EdgeInsets.only(left: r(20), right: r(20), top: r(15)),
+                    padding:
+                        EdgeInsets.only(left: r(20), right: r(20), top: r(15)),
                     child: _recentAssignments.isEmpty
                         ? RepaintBoundary(
                             child: _buildAssignmentCard({
@@ -524,21 +570,27 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
                             }, dynamicAccent, r),
                           )
                         : Column(
-                            children: _recentAssignments.map(
-                              (a) => RepaintBoundary(child: _buildAssignmentCard(a, dynamicAccent, r)),
-                            ).toList(),
+                            children: _recentAssignments
+                                .map(
+                                  (a) => RepaintBoundary(
+                                      child: _buildAssignmentCard(
+                                          a, dynamicAccent, r)),
+                                )
+                                .toList(),
                           ),
                   ),
                 ),
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: EdgeInsets.only(left: r(20), right: r(20), top: r(30)),
+                    padding:
+                        EdgeInsets.only(left: r(20), right: r(20), top: r(30)),
                     child: _buildSectionTitle("Resources", dynamicAccent, r),
                   ),
                 ),
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: EdgeInsets.only(left: r(20), right: r(20), top: r(15)),
+                    padding:
+                        EdgeInsets.only(left: r(20), right: r(20), top: r(15)),
                     child: RepaintBoundary(
                       child: _buildResourceTile(
                         "Study Notes",
@@ -684,7 +736,8 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
                       color: onSurface,
                       fontSize: r(15),
                       fontWeight: FontWeight.w900),
-                  overflow: TextOverflow.ellipsis),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1),
             ],
           ),
         ),
@@ -695,7 +748,8 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
     );
   }
 
-  Widget _buildProfileAvatar(Color onSurface, Color accent, double Function(double) r) {
+  Widget _buildProfileAvatar(
+      Color onSurface, Color accent, double Function(double) r) {
     final theme = Theme.of(context);
     return PopupMenuButton<int>(
       offset: Offset(0, r(45)),
@@ -733,24 +787,22 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
               : null,
           child: (_profileImagePath == null ||
                   !File(_profileImagePath!).existsSync())
-              ? Icon(Icons.person_rounded,
-                  color: accent, size: r(16))
+              ? Icon(Icons.person_rounded, color: accent, size: r(16))
               : null,
         ),
       ),
     );
   }
 
-  PopupMenuItem<int> _buildPopupItem(
-      int value, IconData icon, String title, Color accent, double Function(double) r,
+  PopupMenuItem<int> _buildPopupItem(int value, IconData icon, String title,
+      Color accent, double Function(double) r,
       {bool isDestructive = false}) {
     return PopupMenuItem(
       value: value,
       child: Row(
         children: [
           Icon(icon,
-              color: isDestructive ? Colors.redAccent : accent,
-              size: r(18)),
+              color: isDestructive ? Colors.redAccent : accent, size: r(18)),
           SizedBox(width: r(12)),
           Text(title,
               style: TextStyle(
@@ -798,7 +850,8 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
     );
   }
 
-  Widget _buildSectionTitle(String title, Color accent, double Function(double) r,
+  Widget _buildSectionTitle(
+      String title, Color accent, double Function(double) r,
       {String? trailing, VoidCallback? onTrailingTap}) {
     final theme = Theme.of(context);
     return Row(
@@ -831,28 +884,30 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
     return Row(
       children: [
         Expanded(
-            child: _buildCountdownCard(
-                "CURRENT",
-                _currentClass?.subject ?? "Free Time",
-                _formatCountdown(_currentClass),
-                accent.withValues(alpha: 0.4),
-                r,
-                isActive: _currentClass != null)),
+            child: GestureDetector(
+                child: _buildCountdownCard(
+                    "CURRENT",
+                    _currentClass?.subject ?? "Free Time",
+                    _formatCountdown(_currentClass),
+                    accent.withValues(alpha: 0.4),
+                    r,
+                    isActive: _currentClass != null))),
         SizedBox(width: r(14)),
         Expanded(
-            child: _buildCountdownCard(
-                "UPCOMING",
-                _nextClass?.subject ?? "None Scheduled",
-                _formatCountdown(_nextClass, isNext: true),
-                accent,
-                r,
-                isActive: true)),
+            child: GestureDetector(
+                child: _buildCountdownCard(
+                    "UPCOMING",
+                    _nextClass?.subject ?? "None Scheduled",
+                    _formatCountdown(_nextClass, isNext: true),
+                    accent,
+                    r,
+                    isActive: true))),
       ],
     );
   }
 
-  Widget _buildCountdownCard(
-      String label, String className, String time, Color accent, double Function(double) r,
+  Widget _buildCountdownCard(String label, String className, String time,
+      Color accent, double Function(double) r,
       {bool isActive = false}) {
     final theme = Theme.of(context);
     return _buildGlassContainer(
@@ -963,15 +1018,15 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
     );
   }
 
-  Widget _buildAssignmentCard(Map<String, dynamic> assignment, Color accent, double Function(double) r) {
+  Widget _buildAssignmentCard(Map<String, dynamic> assignment, Color accent,
+      double Function(double) r) {
     final theme = Theme.of(context);
     return Padding(
       padding: EdgeInsets.only(bottom: r(10)),
       child: _buildGlassContainer(
         r: r,
         child: ListTile(
-          onTap: () => _showAssignmentDetail(
-              context, assignment, accent),
+          onTap: () => _showAssignmentDetail(context, assignment, accent),
           contentPadding: EdgeInsets.symmetric(horizontal: r(15)),
           title: Text(
             assignment['title'] ?? "Untitled",
@@ -992,8 +1047,8 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
     );
   }
 
-  Widget _buildResourceTile(
-      String title, IconData icon, String sub, Color accent, double Function(double) r,
+  Widget _buildResourceTile(String title, IconData icon, String sub,
+      Color accent, double Function(double) r,
       {VoidCallback? onTap}) {
     final theme = Theme.of(context);
     return Padding(
