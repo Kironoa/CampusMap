@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -7,7 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:mobile_app/models/schedule_model.dart';
 import 'package:mobile_app/models/class_model.dart';
 import 'package:mobile_app/services/notification_service.dart';
-import 'package:crypto/crypto.dart';
+import 'package:mobile_app/core/crypto_utils.dart';
 import 'package:path_provider/path_provider.dart';
 
 class DatabaseHelper {
@@ -21,12 +20,6 @@ class DatabaseHelper {
     if (_database != null) return _database!;
     _database = await _initDatabase();
     return _database!;
-  }
-
-  String _hashPassword(String password) {
-    final bytes = utf8.encode(password);
-    final digest = sha256.convert(bytes);
-    return digest.toString();
   }
 
   Future<Database> _initDatabase() async {
@@ -57,12 +50,6 @@ class DatabaseHelper {
         await _createNotesTable(db);
         await _createResourcesTable(db);
         await _createAiCacheTable(db);
-
-        await db.insert('users', {
-          'username': 'Kironoa',
-          'password': _hashPassword('admin123'),
-          'profilePath': null,
-        });
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) await _createSchedulesTable(db);
@@ -236,7 +223,7 @@ class DatabaseHelper {
   Future<int> registerUser(String username, String password) async {
     final db = await database;
     return await db.insert('users',
-        {'username': username, 'password': _hashPassword(password), 'profilePath': null});
+        {'username': username, 'password': CryptoUtils.hashPassword(password), 'profilePath': null});
   }
 
   Future<Map<String, dynamic>?> checkLogin(
@@ -244,7 +231,7 @@ class DatabaseHelper {
     final db = await database;
     List<Map<String, dynamic>> results = await db.query('users',
         where: 'username = ? AND password = ?',
-        whereArgs: [username, _hashPassword(password)]);
+        whereArgs: [username, CryptoUtils.hashPassword(password)]);
     return results.isNotEmpty ? results.first : null;
   }
 

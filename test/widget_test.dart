@@ -1,26 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile_app/screens/login_screen.dart';
+import 'package:mobile_app/services/auth_service.dart';
+import 'package:mocktail/mocktail.dart';
+
+class MockAuthService extends Mock implements AuthService {}
 
 void main() {
-  testWidgets('Dashboard UI content test', (WidgetTester tester) async {
-    // 1. Pump the Dashboard directly for a faster UI-specific test
-    // Wrap it in a MaterialApp so it has access to the Poppins font and theme
-    await tester.pumpWidget(const MaterialApp(home: StudentPalLogin()));
+  testWidgets('Login screen shows username field, password field, and login button', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: StudentPalLogin()),
+    );
 
-    // 2. Verify the Header
-    expect(find.text('Student Pal'), findsOneWidget);
-    expect(find.text('Hi, Kirigaya'), findsOneWidget);
+    expect(find.text('Username'), findsOneWidget);
+    expect(find.text('Password'), findsOneWidget);
+    expect(find.byType(TextButton), findsAtLeastNWidgets(2));
+  });
 
-    // 3. Verify Sections
-    expect(find.text('Class Progress'), findsOneWidget);
-    expect(find.text('Study Notes'), findsOneWidget);
+  testWidgets('Login shows error when fields are empty', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: StudentPalLogin()),
+    );
 
-    // 4. Check for the profile icon inside the avatar
-    expect(find.byIcon(Icons.person), findsOneWidget);
-
-    // 5. Test interaction: Tap the Study Notes resource
-    await tester.tap(find.text('Study Notes'));
+    await tester.tap(find.byType(TextButton).first);
     await tester.pumpAndSettle();
+
+    expect(find.text('Fields cannot be empty.'), findsOneWidget);
   });
 }

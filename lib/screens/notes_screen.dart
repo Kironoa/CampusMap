@@ -7,7 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:mobile_app/widgets/text_field.dart';
 import 'package:mobile_app/services/notes_service.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
-import 'package:mobile_app/services/offline_ai_service.dart';
+import 'package:mobile_app/services/ai_service.dart';
 import 'package:mobile_app/services/study_resource_service.dart';
 import 'package:mobile_app/services/notification_service.dart';
 import 'package:mobile_app/services/alert_service.dart';
@@ -28,7 +28,7 @@ class NotesScreen extends StatefulWidget {
 
 class _NotesScreenState extends State<NotesScreen> {
   final NotesService _notesService = NotesService();
-  final OfflineAIService _offlineAI = OfflineAIService();
+  final AIService _aiService = AIService();
   final StudyResourceService _resourceService = StudyResourceService();
   final NotificationService _notificationService = NotificationService();
   final AlertService _alertService = AlertService();
@@ -65,12 +65,7 @@ class _NotesScreenState extends State<NotesScreen> {
       final promptText =
           "Summarize the following study note into concise bullet points. Focus on key concepts:\n\n${note.description ?? note.content ?? ''}";
 
-      final summary = await _offlineAI.generateContent(
-        prompt: promptText,
-        resourceId: note.id ?? 0,
-        type: "summary",
-        forceRefresh: true,
-      );
+      final summary = await _aiService.sendMessage(promptText);
 
       if (mounted && summary.isNotEmpty) {
         final newResource = StudyResource(
@@ -111,12 +106,7 @@ TEXT:
 $currentContent
 """;
 
-      final response = await _offlineAI.generateContent(
-        prompt: promptText,
-        resourceId: note.id ?? 0,
-        type: "flashcard",
-        forceRefresh: true,
-      );
+      final response = await _aiService.sendMessage(promptText);
 
       if (mounted && response.isNotEmpty) {
         final newResource = StudyResource(
@@ -157,13 +147,7 @@ Correct: [Letter]
 Text: ${note.description ?? note.content ?? ''}
 """;
 
-      final response = await _offlineAI.generateContent(
-        prompt: promptText,
-        resourceId: note.id ?? 0,
-        type: "quiz",
-        count: count,
-        forceRefresh: true,
-      );
+      final response = await _aiService.sendMessage(promptText);
 
       if (mounted && response.isNotEmpty) {
         final newResource = StudyResource(
