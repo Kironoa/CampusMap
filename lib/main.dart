@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:provider/provider.dart' as pm;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile_app/models/user_session.dart';
 import 'package:mobile_app/screens/login_screen.dart';
@@ -44,21 +45,26 @@ void main() async {
     await notificationService.requestPermissions();
   }
 
+  final themeProvider = ThemeProvider();
+
   runApp(
-    const ProviderScope(
-      child: StudentPalApp(),
+    ProviderScope(
+      child: pm.ChangeNotifierProvider<ThemeProvider>.value(
+        value: themeProvider,
+        child: const StudentPalApp(),
+      ),
     ),
   );
 }
 
-class StudentPalApp extends ConsumerStatefulWidget {
+class StudentPalApp extends StatefulWidget {
   const StudentPalApp({super.key});
 
   @override
-  ConsumerState<StudentPalApp> createState() => _StudentPalAppState();
+  State<StudentPalApp> createState() => _StudentPalAppState();
 }
 
-class _StudentPalAppState extends ConsumerState<StudentPalApp> {
+class _StudentPalAppState extends State<StudentPalApp> {
   late Future<UserSession> _sessionFuture;
 
   @override
@@ -70,7 +76,7 @@ class _StudentPalAppState extends ConsumerState<StudentPalApp> {
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = ref.watch(themeProviderProvider);
+    final themeProvider = pm.Provider.of<ThemeProvider>(context);
     final baseTheme = themeProvider.currentTheme;
 
     return MaterialApp(
