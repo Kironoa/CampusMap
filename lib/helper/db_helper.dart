@@ -1,11 +1,13 @@
+import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:path/path.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_app/models/schedule_model.dart';
 import 'package:mobile_app/models/class_model.dart';
 import 'package:mobile_app/services/notification_service.dart';
-import 'package:flutter/foundation.dart';
+import 'package:crypto/crypto.dart';
 import 'package:path_provider/path_provider.dart';
 
 class DatabaseHelper {
@@ -21,6 +23,12 @@ class DatabaseHelper {
     return _database!;
   }
 
+  String _hashPassword(String password) {
+    final bytes = utf8.encode(password);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
+  }
+
   Future<Database> _initDatabase() async {
     if (Platform.isWindows || Platform.isLinux) {
       sqfliteFfiInit();
@@ -32,7 +40,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 16,
+      version: 17,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE users(
@@ -52,7 +60,7 @@ class DatabaseHelper {
 
         await db.insert('users', {
           'username': 'Kironoa',
-          'password': 'admin123',
+          'password': _hashPassword('admin123'),
           'profilePath': null,
         });
       },
@@ -95,7 +103,16 @@ class DatabaseHelper {
           await _createAiCacheTable(db);
         }
         if (oldVersion < 16) {
-          debugPrint("Upgraded to Version 16: Ready for Manual Notes AI");
+          assert(() {
+            debugPrint("Upgraded to Version 16: Ready for Manual Notes AI");
+            return true;
+          }());
+        }
+        if (oldVersion < 17) {
+          await db.execute('CREATE INDEX IF NOT EXISTS idx_schedules_userId ON schedules(userId)');
+          await db.execute('CREATE INDEX IF NOT EXISTS idx_assignments_userId ON assignments(userId)');
+          await db.execute('CREATE INDEX IF NOT EXISTS idx_notes_userId ON notes(userId)');
+          await db.execute('CREATE INDEX IF NOT EXISTS idx_study_resources_userId ON study_resources(userId)');
         }
       },
     );
@@ -121,6 +138,7 @@ class DatabaseHelper {
         userId INTEGER, subject TEXT, days TEXT, startTime TEXT, endTime TEXT, room TEXT, professor TEXT
       )
     ''');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_schedules_userId ON schedules(userId)');
   }
 
   Future<void> _createAssignmentsTable(Database db) async {
@@ -132,6 +150,7 @@ class DatabaseHelper {
         deadline TEXT 
       )
     ''');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_assignments_userId ON assignments(userId)');
   }
 
   Future<void> _createNotesTable(Database db) async {
@@ -141,6 +160,7 @@ class DatabaseHelper {
         userId INTEGER, title TEXT, description TEXT, content TEXT, dateCreated TEXT
       )
     ''');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_notes_userId ON notes(userId)');
   }
 
   Future<void> _createResourcesTable(Database db) async {
@@ -155,6 +175,7 @@ class DatabaseHelper {
         dateAdded TEXT
       )
     ''');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_study_resources_userId ON study_resources(userId)');
   }
 
   Future<void> _createAiCacheTable(Database db) async {
@@ -215,7 +236,7 @@ class DatabaseHelper {
   Future<int> registerUser(String username, String password) async {
     final db = await database;
     return await db.insert('users',
-        {'username': username, 'password': password, 'profilePath': null});
+        {'username': username, 'password': _hashPassword(password), 'profilePath': null});
   }
 
   Future<Map<String, dynamic>?> checkLogin(
@@ -223,7 +244,7 @@ class DatabaseHelper {
     final db = await database;
     List<Map<String, dynamic>> results = await db.query('users',
         where: 'username = ? AND password = ?',
-        whereArgs: [username, password]);
+        whereArgs: [username, _hashPassword(password)]);
     return results.isNotEmpty ? results.first : null;
   }
 
@@ -414,37 +435,55 @@ class DatabaseHelper {
   }
 
   Future<List<ClassModel>> getAllClassModels(int currentUserId) async {
-    debugPrint('[DatabaseHelper] getAllClassModels: Fetching all classes for userId=$currentUserId');
+    assert(() {
+      debugPrint('[DatabaseHelper] getAllClassModels: Fetching all classes for userId=$currentUserId');
+      return true;
+    }());
     final db = await database;
     final List<Map<String, dynamic>> maps = await db
         .query('schedules', where: 'userId = ?', whereArgs: [currentUserId]);
     final classes = maps.map((m) => ClassModel.fromMap(m)).toList();
-    debugPrint('[DatabaseHelper] getAllClassModels: Found ${classes.length} classes');
+    assert(() {
+      debugPrint('[DatabaseHelper] getAllClassModels: Found ${classes.length} classes');
+      return true;
+    }());
     return classes;
   }
 
   Future<int> insertClassModel(ClassModel classModel, int currentUserId) async {
-    debugPrint('[DatabaseHelper] insertClassModel: Creating class "${classModel.subject}" for userId=$currentUserId');
-    debugPrint('[DatabaseHelper] insertClassModel: startTime=${classModel.startTime}, endTime=${classModel.endTime}');
+    assert(() {
+      debugPrint('[DatabaseHelper] insertClassModel: Creating class "${classModel.subject}" for userId=$currentUserId');
+      debugPrint('[DatabaseHelper] insertClassModel: startTime=${classModel.startTime}, endTime=${classModel.endTime}');
+      return true;
+    }());
     final db = await database;
     final row = classModel.toMap();
     row['userId'] = currentUserId;
     row.remove('id');
     final id = await db.insert('schedules', row);
     await _syncScheduleNotification(id, classModel.subject, classModel.startTime);
-    debugPrint('[DatabaseHelper] insertClassModel: SUCCESS id=$id');
+    assert(() {
+      debugPrint('[DatabaseHelper] insertClassModel: SUCCESS id=$id');
+      return true;
+    }());
     return id;
   }
 
   Future<void> updateClassModel(ClassModel classModel) async {
-    debugPrint('[DatabaseHelper] updateClassModel: Updating class id=${classModel.id}');
-    debugPrint('[DatabaseHelper] updateClassModel: startTime=${classModel.startTime}, endTime=${classModel.endTime}');
+    assert(() {
+      debugPrint('[DatabaseHelper] updateClassModel: Updating class id=${classModel.id}');
+      debugPrint('[DatabaseHelper] updateClassModel: startTime=${classModel.startTime}, endTime=${classModel.endTime}');
+      return true;
+    }());
     final db = await database;
     final row = classModel.toMap();
     row.remove('id');
     row.remove('userId');
     await db.update('schedules', row, where: 'id = ?', whereArgs: [classModel.id]);
-    debugPrint('[DatabaseHelper] updateClassModel: SUCCESS');
+    assert(() {
+      debugPrint('[DatabaseHelper] updateClassModel: SUCCESS');
+      return true;
+    }());
     if (classModel.id != null) {
       await _syncScheduleNotification(classModel.id!, classModel.subject, classModel.startTime);
     }
@@ -468,7 +507,10 @@ class DatabaseHelper {
       await NotificationService().scheduleClassAlerts(
           id: id, subject: subject, startTime: scheduledDate);
     } catch (e) {
-      debugPrint("Sync failed: $e");
+      assert(() {
+        debugPrint("Sync failed: $e");
+        return true;
+      }());
     }
   }
 }

@@ -2,15 +2,16 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mobile_app/models/user_session.dart';
 import 'package:mobile_app/screens/login_screen.dart';
 import 'package:mobile_app/screens/dashboard_screen.dart';
 import 'package:mobile_app/services/auth_service.dart';
 import 'package:mobile_app/services/notification_service.dart';
-import 'package:mobile_app/services/theme_provider.dart';
+import 'package:mobile_app/services/ai_service.dart';
+import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -18,12 +19,15 @@ final supabase = Supabase.instance.client;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load();
+
   await Supabase.initialize(
-    url: 'https://yqwqjslktgeuajfzfhlt.supabase.co',
-    anonKey: 'sb_publishable_EIOOJ-Knxp06CBWPUcI6Zw_T-r902ir',
+    url: dotenv.env['SUPABASE_URL'] ?? '',
+    anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
   );
 
-  // 3. Timezone Setup
+  await AIService.initialize();
+
   tz_data.initializeTimeZones();
   try {
     tz.setLocalLocation(tz.getLocation('Asia/Manila'));
@@ -31,11 +35,6 @@ void main() async {
     debugPrint("Timezone Error: $e");
   }
 
-  // 4. Load Theme & UI Scaling Settings
-  final themeProvider = ThemeProvider();
-  await themeProvider.loadSettings();
-
-  // 5. Platform Specific Config (System UI & Notifications)
   if (Platform.isAndroid || Platform.isIOS) {
     try {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
@@ -50,30 +49,38 @@ void main() async {
       statusBarIconBrightness: Brightness.light,
     ));
 
-    // Initialize Local Notifications (Kept for your scheduling/reminders)
     final notificationService = NotificationService();
     await notificationService.init();
     await notificationService.requestPermissions();
   }
 
   runApp(
-    ProviderScope(
-      child: ChangeNotifierProvider.value(
-        value: themeProvider,
-        child: StudentPalApp(),
-      ),
+    const ProviderScope(
+      child: StudentPalApp(),
     ),
   );
 }
 
-class StudentPalApp extends StatelessWidget {
-  StudentPalApp({super.key});
+class StudentPalApp extends ConsumerStatefulWidget {
+  const StudentPalApp({super.key});
 
-  final AuthService _authService = AuthService();
+  @override
+  ConsumerState<StudentPalApp> createState() => _StudentPalAppState();
+}
+
+class _StudentPalAppState extends ConsumerState<StudentPalApp> {
+  late Future<UserSession> _sessionFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    final authService = AuthService();
+    _sessionFuture = authService.loadSession();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = context.watch<ThemeProvider>();
+    final themeProvider = ref.watch(themeProviderProvider);
     final baseTheme = themeProvider.currentTheme;
 
     return MaterialApp(
@@ -91,7 +98,7 @@ class StudentPalApp extends StatelessWidget {
         );
       },
       home: FutureBuilder<UserSession>(
-        future: _authService.loadSession(),
+        future: _sessionFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Scaffold(

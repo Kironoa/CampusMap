@@ -7,7 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:mobile_app/models/study_resource_model.dart';
 import 'package:mobile_app/services/study_resource_service.dart';
-import 'package:mobile_app/services/theme_provider.dart';
+import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/services/alert_service.dart';
 
 // Use the same helper for consistency with NotesScreen

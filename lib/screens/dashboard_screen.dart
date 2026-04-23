@@ -1,174 +1,116 @@
 import 'dart:async';
-import 'dart:ui';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile_app/models/schedule_model.dart';
 import 'package:mobile_app/helper/db_helper.dart';
-import 'package:mobile_app/screens/resource_screen.dart';
-import 'package:mobile_app/screens/schedule_screen.dart';
-import 'package:mobile_app/screens/settings_screen.dart';
-import 'package:mobile_app/services/theme_provider.dart';
+import 'package:mobile_app/screens/resource_screen.dart' hide res;
+import 'package:mobile_app/screens/schedule_screen.dart' hide res;
+import 'package:mobile_app/screens/settings_screen.dart' hide res;
+import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/services/notification_service.dart';
-import 'package:mobile_app/screens/notes_screen.dart';
-import 'package:mobile_app/screens/assignments_screen.dart';
+import 'package:mobile_app/screens/notes_screen.dart' hide res;
+import 'package:mobile_app/screens/assignments_screen.dart' hide res;
+import 'package:mobile_app/screens/chat_screen.dart' hide res;
+import 'package:mobile_app/screens/quizzes_screen.dart' hide res;
+import 'package:mobile_app/screens/flashcards_screen.dart' hide res;
+import 'package:mobile_app/screens/summaries_screen.dart' hide res;
 import 'package:mobile_app/screens/login_screen.dart';
-import 'package:mobile_app/screens/chat_screen.dart';
-import 'package:mobile_app/screens/quizzes_screen.dart';
-import 'package:mobile_app/screens/flashcards_screen.dart';
-import 'package:mobile_app/screens/summaries_screen.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await NotificationService().init();
+class LiveClockWidget extends StatefulWidget {
+  final double Function(double) r;
+  final Color accent;
 
-  runApp(
-    ChangeNotifierProvider(
-      create: (_) => ThemeProvider(),
-      child: const StudentPalApp(),
-    ),
-  );
+  const LiveClockWidget({super.key, required this.r, required this.accent});
+
+  @override
+  State<LiveClockWidget> createState() => _LiveClockWidgetState();
 }
 
-double res(BuildContext context, double value) {
-  return value * Provider.of<ThemeProvider>(context, listen: false).uiScale;
-}
+class _LiveClockWidgetState extends State<LiveClockWidget> {
+  late Timer _clockTimer;
+  String _timeString = DateFormat('hh:mm:ss a').format(DateTime.now());
+  String _dateString = DateFormat('EEE, MMM dd, yyyy').format(DateTime.now());
 
-class StudentPalApp extends StatelessWidget {
-  const StudentPalApp({super.key});
-
-  Future<Map<String, dynamic>> _checkAuthStatus() async {
-    final prefs = await SharedPreferences.getInstance();
-    final bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
-    final int? userId = prefs.getInt('userId');
-    return {'isLoggedIn': isLoggedIn, 'userId': userId};
+  @override
+  void initState() {
+    super.initState();
+    _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) {
+        setState(() {
+          _timeString = DateFormat('hh:mm:ss a').format(DateTime.now());
+          _dateString = DateFormat('EEE, MMM dd, yyyy').format(DateTime.now());
+        });
+      }
+    });
   }
 
   @override
-  Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
-
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Student Pal',
-      theme: themeProvider.currentTheme,
-      home: FutureBuilder<Map<String, dynamic>>(
-        future: _checkAuthStatus(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(
-                body: Center(child: CircularProgressIndicator()));
-          }
-
-          final bool isLoggedIn = snapshot.data?['isLoggedIn'] ?? false;
-          final int? userId = snapshot.data?['userId'];
-
-          if (isLoggedIn && userId != null) {
-            return StudentDashboard(userId: userId);
-          }
-          return const LoginScreen();
-        },
-      ),
-    );
+  void dispose() {
+    _clockTimer.cancel();
+    super.dispose();
   }
-}
-
-class LoginScreen extends StatelessWidget {
-  const LoginScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      body: SafeArea(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+    final onSurface = theme.colorScheme.onSurface;
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.cardColor.withValues(alpha: 0.85),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: onSurface.withValues(alpha: 0.1)),
+      ),
+      padding: EdgeInsets.symmetric(
+          horizontal: widget.r(10), vertical: widget.r(6)),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                padding: EdgeInsets.all(res(context, 20)),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.check_circle_outline,
-                  color: theme.colorScheme.primary,
-                  size: res(context, 64),
-                ),
-              ),
-              SizedBox(height: res(context, 24)),
-              Text(
-                "Logged Out Successfully",
-                style: TextStyle(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                  fontSize: res(context, 16),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              SizedBox(height: res(context, 48)),
-              Text(
-                "Student Pal",
-                style: TextStyle(
-                  color: theme.colorScheme.onSurface,
-                  fontSize: res(context, 36),
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -0.5,
-                ),
-              ),
-              SizedBox(height: res(context, 40)),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.colorScheme.primary,
-                  foregroundColor: theme.colorScheme.onPrimary,
-                  elevation: 0,
-                  padding: EdgeInsets.symmetric(
-                    horizontal: res(context, 60),
-                    vertical: res(context, 18),
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                onPressed: () => Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const StudentPalLogin(),
-                  ),
-                ),
-                child: Text(
-                  "LOGIN",
+              Text(_timeString.split(' ')[0],
                   style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: res(context, 14),
-                    letterSpacing: 1.1,
-                  ),
-                ),
-              ),
+                      color: onSurface,
+                      fontSize: widget.r(11),
+                      fontWeight: FontWeight.w900,
+                      fontFamily: 'monospace')),
+              SizedBox(width: widget.r(3)),
+              Text(_timeString.split(' ')[1],
+                  style: TextStyle(
+                      color: widget.accent,
+                      fontSize: widget.r(8),
+                      fontWeight: FontWeight.w900)),
             ],
           ),
-        ),
+          Text(_dateString.toUpperCase(),
+              style: TextStyle(
+                  color: onSurface.withValues(alpha: 0.6),
+                  fontSize: widget.r(7),
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.5)),
+        ],
       ),
     );
   }
 }
 
-class StudentDashboard extends StatefulWidget {
+class StudentDashboard extends ConsumerStatefulWidget {
   final int userId;
   const StudentDashboard({super.key, required this.userId});
 
   @override
-  State<StudentDashboard> createState() => _StudentDashboardState();
+  ConsumerState<StudentDashboard> createState() => _StudentDashboardState();
 }
 
-class _StudentDashboardState extends State<StudentDashboard>
+class _StudentDashboardState extends ConsumerState<StudentDashboard>
     with TickerProviderStateMixin {
-  late Timer _timer;
+  late Timer _classTimer;
   late AnimationController _bgAnimationController;
+  late ScrollController _scrollController;
   String? _profileImagePath;
 
   final ImagePicker _picker = ImagePicker();
@@ -180,19 +122,18 @@ class _StudentDashboardState extends State<StudentDashboard>
   Schedule? _currentClass;
   Schedule? _nextClass;
 
-  String _timeString = DateFormat('hh:mm:ss a').format(DateTime.now());
-  String _dateString = DateFormat('EEE, MMM dd, yyyy').format(DateTime.now());
-
-  @override
   void initState() {
     super.initState();
     _fetchUserData();
     _loadDashboardData();
+    _scrollController = ScrollController(keepScrollOffset: true);
     _bgAnimationController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 20),
     )..repeat();
   }
+
+  double res(BuildContext context, double value) => value;
 
   Future<void> _fetchUserData() async {
     final user = await _dbHelper.getUser(widget.userId);
@@ -215,50 +156,6 @@ class _StudentDashboardState extends State<StudentDashboard>
     } catch (e) {
       return DateTime.now();
     }
-  }
-
-  Future<void> _loadDashboardData() async {
-    final allSchedules = await _dbHelper.getAllSchedules(widget.userId);
-    DateTime now = DateTime.now();
-    String currentDayName = DateFormat('EEEE').format(now);
-    final allAssignments = await _dbHelper.getAssignments(widget.userId);
-
-    if (mounted) {
-      setState(() {
-        _todaySchedules = allSchedules.where((s) {
-          String scheduleDays = s.days.toUpperCase();
-          return scheduleDays.contains(currentDayName.toUpperCase()) ||
-              scheduleDays.contains(currentDayName[0].toUpperCase());
-        }).toList();
-        _todaySchedules.sort(
-          (a, b) => _parseTime(a.startTime).compareTo(_parseTime(b.startTime)),
-        );
-        _recentAssignments = allAssignments.take(3).toList();
-      });
-      _updateCurrentAndNextClass();
-    }
-
-    for (var schedule in _todaySchedules) {
-      try {
-        final DateTime scheduledTime = _parseTime(schedule.startTime);
-        await _notifService.scheduleClassAlerts(
-          id: schedule.id ?? 0,
-          subject: schedule.subject,
-          startTime: scheduledTime,
-        );
-      } catch (e) {
-        debugPrint("Failed to schedule ${schedule.subject}: $e");
-      }
-    }
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted) {
-        setState(() {
-          _timeString = DateFormat('hh:mm:ss a').format(DateTime.now());
-          _dateString = DateFormat('EEE, MMM dd, yyyy').format(DateTime.now());
-        });
-        _updateCurrentAndNextClass();
-      }
-    });
   }
 
   void _updateCurrentAndNextClass() {
@@ -289,6 +186,47 @@ class _StudentDashboardState extends State<StudentDashboard>
     setState(() {
       _currentClass = foundCurrent;
       _nextClass = foundNext;
+    });
+  }
+
+  Future<void> _loadDashboardData() async {
+    final allSchedules = await _dbHelper.getAllSchedules(widget.userId);
+    DateTime now = DateTime.now();
+    String currentDayName = DateFormat('EEEE').format(now);
+    final allAssignments = await _dbHelper.getAssignments(widget.userId);
+
+    if (mounted) {
+      setState(() {
+        _todaySchedules = allSchedules.where((s) {
+          String scheduleDays = s.days.toUpperCase();
+          return scheduleDays.contains(currentDayName.toUpperCase()) ||
+              scheduleDays.contains(currentDayName[0].toUpperCase());
+        }).toList();
+        _todaySchedules.sort(
+          (a, b) => _parseTime(a.startTime).compareTo(_parseTime(b.startTime)),
+        );
+        _recentAssignments = allAssignments.take(3).toList();
+      });
+      _updateCurrentAndNextClass();
+    }
+
+    Future.wait(_todaySchedules.map((schedule) async {
+      try {
+        final DateTime scheduledTime = _parseTime(schedule.startTime);
+        await _notifService.scheduleClassAlerts(
+          id: schedule.id ?? 0,
+          subject: schedule.subject,
+          startTime: scheduledTime,
+        );
+      } catch (e) {
+        debugPrint("Failed to schedule ${schedule.subject}: $e");
+      }
+    }));
+
+    _classTimer = Timer.periodic(const Duration(seconds: 60), (timer) {
+      if (mounted) {
+        _updateCurrentAndNextClass();
+      }
     });
   }
 
@@ -330,7 +268,8 @@ class _StudentDashboardState extends State<StudentDashboard>
 
   @override
   void dispose() {
-    _timer.cancel();
+    _classTimer.cancel();
+    _scrollController.dispose();
     _bgAnimationController.dispose();
     super.dispose();
   }
@@ -341,7 +280,7 @@ class _StudentDashboardState extends State<StudentDashboard>
     if (!mounted) return;
 
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
+      MaterialPageRoute(builder: (context) => const StudentPalLogin()),
       (Route<dynamic> route) => false,
     );
   }
@@ -400,7 +339,6 @@ class _StudentDashboardState extends State<StudentDashboard>
     );
   }
 
-  // POPUP DIALOG FOR ASSIGNMENTS
   void _showAssignmentDetail(
       BuildContext context, Map<String, dynamic> assignment, Color accent) {
     final theme = Theme.of(context);
@@ -474,149 +412,233 @@ class _StudentDashboardState extends State<StudentDashboard>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final Color dynamicAccent = theme.colorScheme.primary;
+    final themeProvider = ref.watch(themeProviderProvider);
+    final double scale = themeProvider.uiScale;
+    double r(double v) => v * scale;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: Stack(
         children: [
-          _buildBackground(dynamicAccent),
+          RepaintBoundary(
+            child: _buildBackground(dynamicAccent, r),
+          ),
           SafeArea(
             child: CustomScrollView(
-              physics: const BouncingScrollPhysics(),
+              controller: _scrollController,
+              physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+              cacheExtent: 500,
               slivers: [
                 SliverAppBar(
                   pinned: true,
                   backgroundColor:
                       theme.scaffoldBackgroundColor.withValues(alpha: 0.4),
                   elevation: 0,
-                  expandedHeight: res(context, 90),
-                  collapsedHeight: res(context, 75),
+                  expandedHeight: r(90),
+                  collapsedHeight: r(75),
                   automaticallyImplyLeading: false,
                   flexibleSpace: FlexibleSpaceBar(
                     titlePadding: EdgeInsets.zero,
                     centerTitle: true,
                     title: Container(
                       padding: EdgeInsets.symmetric(
-                          horizontal: res(context, 20),
-                          vertical: res(context, 10)),
+                          horizontal: r(20),
+                          vertical: r(10)),
                       child: _buildFloatingHeader(
-                          dynamicAccent, context.read<ThemeProvider>()),
+                          dynamicAccent, r),
                     ),
                   ),
                 ),
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: res(context, 20)),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(height: res(context, 10)),
-                        _buildSectionTitle("Class Progress", dynamicAccent),
-                        SizedBox(height: res(context, 15)),
-                        _buildProgressRow(dynamicAccent),
-                        SizedBox(height: res(context, 30)),
-                        _buildSectionTitle(
-                          "Today's Schedule",
-                          dynamicAccent,
-                          trailing: "Manage",
-                          onTrailingTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  SchedulePage(userId: widget.userId),
-                            ),
-                          ).then((_) => _loadDashboardData()),
-                        ),
-                        SizedBox(height: res(context, 15)),
-                        _buildHorizontalSchedule(dynamicAccent),
-                        SizedBox(height: res(context, 30)),
-                        _buildSectionTitle(
-                          "Assignments",
-                          dynamicAccent,
-                          trailing: "View All",
-                          onTrailingTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  AssignmentsScreen(userId: widget.userId),
-                            ),
-                          ).then((_) => _loadDashboardData()),
-                        ),
-                        SizedBox(height: res(context, 15)),
-                        if (_recentAssignments.isEmpty)
-                          _buildAssignmentCard({
-                            "title": "No Assignments",
-                            "deadline": "Free day!"
-                          }, dynamicAccent)
-                        else
-                          ..._recentAssignments.map(
-                              (a) => _buildAssignmentCard(a, dynamicAccent)),
-                        SizedBox(height: res(context, 30)),
-                        _buildSectionTitle("Resources", dynamicAccent),
-                        SizedBox(height: res(context, 15)),
-                        _buildResourceTile(
-                          "Study Notes",
-                          Icons.note_alt_rounded,
-                          "Manage your quick notes",
-                          dynamicAccent,
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) =>
-                                    NotesScreen(userId: widget.userId)),
-                          ).then((_) => _loadDashboardData()),
-                        ),
-                        _buildResourceTile(
-                          "Flashcards",
-                          Icons.style_rounded,
-                          "Review your active decks",
-                          dynamicAccent,
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) =>
-                                    FlashcardsScreen(userId: widget.userId)),
-                          ),
-                        ),
-                        _buildResourceTile(
-                          "Sample Quizzes",
-                          Icons.psychology_alt_rounded,
-                          "Test your knowledge",
-                          dynamicAccent,
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) =>
-                                    QuizzesScreen(userId: widget.userId)),
-                          ),
-                        ),
-                        _buildResourceTile(
-                          "Summaries",
-                          Icons.article_outlined,
-                          "Quick review of key points",
-                          dynamicAccent,
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) =>
-                                    SummariesScreen(userId: widget.userId)),
-                          ),
-                        ),
-                        _buildResourceTile(
-                          "Library Access",
-                          Icons.local_library_rounded,
-                          "Digital archives available",
-                          dynamicAccent,
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) =>
-                                    ResourcesScreen(userId: widget.userId)),
-                          ),
-                        ),
-                        SizedBox(height: res(context, 40)),
-                      ],
+                    padding: EdgeInsets.symmetric(horizontal: r(20)),
+                    child: SizedBox(height: r(10)),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: r(20)),
+                    child: _buildSectionTitle("Class Progress", dynamicAccent, r),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.only(left: r(20), right: r(20), top: r(15)),
+                    child: RepaintBoundary(
+                      child: _buildProgressRow(dynamicAccent, r),
                     ),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.only(left: r(20), right: r(20), top: r(30)),
+                    child: _buildSectionTitle(
+                      "Today's Schedule",
+                      dynamicAccent,
+                      r,
+                      trailing: "Manage",
+                      onTrailingTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              SchedulePage(userId: widget.userId),
+                        ),
+                      ).then((_) => _loadDashboardData()),
+                    ),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.only(left: r(20), right: r(20), top: r(15)),
+                    child: RepaintBoundary(
+                      child: _buildHorizontalSchedule(dynamicAccent, r),
+                    ),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.only(left: r(20), right: r(20), top: r(30)),
+                    child: _buildSectionTitle(
+                      "Assignments",
+                      dynamicAccent,
+                      r,
+                      trailing: "View All",
+                      onTrailingTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              AssignmentsScreen(userId: widget.userId),
+                        ),
+                      ).then((_) => _loadDashboardData()),
+                    ),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.only(left: r(20), right: r(20), top: r(15)),
+                    child: _recentAssignments.isEmpty
+                        ? RepaintBoundary(
+                            child: _buildAssignmentCard({
+                              "title": "No Assignments",
+                              "deadline": "Free day!"
+                            }, dynamicAccent, r),
+                          )
+                        : Column(
+                            children: _recentAssignments.map(
+                              (a) => RepaintBoundary(child: _buildAssignmentCard(a, dynamicAccent, r)),
+                            ).toList(),
+                          ),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.only(left: r(20), right: r(20), top: r(30)),
+                    child: _buildSectionTitle("Resources", dynamicAccent, r),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.only(left: r(20), right: r(20), top: r(15)),
+                    child: RepaintBoundary(
+                      child: _buildResourceTile(
+                        "Study Notes",
+                        Icons.note_alt_rounded,
+                        "Manage your quick notes",
+                        dynamicAccent,
+                        r,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) =>
+                                  NotesScreen(userId: widget.userId)),
+                        ).then((_) => _loadDashboardData()),
+                      ),
+                    ),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.only(left: r(20), right: r(20)),
+                    child: RepaintBoundary(
+                      child: _buildResourceTile(
+                        "Flashcards",
+                        Icons.style_rounded,
+                        "Review your active decks",
+                        dynamicAccent,
+                        r,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) =>
+                                  FlashcardsScreen(userId: widget.userId)),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.only(left: r(20), right: r(20)),
+                    child: RepaintBoundary(
+                      child: _buildResourceTile(
+                        "Sample Quizzes",
+                        Icons.psychology_alt_rounded,
+                        "Test your knowledge",
+                        dynamicAccent,
+                        r,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) =>
+                                  QuizzesScreen(userId: widget.userId)),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.only(left: r(20), right: r(20)),
+                    child: RepaintBoundary(
+                      child: _buildResourceTile(
+                        "Summaries",
+                        Icons.article_outlined,
+                        "Quick review of key points",
+                        dynamicAccent,
+                        r,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) =>
+                                  SummariesScreen(userId: widget.userId)),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.only(left: r(20), right: r(20)),
+                    child: RepaintBoundary(
+                      child: _buildResourceTile(
+                        "Library Access",
+                        Icons.local_library_rounded,
+                        "Digital archives available",
+                        dynamicAccent,
+                        r,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) =>
+                                  ResourcesScreen(userId: widget.userId)),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.only(top: r(40)),
                   ),
                 ),
               ],
@@ -639,9 +661,10 @@ class _StudentDashboardState extends State<StudentDashboard>
     );
   }
 
-  Widget _buildFloatingHeader(Color accent, ThemeProvider themeProvider) {
+  Widget _buildFloatingHeader(Color accent, double Function(double) r) {
     final theme = Theme.of(context);
     final onSurface = theme.colorScheme.onSurface;
+    final themeProvider = ref.watch(themeProviderProvider);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -653,29 +676,29 @@ class _StudentDashboardState extends State<StudentDashboard>
               Text("Hello!",
                   style: TextStyle(
                       color: accent,
-                      fontSize: res(context, 9),
+                      fontSize: r(9),
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.5)),
               Text(themeProvider.username,
                   style: TextStyle(
                       color: onSurface,
-                      fontSize: res(context, 15),
+                      fontSize: r(15),
                       fontWeight: FontWeight.w900),
                   overflow: TextOverflow.ellipsis),
             ],
           ),
         ),
-        _buildCompactClock(accent),
-        SizedBox(width: res(context, 8)),
-        _buildProfileAvatar(onSurface, accent),
+        LiveClockWidget(r: r, accent: accent),
+        SizedBox(width: r(8)),
+        _buildProfileAvatar(onSurface, accent, r),
       ],
     );
   }
 
-  Widget _buildProfileAvatar(Color onSurface, Color accent) {
+  Widget _buildProfileAvatar(Color onSurface, Color accent, double Function(double) r) {
     final theme = Theme.of(context);
     return PopupMenuButton<int>(
-      offset: Offset(0, res(context, 45)),
+      offset: Offset(0, r(45)),
       color: theme.cardColor,
       elevation: 8,
       shape: RoundedRectangleBorder(
@@ -689,10 +712,10 @@ class _StudentDashboardState extends State<StudentDashboard>
         if (value == 3) _handleLogout();
       },
       itemBuilder: (context) => [
-        _buildPopupItem(1, Icons.image_outlined, "Change Photo", accent),
-        _buildPopupItem(2, Icons.settings_rounded, "Settings", accent),
+        _buildPopupItem(1, Icons.image_outlined, "Change Photo", accent, r),
+        _buildPopupItem(2, Icons.settings_rounded, "Settings", accent, r),
         const PopupMenuDivider(height: 1),
-        _buildPopupItem(3, Icons.logout_rounded, "Logout", accent,
+        _buildPopupItem(3, Icons.logout_rounded, "Logout", accent, r,
             isDestructive: true),
       ],
       child: Container(
@@ -702,7 +725,7 @@ class _StudentDashboardState extends State<StudentDashboard>
             border:
                 Border.all(color: accent.withValues(alpha: 0.2), width: 1.5)),
         child: CircleAvatar(
-          radius: res(context, 14),
+          radius: r(14),
           backgroundColor: accent.withValues(alpha: 0.1),
           backgroundImage: (_profileImagePath != null &&
                   File(_profileImagePath!).existsSync())
@@ -711,7 +734,7 @@ class _StudentDashboardState extends State<StudentDashboard>
           child: (_profileImagePath == null ||
                   !File(_profileImagePath!).existsSync())
               ? Icon(Icons.person_rounded,
-                  color: accent, size: res(context, 16))
+                  color: accent, size: r(16))
               : null,
         ),
       ),
@@ -719,7 +742,7 @@ class _StudentDashboardState extends State<StudentDashboard>
   }
 
   PopupMenuItem<int> _buildPopupItem(
-      int value, IconData icon, String title, Color accent,
+      int value, IconData icon, String title, Color accent, double Function(double) r,
       {bool isDestructive = false}) {
     return PopupMenuItem(
       value: value,
@@ -727,11 +750,11 @@ class _StudentDashboardState extends State<StudentDashboard>
         children: [
           Icon(icon,
               color: isDestructive ? Colors.redAccent : accent,
-              size: res(context, 18)),
-          SizedBox(width: res(context, 12)),
+              size: r(18)),
+          SizedBox(width: r(12)),
           Text(title,
               style: TextStyle(
-                  fontSize: res(context, 13),
+                  fontSize: r(13),
                   fontWeight: FontWeight.w600,
                   color: isDestructive ? Colors.redAccent : null)),
         ],
@@ -739,47 +762,7 @@ class _StudentDashboardState extends State<StudentDashboard>
     );
   }
 
-  Widget _buildCompactClock(Color accent) {
-    final theme = Theme.of(context);
-    final onSurface = theme.colorScheme.onSurface;
-    return _buildGlassContainer(
-      borderRadius: 12,
-      child: Padding(
-        padding: EdgeInsets.symmetric(
-            horizontal: res(context, 10), vertical: res(context, 6)),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(_timeString.split(' ')[0],
-                    style: TextStyle(
-                        color: onSurface,
-                        fontSize: res(context, 11),
-                        fontWeight: FontWeight.w900,
-                        fontFamily: 'monospace')),
-                SizedBox(width: res(context, 3)),
-                Text(_timeString.split(' ')[1],
-                    style: TextStyle(
-                        color: accent,
-                        fontSize: res(context, 8),
-                        fontWeight: FontWeight.w900)),
-              ],
-            ),
-            Text(_dateString.toUpperCase(),
-                style: TextStyle(
-                    color: onSurface.withValues(alpha: 0.6),
-                    fontSize: res(context, 7),
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.5)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBackground(Color accent) {
+  Widget _buildBackground(Color accent, double Function(double) r) {
     return AnimatedBuilder(
       animation: _bgAnimationController,
       builder: (context, child) {
@@ -788,11 +771,11 @@ class _StudentDashboardState extends State<StudentDashboard>
             _buildAnimatedBlob(
                 Alignment(0.7 + 0.1 * (_bgAnimationController.value), -0.8),
                 accent,
-                res(context, 350)),
+                r(350)),
             _buildAnimatedBlob(
                 Alignment(-0.8, 0.6 + 0.1 * (_bgAnimationController.value)),
                 accent,
-                res(context, 450)),
+                r(450)),
           ],
         );
       },
@@ -815,7 +798,7 @@ class _StudentDashboardState extends State<StudentDashboard>
     );
   }
 
-  Widget _buildSectionTitle(String title, Color accent,
+  Widget _buildSectionTitle(String title, Color accent, double Function(double) r,
       {String? trailing, VoidCallback? onTrailingTap}) {
     final theme = Theme.of(context);
     return Row(
@@ -825,7 +808,7 @@ class _StudentDashboardState extends State<StudentDashboard>
         Text(title,
             style: TextStyle(
                 color: theme.colorScheme.onSurface,
-                fontSize: res(context, 20),
+                fontSize: r(20),
                 fontWeight: FontWeight.w900,
                 letterSpacing: -0.5)),
         if (trailing != null)
@@ -837,14 +820,14 @@ class _StudentDashboardState extends State<StudentDashboard>
                 child: Text(trailing,
                     style: TextStyle(
                         color: accent,
-                        fontSize: res(context, 13),
+                        fontSize: r(13),
                         fontWeight: FontWeight.w800))),
           ),
       ],
     );
   }
 
-  Widget _buildProgressRow(Color accent) {
+  Widget _buildProgressRow(Color accent, double Function(double) r) {
     return Row(
       children: [
         Expanded(
@@ -853,49 +836,52 @@ class _StudentDashboardState extends State<StudentDashboard>
                 _currentClass?.subject ?? "Free Time",
                 _formatCountdown(_currentClass),
                 accent.withValues(alpha: 0.4),
+                r,
                 isActive: _currentClass != null)),
-        SizedBox(width: res(context, 14)),
+        SizedBox(width: r(14)),
         Expanded(
             child: _buildCountdownCard(
                 "UPCOMING",
                 _nextClass?.subject ?? "None Scheduled",
                 _formatCountdown(_nextClass, isNext: true),
                 accent,
+                r,
                 isActive: true)),
       ],
     );
   }
 
   Widget _buildCountdownCard(
-      String label, String className, String time, Color accent,
+      String label, String className, String time, Color accent, double Function(double) r,
       {bool isActive = false}) {
     final theme = Theme.of(context);
     return _buildGlassContainer(
       borderColor: isActive ? accent.withValues(alpha: 0.4) : null,
+      r: r,
       child: Padding(
-        padding: EdgeInsets.all(res(context, 18)),
+        padding: EdgeInsets.all(r(18)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(label,
                 style: TextStyle(
                     color: accent,
-                    fontSize: res(context, 10),
+                    fontSize: r(10),
                     fontWeight: FontWeight.w900,
                     letterSpacing: 1.5)),
-            SizedBox(height: res(context, 10)),
+            SizedBox(height: r(10)),
             Text(className,
                 style: TextStyle(
                     color: theme.colorScheme.onSurface,
-                    fontSize: res(context, 15),
+                    fontSize: r(15),
                     fontWeight: FontWeight.w800),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis),
-            SizedBox(height: res(context, 4)),
+            SizedBox(height: r(4)),
             Text(time,
                 style: TextStyle(
                     color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                    fontSize: res(context, 11),
+                    fontSize: r(11),
                     fontWeight: FontWeight.w600,
                     fontFamily: 'monospace')),
           ],
@@ -904,22 +890,23 @@ class _StudentDashboardState extends State<StudentDashboard>
     );
   }
 
-  Widget _buildHorizontalSchedule(Color accent) {
+  Widget _buildHorizontalSchedule(Color accent, double Function(double) r) {
     final theme = Theme.of(context);
     if (_todaySchedules.isEmpty) {
       return _buildGlassContainer(
+        r: r,
         child: Center(
             child: Padding(
-                padding: EdgeInsets.all(res(context, 20)),
+                padding: EdgeInsets.all(r(20)),
                 child: Text("No classes scheduled.",
                     style: TextStyle(
-                        fontSize: res(context, 14),
+                        fontSize: r(14),
                         fontWeight: FontWeight.w600,
                         color: theme.colorScheme.onSurface)))),
       );
     }
     return SizedBox(
-      height: res(context, 120),
+      height: r(120),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: _todaySchedules.length,
@@ -927,13 +914,15 @@ class _StudentDashboardState extends State<StudentDashboard>
           final item = _todaySchedules[index];
           final onSurface = theme.colorScheme.onSurface;
           return Padding(
-            padding: EdgeInsets.only(right: res(context, 12)),
-            child: GestureDetector(
+            padding: EdgeInsets.only(right: r(12)),
+            child: InkWell(
               onTap: () => _showSingleScheduleDetail(context, item, accent),
+              borderRadius: BorderRadius.circular(16),
               child: _buildGlassContainer(
-                width: res(context, 140),
+                width: r(140),
+                r: r,
                 child: Padding(
-                  padding: EdgeInsets.all(res(context, 12)),
+                  padding: EdgeInsets.all(r(12)),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -942,15 +931,15 @@ class _StudentDashboardState extends State<StudentDashboard>
                           style: TextStyle(
                               color: onSurface,
                               fontWeight: FontWeight.bold,
-                              fontSize: res(context, 13)),
+                              fontSize: r(13)),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis),
-                      SizedBox(height: res(context, 4)),
+                      SizedBox(height: r(4)),
                       Text("${item.displayStartTime} - ${item.displayEndTime}",
                           style: TextStyle(
                               color: onSurface.withValues(alpha: 0.6),
-                              fontSize: res(context, 10))),
-                      SizedBox(height: res(context, 8)),
+                              fontSize: r(10))),
+                      SizedBox(height: r(8)),
                       Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 6, vertical: 2),
@@ -960,7 +949,7 @@ class _StudentDashboardState extends State<StudentDashboard>
                         child: Text(item.room,
                             style: TextStyle(
                                 color: accent,
-                                fontSize: res(context, 9),
+                                fontSize: r(9),
                                 fontWeight: FontWeight.bold)),
                       ),
                     ],
@@ -974,28 +963,28 @@ class _StudentDashboardState extends State<StudentDashboard>
     );
   }
 
-  // MODIFIED METHOD: ASSIGNMENTS ARE NOW CLICKABLE
-  Widget _buildAssignmentCard(Map<String, dynamic> assignment, Color accent) {
+  Widget _buildAssignmentCard(Map<String, dynamic> assignment, Color accent, double Function(double) r) {
     final theme = Theme.of(context);
     return Padding(
-      padding: EdgeInsets.only(bottom: res(context, 10)),
+      padding: EdgeInsets.only(bottom: r(10)),
       child: _buildGlassContainer(
+        r: r,
         child: ListTile(
           onTap: () => _showAssignmentDetail(
-              context, assignment, accent), // ACTION ON TAP
-          contentPadding: EdgeInsets.symmetric(horizontal: res(context, 15)),
+              context, assignment, accent),
+          contentPadding: EdgeInsets.symmetric(horizontal: r(15)),
           title: Text(
             assignment['title'] ?? "Untitled",
             style: TextStyle(
                 color: theme.colorScheme.onSurface,
                 fontWeight: FontWeight.bold,
-                fontSize: res(context, 14)),
+                fontSize: r(14)),
           ),
           subtitle: Text(
             "Due: ${assignment['deadline'] ?? 'No date'}",
             style: TextStyle(
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                fontSize: res(context, 12)),
+                fontSize: r(12)),
           ),
           trailing: Icon(Icons.chevron_right, color: accent),
         ),
@@ -1004,12 +993,13 @@ class _StudentDashboardState extends State<StudentDashboard>
   }
 
   Widget _buildResourceTile(
-      String title, IconData icon, String sub, Color accent,
+      String title, IconData icon, String sub, Color accent, double Function(double) r,
       {VoidCallback? onTap}) {
     final theme = Theme.of(context);
     return Padding(
-      padding: EdgeInsets.only(bottom: res(context, 10)),
+      padding: EdgeInsets.only(bottom: r(10)),
       child: _buildGlassContainer(
+        r: r,
         child: ListTile(
           onTap: onTap,
           leading: Icon(icon, color: accent),
@@ -1017,11 +1007,11 @@ class _StudentDashboardState extends State<StudentDashboard>
               style: TextStyle(
                   color: theme.colorScheme.onSurface,
                   fontWeight: FontWeight.bold,
-                  fontSize: res(context, 14))),
+                  fontSize: r(14))),
           subtitle: Text(sub,
               style: TextStyle(
                   color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                  fontSize: res(context, 11))),
+                  fontSize: r(11))),
         ),
       ),
     );
@@ -1031,12 +1021,13 @@ class _StudentDashboardState extends State<StudentDashboard>
       {Widget? child,
       double? width,
       double borderRadius = 16,
-      Color? borderColor}) {
+      Color? borderColor,
+      required double Function(double) r}) {
     final theme = Theme.of(context);
     return Container(
       width: width,
       decoration: BoxDecoration(
-        color: theme.cardColor.withValues(alpha: 0.6),
+        color: theme.cardColor.withValues(alpha: 0.85),
         borderRadius: BorderRadius.circular(borderRadius),
         border: Border.all(
             color: borderColor ??
@@ -1044,11 +1035,7 @@ class _StudentDashboardState extends State<StudentDashboard>
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
-        child: RepaintBoundary(
-          child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-              child: child ?? const SizedBox()),
-        ),
+        child: child ?? const SizedBox(),
       ),
     );
   }

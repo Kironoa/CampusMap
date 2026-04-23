@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'package:mobile_app/models/study_resource_model.dart';
 import 'package:mobile_app/services/study_resource_service.dart';
-import 'package:mobile_app/services/theme_provider.dart';
+import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/services/alert_service.dart';
 import 'package:provider/provider.dart';
 
