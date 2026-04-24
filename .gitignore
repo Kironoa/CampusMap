@@ -21,7 +21,11 @@ migrate_working_dir/
 # The .vscode folder contains launch configuration and tasks you configure in
 # VS Code which you may wish to be included in version control, so this line
 # is commented out by default.
+<<<<<<< HEAD
 #.vscode/
+=======
+.vscode/
+>>>>>>> 8a35f843624a455ebaf6c1defb4b1077f73e75bc
 
 # Flutter/Dart/Pub related
 **/doc/api/
@@ -39,7 +43,14 @@ app.*.symbols
 # Obfuscation related
 app.*.map.json
 
+<<<<<<< HEAD
 # Android Studio will place build artifacts here
 /android/app/debug
 /android/app/profile
 /android/app/release
+=======
+# Environment variables
+.env
+.env.local
+.env.*.local
+>>>>>>> 8a35f843624a455ebaf6c1defb4b1077f73e75bc

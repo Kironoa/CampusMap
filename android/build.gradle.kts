@@ -1,3 +1,17 @@
+<<<<<<< HEAD
+=======
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        // This is the bridge that allows Android to use your google-services.json
+        classpath("com.google.gms:google-services:4.4.1")
+    }
+}
+
+>>>>>>> 8a35f843624a455ebaf6c1defb4b1077f73e75bc
 allprojects {
     repositories {
         google()
@@ -15,10 +29,18 @@ subprojects {
     val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
     project.layout.buildDirectory.value(newSubprojectBuildDir)
 }
+<<<<<<< HEAD
+=======
+
+>>>>>>> 8a35f843624a455ebaf6c1defb4b1077f73e75bc
 subprojects {
     project.evaluationDependsOn(":app")
 }
 
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 8a35f843624a455ebaf6c1defb4b1077f73e75bc

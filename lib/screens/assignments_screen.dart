@@ -1,0 +1,694 @@
+import 'package:flutter/material.dart';
+import 'dart:ui';
+import 'package:intl/intl.dart';
+import 'package:mobile_app/models/assignment_model.dart';
+import 'package:provider/provider.dart';
+import 'package:mobile_app/providers/theme_provider.dart';
+import 'package:mobile_app/services/assignment_service.dart';
+import 'package:mobile_app/widgets/text_field.dart';
+
+double res(BuildContext context, double value) {
+  final provider = Provider.of<ThemeProvider>(context, listen: false);
+  return value * provider.uiScale;
+}
+
+class AssignmentsScreen extends StatefulWidget {
+  final int userId;
+  const AssignmentsScreen({super.key, required this.userId});
+
+  @override
+  State<AssignmentsScreen> createState() => _AssignmentsScreenState();
+}
+
+class _AssignmentsScreenState extends State<AssignmentsScreen> {
+  final AssignmentService _assignmentService = AssignmentService();
+  late Future<List<Assignment>> _assignmentsFuture;
+
+  String formatDeadline(String? raw) {
+    if (raw == null || raw.isEmpty) return 'No date';
+    try {
+      final dt = DateTime.parse(raw);
+      return DateFormat('MMM dd, yyyy hh:mm a').format(dt);
+    } catch (_) {
+      return raw;
+    }
+  }
+
+  Color _getDeadlineColor(String? deadlineRaw, Color defaultColor) {
+    if (deadlineRaw == null || deadlineRaw.isEmpty) return defaultColor;
+    try {
+      final deadline = DateTime.parse(deadlineRaw);
+      final now = DateTime.now();
+      final diff = deadline.difference(now);
+      if (diff.isNegative) return Colors.red;
+      if (diff.inHours <= 5) return Colors.red;
+      if (diff.inHours <= 15) return Colors.orange;
+      return Colors.green;
+    } catch (_) {
+      return defaultColor;
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshAssignments();
+  }
+
+  void _refreshAssignments() {
+    setState(() {
+      _assignmentsFuture = _assignmentService.getAssignments(widget.userId);
+    });
+  }
+
+  void _showGlassAlert(String msg, Color themeColor) {
+    late OverlayEntry overlayEntry;
+    overlayEntry = OverlayEntry(
+      builder: (context) => _GlassAlertAnimated(
+        message: msg,
+        themeColor: themeColor,
+        onDismiss: () {
+          if (overlayEntry.mounted) overlayEntry.remove();
+        },
+      ),
+    );
+    Overlay.of(context).insert(overlayEntry);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final accentColor = theme.colorScheme.primary;
+
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        title: Text(
+          "ASSIGNMENTS",
+          style: TextStyle(
+            color: theme.colorScheme.onSurface,
+            fontWeight: FontWeight.w900,
+            fontSize: res(context, 16),
+            letterSpacing: 1.5,
+          ),
+        ),
+        leading: IconButton(
+          visualDensity: VisualDensity.compact,
+          icon: Icon(Icons.grid_view_rounded, color: accentColor, size: 22),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: FutureBuilder<List<Assignment>>(
+        future: _assignmentsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator(color: accentColor));
+          }
+          final data = snapshot.data ?? [];
+          if (data.isEmpty) return _buildEmptyState(theme);
+
+          return ListView.builder(
+            padding: EdgeInsets.fromLTRB(res(context, 20), res(context, 10),
+                res(context, 20), res(context, 100)),
+            itemCount: data.length,
+            itemBuilder: (context, index) =>
+                _buildAssignmentTile(data[index], index, data.length),
+          );
+        },
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showForm(),
+        backgroundColor: accentColor,
+        elevation: 4,
+        icon: Icon(Icons.add_task_rounded,
+            color: Colors.white, size: res(context, 20)),
+        label: Text(
+          "ADD TASK",
+          style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+              fontSize: res(context, 14)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAssignmentTile(Assignment item, int index, int totalItems) {
+    final theme = Theme.of(context);
+    const priority = "Normal";
+    final priorityColor =
+        priority == "High" ? theme.colorScheme.error : theme.colorScheme.primary;
+
+    return IntrinsicHeight(
+      child: Row(
+        children: [
+          Column(
+            children: [
+              Container(
+                width: res(context, 15),
+                height: res(context, 15),
+                decoration: BoxDecoration(
+                  color: priorityColor,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                      color: theme.scaffoldBackgroundColor,
+                      width: res(context, 3)),
+                  boxShadow: [
+                    BoxShadow(
+                        color: priorityColor.withValues(alpha: 0.3),
+                        blurRadius: 5)
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Container(
+                  width: res(context, 2),
+                  color: index == totalItems - 1
+                      ? Colors.transparent
+                      : theme.colorScheme.onSurface.withValues(alpha: 0.1),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(width: res(context, 20)),
+          Expanded(
+            child: Container(
+              margin: EdgeInsets.only(bottom: res(context, 20)),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.03),
+                borderRadius: BorderRadius.circular(res(context, 20)),
+                border: Border.all(
+                    color: theme.dividerColor.withValues(alpha: 0.05)),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(res(context, 20)),
+                child: InkWell(
+                  onTap: () => _viewDetailsSheet(item),
+                  child: Padding(
+                    padding: EdgeInsets.all(res(context, 16)),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text("DUE: ${formatDeadline(item.deadline)}",
+                                style: TextStyle(
+                                    color: _getDeadlineColor(item.deadline, priorityColor),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: res(context, 11))),
+                            Icon(Icons.more_vert_rounded,
+                                size: res(context, 18),
+                                color: theme.colorScheme.onSurface
+                                    .withValues(alpha: 0.3)),
+                          ],
+                        ),
+                        SizedBox(height: res(context, 8)),
+                        Text(item.title,
+                            style: TextStyle(
+                                color: theme.colorScheme.onSurface,
+                                fontSize: res(context, 17),
+                                fontWeight: FontWeight.bold)),
+                        SizedBox(height: res(context, 4)),
+                        Row(
+                          children: [
+                            Icon(Icons.bookmark_outline_rounded,
+                                size: res(context, 14),
+                                color: theme.colorScheme.secondary),
+                            SizedBox(width: res(context, 4)),
+                            Text(item.subject ?? "General",
+                                style: TextStyle(
+                                    color: theme.colorScheme.secondary,
+                                    fontSize: res(context, 13),
+                                    fontWeight: FontWeight.w500)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showForm({Assignment? assignment}) {
+    final isEdit = assignment != null;
+    final theme = Theme.of(context);
+    final subjectCtrl =
+        TextEditingController(text: isEdit ? assignment.subject : "");
+    final titleCtrl =
+        TextEditingController(text: isEdit ? assignment.title : "");
+    final descCtrl =
+        TextEditingController(text: isEdit ? assignment.description : "");
+    DateTime? tempDeadline = assignment?.deadlineDate;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Padding(
+          padding:
+              EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+          child: Container(
+            padding: EdgeInsets.all(res(context, 25)),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              borderRadius:
+                  BorderRadius.vertical(top: Radius.circular(res(context, 35))),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(isEdit ? "Update Assignment" : "New Assignment",
+                    style: TextStyle(
+                        fontSize: res(context, 20),
+                        fontWeight: FontWeight.bold)),
+                SizedBox(height: res(context, 20)),
+                CustomTextField(
+                    controller: subjectCtrl,
+                    hintText: "Course/Subject",
+                    prefixIcon: Icons.book_rounded),
+                SizedBox(height: res(context, 10)),
+                CustomTextField(
+                    controller: titleCtrl,
+                    hintText: "Assignment Title",
+                    prefixIcon: Icons.edit_note_rounded),
+                SizedBox(height: res(context, 10)),
+                CustomTextField(
+                    controller: descCtrl,
+                    hintText: "Instructions or Notes",
+                    prefixIcon: Icons.notes_rounded,
+                    maxLines: 3),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.calendar_today_rounded,
+                      color: theme.colorScheme.primary),
+                  title: Text(tempDeadline == null
+                      ? "Set Due Date"
+                      : DateFormat('MMM dd, yyyy • hh:mm a')
+                          .format(tempDeadline!)),
+                  trailing:
+                      Icon(Icons.chevron_right_rounded, color: theme.hintColor),
+                  onTap: () async {
+                    if (!context.mounted) return;
+                    final date = await showDatePicker(
+                        context: context,
+                        initialDate: tempDeadline ?? DateTime.now(),
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime(2030));
+                    if (date != null) {
+                      final time = await showTimePicker(
+                          context: context,
+                          initialTime: tempDeadline != null
+                              ? TimeOfDay.fromDateTime(tempDeadline!)
+                              : TimeOfDay.now());
+                      if (time != null) {
+                        setModalState(() => tempDeadline = DateTime(date.year,
+                            date.month, date.day, time.hour, time.minute));
+                      }
+                    }
+                  },
+                ),
+                SizedBox(height: res(context, 20)),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                      minimumSize: Size(double.infinity, res(context, 55)),
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18))),
+                  onPressed: () async {
+                    if (titleCtrl.text.isNotEmpty) {
+                      final assignmentData = Assignment(
+                        id: assignment?.id,
+                        userId: widget.userId,
+                        subject: subjectCtrl.text,
+                        title: titleCtrl.text,
+                        description: descCtrl.text,
+                        deadline: tempDeadline?.toIso8601String(),
+                      );
+                      await _assignmentService.saveAssignment(
+                        widget.userId,
+                        assignmentData,
+                      );
+                      if (!context.mounted) return;
+                      _showGlassAlert(
+                        isEdit ? "Task Updated" : "Task Saved",
+                        theme.colorScheme.primary,
+                      );
+                      _refreshAssignments();
+                      if (mounted) Navigator.pop(context);
+                    }
+                  },
+                  child: const Text("CONFIRM CHANGES",
+                      style: TextStyle(
+                          fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _viewDetailsSheet(Assignment item) {
+    final theme = Theme.of(context);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled:
+          true, // Crucial for letting the sheet expand with keyboard/long text
+      builder: (context) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          // Limits the height to 80% of the screen so it doesn't feel like a full page
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.8,
+          ),
+          padding: EdgeInsets.fromLTRB(
+            res(context, 25),
+            res(context, 15), // Reduced top padding for the handle
+            res(context, 25),
+            res(context, 25),
+          ),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface.withValues(alpha: 0.9),
+            borderRadius:
+                BorderRadius.vertical(top: Radius.circular(res(context, 30))),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min, // Keeps it compact if text is short
+            children: [
+              // Drag Handle
+              Container(
+                width: res(context, 40),
+                height: res(context, 4),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              SizedBox(height: res(context, 25)),
+
+              // Scrollable Content Area
+              Flexible(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    children: [
+                      // Title
+                      Text(
+                        item.title,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: res(context, 22),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: res(context, 20)),
+
+                      // Detail Items
+                      _detailItem(Icons.book_rounded, "Subject",
+                          item.subject ?? "General"),
+                      _detailItem(
+                          Icons.event_note_rounded,
+                          "Deadline",
+                          formatDeadline(item.deadline),
+                          valueColor: _getDeadlineColor(item.deadline, theme.colorScheme.primary)),
+                      _detailItem(
+                          Icons.notes_rounded,
+                          "Description",
+                          (item.description == null ||
+                                  item.description!.isEmpty)
+                              ? "No additional notes."
+                              : item.description!),
+
+                      // Extra spacing inside scroll area to prevent buttons from hiding text
+                      SizedBox(height: res(context, 20)),
+                    ],
+                  ),
+                ),
+              ),
+
+              SizedBox(height: res(context, 20)),
+
+              // Action Buttons - Stays at the bottom
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        padding:
+                            EdgeInsets.symmetric(vertical: res(context, 15)),
+                        side: const BorderSide(color: Colors.redAccent),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(res(context, 12)),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        if (item.id != null) {
+                          _confirmDelete(item.id!);
+                        }
+                      },
+                      child: Text(
+                        "DELETE",
+                        style: TextStyle(
+                          color: Colors.redAccent,
+                          fontWeight: FontWeight.bold,
+                          fontSize: res(context, 14),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: res(context, 15)),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: theme.colorScheme.primary,
+                        padding:
+                            EdgeInsets.symmetric(vertical: res(context, 15)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(res(context, 12)),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _showForm(assignment: item);
+                      },
+                      child: Text(
+                        "EDIT TASK",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: res(context, 14),
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _detailItem(IconData icon, String label, String value, {Color? valueColor}) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: res(context, 8)),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: res(context, 20), color: valueColor ?? theme.colorScheme.primary),
+          SizedBox(width: res(context, 15)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: res(context, 12),
+                    color: theme.hintColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: res(context, 15),
+                    fontWeight: FontWeight.w500,
+                    color: valueColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDelete(int id) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+        title: const Text("Delete Task?",
+            style: TextStyle(fontWeight: FontWeight.w900)),
+        content: const Text("This action cannot be undone."),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("BACK")),
+          TextButton(
+              onPressed: () async {
+                await _assignmentService.deleteAssignment(id);
+                _refreshAssignments();
+                if (!context.mounted) return;
+                Navigator.pop(context);
+                _showGlassAlert("Task removed", Colors.redAccent);
+              },
+              child: const Text("DELETE",
+                  style: TextStyle(
+                      color: Colors.redAccent, fontWeight: FontWeight.bold))),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(ThemeData theme) => Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.assignment_turned_in_outlined,
+                size: 80, color: theme.hintColor.withValues(alpha: 0.2)),
+            const SizedBox(height: 15),
+            Text("No pending assignments!",
+                style: TextStyle(
+                    color: theme.hintColor, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      );
+}
+
+class _GlassAlertAnimated extends StatefulWidget {
+  final String message;
+  final Color themeColor;
+  final VoidCallback onDismiss;
+
+  const _GlassAlertAnimated({
+    required this.message,
+    required this.themeColor,
+    required this.onDismiss,
+  });
+
+  @override
+  State<_GlassAlertAnimated> createState() => _GlassAlertAnimatedState();
+}
+
+class _GlassAlertAnimatedState extends State<_GlassAlertAnimated>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 400));
+    _scaleAnimation =
+        CurvedAnimation(parent: _controller, curve: Curves.easeOutBack);
+    _controller.forward();
+
+    Future.delayed(const Duration(milliseconds: 2000), () async {
+      if (mounted) {
+        await _controller.reverse();
+        widget.onDismiss();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  double res(BuildContext context, double value) => value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: ScaleTransition(
+        scale: _scaleAnimation,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            margin: EdgeInsets.symmetric(horizontal: res(context, 50)),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(res(context, 25)),
+              boxShadow: [
+                BoxShadow(
+                  color: widget.themeColor.withValues(alpha: 0.3),
+                  blurRadius: 25,
+                  spreadRadius: 2,
+                )
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(res(context, 25)),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                      vertical: res(context, 18), horizontal: res(context, 35)),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        widget.themeColor.withValues(alpha: 0.7),
+                        widget.themeColor.withValues(alpha: 0.9),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(res(context, 25)),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Text(
+                    widget.message,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: res(context, 16),
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

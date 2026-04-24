@@ -1,0 +1,275 @@
+import 'package:flutter/material.dart';
+import 'package:mobile_app/services/ai_service.dart';
+import 'package:mobile_app/providers/theme_provider.dart';
+import 'package:provider/provider.dart';
+
+// Shared UI helper for scaling
+double res(BuildContext context, double value) {
+  final provider = Provider.of<ThemeProvider>(context, listen: false);
+  return value * provider.uiScale;
+}
+
+class ChatScreen extends StatefulWidget {
+  const ChatScreen({super.key});
+
+  // STATIC PERSISTENCE: This list lives outside the Widget state
+  // so it doesn't clear when the modal closes.
+  static final List<Map<String, String>> _persistentMessages = [
+    {
+      "role": "bot",
+      "content":
+          "Hello! I'm your Student Pal. How can I help you with your studies today?"
+    }
+  ];
+
+  @override
+  State<ChatScreen> createState() => _ChatScreenState();
+}
+
+class _ChatScreenState extends State<ChatScreen> {
+  final TextEditingController _controller = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  final AIService _aiService = AIService();
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Scroll to bottom when opening if there's existing history
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _scrollToBottom(instant: true));
+  }
+
+  void _scrollToBottom({bool instant = false}) {
+    if (_scrollController.hasClients) {
+      if (instant) {
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+      } else {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    }
+  }
+
+  Future<void> _handleSendMessage() async {
+    final text = _controller.text.trim();
+    if (text.isEmpty) return;
+
+    setState(() {
+      ChatScreen._persistentMessages.add({"role": "user", "content": text});
+      _isLoading = true;
+      _controller.clear();
+    });
+    _scrollToBottom();
+
+    try {
+      final response = await _aiService.sendMessage(text);
+      setState(() {
+        ChatScreen._persistentMessages
+            .add({"role": "bot", "content": response});
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        ChatScreen._persistentMessages.add({
+          "role": "bot",
+          "content": "Sorry, I encountered an error. Please try again."
+        });
+        _isLoading = false;
+      });
+    }
+    _scrollToBottom();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final accentColor = Provider.of<ThemeProvider>(context).currentAccentColor;
+
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.85,
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F0F0F), // Consistent dark background
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(res(context, 30))),
+        border:
+            Border.all(color: Colors.white.withValues(alpha: 0.1), width: 0.5),
+      ),
+      child: Column(
+        children: [
+          // 1. Drag Handle
+          Container(
+            margin: EdgeInsets.only(
+                top: res(context, 15), bottom: res(context, 10)),
+            width: res(context, 40),
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.white10,
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+
+          // 2. Header
+          Padding(
+            padding: EdgeInsets.symmetric(
+                horizontal: res(context, 20), vertical: res(context, 10)),
+            child: Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(res(context, 8)),
+                  decoration: BoxDecoration(
+                    color: accentColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(Icons.auto_awesome_rounded,
+                      color: accentColor, size: res(context, 20)),
+                ),
+                SizedBox(width: res(context, 15)),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("STUDENT PAL",
+                          style: TextStyle(
+                              fontSize: res(context, 14),
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.5,
+                              color: Colors.white)),
+                      Text("Always here to help",
+                          style: TextStyle(
+                              fontSize: res(context, 11),
+                              color: Colors.white38)),
+                    ],
+                  ),
+                ),
+                IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                        color: Colors.white38, size: 28)),
+              ],
+            ),
+          ),
+          const Divider(color: Colors.white10, height: 1),
+
+          // 3. Chat Area
+          Expanded(
+            child: ListView.builder(
+              controller: _scrollController,
+              padding: EdgeInsets.all(res(context, 20)),
+              itemCount:
+                  ChatScreen._persistentMessages.length + (_isLoading ? 1 : 0),
+              itemBuilder: (context, index) {
+                if (index == ChatScreen._persistentMessages.length) {
+                  return _buildLoadingBubble(accentColor);
+                }
+
+                final msg = ChatScreen._persistentMessages[index];
+                final isUser = msg["role"] == "user";
+
+                return Align(
+                  alignment:
+                      isUser ? Alignment.centerRight : Alignment.centerLeft,
+                  child: Container(
+                    margin: EdgeInsets.only(bottom: res(context, 15)),
+                    padding: EdgeInsets.symmetric(
+                        horizontal: res(context, 18),
+                        vertical: res(context, 12)),
+                    constraints: BoxConstraints(
+                        maxWidth: MediaQuery.of(context).size.width * 0.75),
+                    decoration: BoxDecoration(
+                      color: isUser
+                          ? accentColor
+                          : Colors.white.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(20).copyWith(
+                        bottomRight: isUser
+                            ? const Radius.circular(0)
+                            : const Radius.circular(20),
+                        bottomLeft: isUser
+                            ? const Radius.circular(20)
+                            : const Radius.circular(0),
+                      ),
+                    ),
+                    child: Text(
+                      msg["content"]!,
+                      style: TextStyle(
+                        color: isUser ? Colors.black : Colors.white,
+                        fontWeight:
+                            isUser ? FontWeight.bold : FontWeight.normal,
+                        fontSize: res(context, 14),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+
+          // 4. Input Area
+          Padding(
+            padding: EdgeInsets.only(
+              bottom:
+                  MediaQuery.of(context).viewInsets.bottom + res(context, 20),
+              left: res(context, 20),
+              right: res(context, 20),
+              top: res(context, 10),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: res(context, 20)),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(25),
+                      border: Border.all(color: Colors.white10),
+                    ),
+                    child: TextField(
+                      controller: _controller,
+                      style: const TextStyle(color: Colors.white),
+                      onSubmitted: (_) => _handleSendMessage(),
+                      decoration: const InputDecoration(
+                        hintText: "Type a message...",
+                        hintStyle: TextStyle(color: Colors.white24),
+                        border: InputBorder.none,
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(width: res(context, 10)),
+                GestureDetector(
+                  onTap: _handleSendMessage,
+                  child: CircleAvatar(
+                    backgroundColor: accentColor,
+                    radius: res(context, 24),
+                    child: const Icon(Icons.send_rounded,
+                        color: Colors.black, size: 20),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoadingBubble(Color accent) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        padding: EdgeInsets.all(res(context, 12)),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(strokeWidth: 2, color: accent),
+        ),
+      ),
+    );
+  }
+}

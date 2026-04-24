@@ -1,0 +1,480 @@
+import 'package:flutter/material.dart';
+import 'dart:ui';
+import 'package:mobile_app/models/study_resource_model.dart';
+import 'package:mobile_app/services/study_resource_service.dart';
+import 'package:mobile_app/providers/theme_provider.dart';
+import 'package:mobile_app/services/alert_service.dart';
+import 'package:provider/provider.dart';
+
+// Helper for UI scaling consistent with NotesScreen
+double res(BuildContext context, double value) {
+  final provider = Provider.of<ThemeProvider>(context, listen: false);
+  return value * provider.uiScale;
+}
+
+class SummariesScreen extends StatefulWidget {
+  final int userId;
+  const SummariesScreen({super.key, required this.userId});
+
+  @override
+  State<SummariesScreen> createState() => _SummariesScreenState();
+}
+
+class _SummariesScreenState extends State<SummariesScreen> {
+  final _resourceService = StudyResourceService();
+  final AlertService _alertService = AlertService();
+  List<StudyResource> _summaries = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSummaries();
+  }
+
+  Future<void> _loadSummaries() async {
+    if (!mounted) return;
+    setState(() => _isLoading = true);
+    final data = await _resourceService.getResources(widget.userId, 'summary');
+    if (mounted) {
+      setState(() {
+        _summaries = data;
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _showGlassAlert(String message, {Color? color}) {
+    _alertService.showGlassAlert(context, message, color: color);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final accentColor = Provider.of<ThemeProvider>(context).currentAccentColor;
+
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        centerTitle: true,
+        leading: IconButton(
+          icon: Icon(Icons.grid_view_rounded,
+              size: res(context, 22), color: accentColor),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Text("SUMMARIES",
+            style: TextStyle(
+                color: theme.colorScheme.onSurface,
+                letterSpacing: 4,
+                fontWeight: FontWeight.w900,
+                fontSize: res(context, 16))),
+      ),
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator(color: accentColor))
+          : _summaries.isEmpty
+              ? _buildEmptyState(theme)
+              : _buildSummaryList(accentColor, theme),
+    );
+  }
+
+  Widget _buildEmptyState(ThemeData theme) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: EdgeInsets.all(res(context, 20)),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.02),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.summarize_outlined,
+                size: res(context, 60),
+                color: theme.hintColor.withValues(alpha: 0.2)),
+          ),
+          SizedBox(height: res(context, 16)),
+          Text("No summaries found",
+              style: TextStyle(
+                  color: theme.hintColor,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1,
+                  fontSize: res(context, 14))),
+          const SizedBox(height: 8),
+          Text("Generate one using your notes",
+              style: TextStyle(
+                  color: theme.hintColor.withValues(alpha: 0.5), fontSize: 11)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryList(Color accentColor, ThemeData theme) {
+    return RefreshIndicator(
+      onRefresh: _loadSummaries,
+      color: accentColor,
+      backgroundColor: theme.cardColor,
+      child: ListView.builder(
+        physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics()),
+        padding:
+            EdgeInsets.symmetric(horizontal: res(context, 20), vertical: 10),
+        itemCount: _summaries.length,
+        itemBuilder: (context, index) {
+          final summary = _summaries[index];
+          return Padding(
+            padding: EdgeInsets.only(bottom: res(context, 12)),
+            child: Container(
+              decoration: BoxDecoration(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.03),
+                borderRadius: BorderRadius.circular(res(context, 24)),
+                border: Border.all(
+                    color: theme.dividerColor.withValues(alpha: 0.05)),
+              ),
+              child: ListTile(
+                contentPadding: EdgeInsets.all(res(context, 12)),
+                onTap: () => _viewSummaryDetails(summary, accentColor, theme),
+                onLongPress: () =>
+                    _showDeleteOptions(summary, accentColor, theme),
+                leading: Container(
+                  padding: EdgeInsets.all(res(context, 10)),
+                  decoration: BoxDecoration(
+                    color: accentColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(res(context, 15)),
+                  ),
+                  child: Icon(Icons.short_text_rounded, color: accentColor),
+                ),
+                title: Text(
+                  summary.fileName,
+                  style: TextStyle(
+                      color: theme.colorScheme.onSurface,
+                      fontWeight: FontWeight.bold),
+                ),
+                subtitle: Text(
+                  summary.content ?? "No content",
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: theme.hintColor, fontSize: 11),
+                ),
+                trailing: Icon(Icons.arrow_forward_ios_rounded,
+                    color: theme.hintColor.withValues(alpha: 0.3), size: 14),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showDeleteOptions(
+      StudyResource summary, Color accent, ThemeData theme) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          padding: EdgeInsets.all(res(context, 25)),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface.withValues(alpha: 0.9),
+            borderRadius:
+                BorderRadius.vertical(top: Radius.circular(res(context, 30))),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: EdgeInsets.only(bottom: res(context, 20)),
+                decoration: BoxDecoration(
+                    color: theme.dividerColor,
+                    borderRadius: BorderRadius.circular(10)),
+              ),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                      color: accent.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12)),
+                  child: Icon(Icons.edit_note_rounded,
+                      color: accent),
+                ),
+                title: Text("Rename Summary",
+                    style: TextStyle(
+                        color: theme.colorScheme.onSurface,
+                        fontWeight: FontWeight.bold)),
+                subtitle: Text("Change the title of this summary",
+                    style: TextStyle(color: theme.hintColor, fontSize: 11)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showRenameDialog(summary, accent, theme);
+                },
+              ),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                      color: Colors.redAccent.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12)),
+                  child: const Icon(Icons.delete_outline_rounded,
+                      color: Colors.redAccent),
+                ),
+                title: Text("Delete Summary",
+                    style: TextStyle(
+                        color: theme.colorScheme.onSurface,
+                        fontWeight: FontWeight.bold)),
+                subtitle: Text("This cannot be undone",
+                    style: TextStyle(color: theme.hintColor, fontSize: 11)),
+                onTap: () async {
+                  Navigator.pop(context);
+                  if (summary.id != null) {
+                    await _resourceService.deleteResource(summary.id!);
+                    _loadSummaries();
+                    _showGlassAlert("Summary Deleted", color: Colors.redAccent);
+                  }
+                },
+              ),
+              SizedBox(height: res(context, 20)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showRenameDialog(
+      StudyResource summary, Color accent, ThemeData theme) {
+    final controller = TextEditingController(text: summary.fileName);
+    showDialog(
+      context: context,
+      builder: (context) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+        child: AlertDialog(
+          backgroundColor: theme.colorScheme.surface.withValues(alpha: 0.9),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(res(context, 20))),
+          title: Text("RENAME SUMMARY",
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.onSurface,
+                  fontSize: res(context, 16),
+                  letterSpacing: 1.2)),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            style: TextStyle(color: theme.colorScheme.onSurface),
+            decoration: InputDecoration(
+              hintText: "Enter name...",
+              hintStyle:
+                  TextStyle(color: theme.hintColor),
+              enabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: accent.withValues(alpha: 0.5))),
+              focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: accent, width: 2)),
+            ),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("CANCEL",
+                    style: TextStyle(
+                        color: Colors.grey, fontWeight: FontWeight.bold))),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: accent,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(res(context, 12)))),
+              onPressed: () async {
+                if (controller.text.isNotEmpty) {
+                  summary.fileName = controller.text;
+                  await _resourceService.updateResource(summary);
+                  if (context.mounted) Navigator.pop(context);
+                  _loadSummaries();
+                  _showGlassAlert("Renamed Successfully");
+                }
+              },
+              child: const Text("SAVE",
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _viewSummaryDetails(
+      StudyResource summary, Color accentColor, ThemeData theme) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+        child: Container(
+          height: MediaQuery.of(context).size.height * 0.85,
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface.withValues(alpha: 0.95),
+            borderRadius:
+                BorderRadius.vertical(top: Radius.circular(res(context, 35))),
+            border:
+                Border.all(color: theme.dividerColor.withValues(alpha: 0.05)),
+          ),
+          padding: EdgeInsets.all(res(context, 25)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                      color: theme.dividerColor,
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+              SizedBox(height: res(context, 25)),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                        color: accentColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12)),
+                    child: Icon(Icons.article_rounded,
+                        color: accentColor, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      summary.fileName.toUpperCase(),
+                      style: TextStyle(
+                          color: theme.colorScheme.onSurface,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.5,
+                          fontSize: res(context, 16)),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: res(context, 20)),
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(res(context, 20)),
+                  decoration: BoxDecoration(
+                      color:
+                          theme.colorScheme.onSurface.withValues(alpha: 0.02),
+                      borderRadius: BorderRadius.circular(25),
+                      border: Border.all(
+                          color: theme.dividerColor.withValues(alpha: 0.05))),
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Text(
+                      summary.content ?? "No content generated.",
+                      style: TextStyle(
+                          color: theme.colorScheme.onSurface
+                              .withValues(alpha: 0.8),
+                          fontSize: res(context, 15),
+                          height: 1.8,
+                          fontFamily: 'Poppins'),
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(height: res(context, 20)),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: accentColor,
+                    foregroundColor: theme.scaffoldBackgroundColor,
+                    minimumSize: Size(double.infinity, res(context, 55)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18)),
+                    elevation: 0),
+                child: const Text("CLOSE READER",
+                    style: TextStyle(
+                        fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+              )
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GlassAlertAnimated extends StatefulWidget {
+  final String message;
+  final Color themeColor;
+  final VoidCallback onDismiss;
+  const _GlassAlertAnimated(
+      {required this.message,
+      required this.themeColor,
+      required this.onDismiss});
+
+  @override
+  State<_GlassAlertAnimated> createState() => _GlassAlertAnimatedState();
+}
+
+class _GlassAlertAnimatedState extends State<_GlassAlertAnimated>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 400));
+    _scaleAnimation =
+        CurvedAnimation(parent: _controller, curve: Curves.easeOutBack);
+    _controller.forward();
+    Future.delayed(const Duration(milliseconds: 2000), () async {
+      if (mounted) {
+        await _controller.reverse();
+        widget.onDismiss();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: ScaleTransition(
+        scale: _scaleAnimation,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            margin: EdgeInsets.symmetric(horizontal: res(context, 50)),
+            padding: EdgeInsets.symmetric(
+                vertical: res(context, 20), horizontal: res(context, 25)),
+            decoration: BoxDecoration(
+                color: widget.themeColor.withValues(alpha: 0.9),
+                borderRadius: BorderRadius.circular(res(context, 20)),
+                boxShadow: [
+                  BoxShadow(
+                      color: widget.themeColor.withValues(alpha: 0.4),
+                      blurRadius: 20)
+                ]),
+            child: Text(widget.message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14)),
+          ),
+        ),
+      ),
+    );
+  }
+}

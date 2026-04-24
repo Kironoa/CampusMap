@@ -15,7 +15,11 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "33CC10EC2044A3C60003C045"
+<<<<<<< HEAD
                BuildableName = "naviapp.app"
+=======
+               BuildableName = "mobile_app.app"
+>>>>>>> 8a35f843624a455ebaf6c1defb4b1077f73e75bc
                BlueprintName = "Runner"
                ReferencedContainer = "container:Runner.xcodeproj">
             </BuildableReference>
@@ -31,7 +35,11 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "33CC10EC2044A3C60003C045"
+<<<<<<< HEAD
             BuildableName = "naviapp.app"
+=======
+            BuildableName = "mobile_app.app"
+>>>>>>> 8a35f843624a455ebaf6c1defb4b1077f73e75bc
             BlueprintName = "Runner"
             ReferencedContainer = "container:Runner.xcodeproj">
          </BuildableReference>
@@ -66,7 +74,11 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "33CC10EC2044A3C60003C045"
+<<<<<<< HEAD
             BuildableName = "naviapp.app"
+=======
+            BuildableName = "mobile_app.app"
+>>>>>>> 8a35f843624a455ebaf6c1defb4b1077f73e75bc
             BlueprintName = "Runner"
             ReferencedContainer = "container:Runner.xcodeproj">
          </BuildableReference>
@@ -83,7 +95,11 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "33CC10EC2044A3C60003C045"
+<<<<<<< HEAD
             BuildableName = "naviapp.app"
+=======
+            BuildableName = "mobile_app.app"
+>>>>>>> 8a35f843624a455ebaf6c1defb4b1077f73e75bc
             BlueprintName = "Runner"
             ReferencedContainer = "container:Runner.xcodeproj">
          </BuildableReference>

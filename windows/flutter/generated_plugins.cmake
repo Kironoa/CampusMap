@@ -4,11 +4,21 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   app_links
+<<<<<<< HEAD
   geolocator_windows
+=======
+  connectivity_plus
+  file_selector_windows
+  flutter_timezone
+>>>>>>> 8a35f843624a455ebaf6c1defb4b1077f73e75bc
   url_launcher_windows
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST
+<<<<<<< HEAD
+=======
+  flutter_local_notifications_windows
+>>>>>>> 8a35f843624a455ebaf6c1defb4b1077f73e75bc
   jni
 )
 
