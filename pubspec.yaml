@@ -1,0 +1,39 @@
+name: naviapp
+description: "A specialized campus navigation app with real-time tracking and AI assistance."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.10.8 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  shared_preferences: ^2.2.2
+  provider: ^6.1.1
+
+  # Navigation & Mapping
+  google_maps_flutter: ^2.5.0
+  geolocator: ^10.1.0
+  flutter_polyline_points: ^2.0.0
+
+  # Backend (Used for storing campus POIs and coordinates)
+  supabase_flutter: ^2.12.2
+
+  # AI Integration (For the campus assistant feature)
+  google_generative_ai: ^0.4.7
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+
+  # Ensure you uncomment this if you plan to use custom 
+  # markers or school logo images.
+  # assets:
+  #   - assets/
