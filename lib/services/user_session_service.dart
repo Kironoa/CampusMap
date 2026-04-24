@@ -1,5 +1,5 @@
-import 'package:mobile_app/models/app_user.dart';
-import 'package:mobile_app/models/user_session.dart';
+import 'package:naviapp/models/app_user.dart';
+import 'package:naviapp/models/user_session.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class UserSessionService {

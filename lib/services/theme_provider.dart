@@ -1,1 +1,1 @@
-export 'package:mobile_app/providers/theme_provider.dart';
+export 'package:naviapp/providers/theme_provider.dart';

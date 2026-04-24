@@ -3,10 +3,10 @@ import 'package:flutter/foundation.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:path/path.dart';
 import 'package:intl/intl.dart';
-import 'package:mobile_app/models/schedule_model.dart';
-import 'package:mobile_app/models/class_model.dart';
-import 'package:mobile_app/services/notification_service.dart';
-import 'package:mobile_app/core/crypto_utils.dart';
+import 'package:naviapp/models/schedule_model.dart';
+import 'package:naviapp/models/class_model.dart';
+import 'package:naviapp/services/notification_service.dart';
+import 'package:naviapp/core/crypto_utils.dart';
 import 'package:path_provider/path_provider.dart';
 
 class DatabaseHelper {

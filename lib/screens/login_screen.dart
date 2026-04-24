@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_app/models/app_user.dart';
-import 'package:mobile_app/screens/dashboard_screen.dart';
-import 'package:mobile_app/screens/signup_screen.dart';
-import 'package:mobile_app/glass_modal.dart';
-import 'package:mobile_app/services/auth_service.dart';
-import 'package:mobile_app/providers/theme_provider.dart';
+import 'package:naviapp/models/app_user.dart';
+import 'package:naviapp/screens/dashboard_screen.dart';
+import 'package:naviapp/screens/signup_screen.dart';
+import 'package:naviapp/glass_modal.dart';
+import 'package:naviapp/services/auth_service.dart';
+import 'package:naviapp/providers/theme_provider.dart';
 import 'package:provider/provider.dart';
 
 double res(BuildContext context, double value) {

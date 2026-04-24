@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'package:provider/provider.dart';
-import 'package:mobile_app/models/class_model.dart';
-import 'package:mobile_app/repositories/class_repository.dart';
-import 'package:mobile_app/providers/theme_provider.dart';
-import 'package:mobile_app/widgets/text_field.dart';
-import 'package:mobile_app/providers/class_update_notifier.dart';
+import 'package:naviapp/models/class_model.dart';
+import 'package:naviapp/repositories/class_repository.dart';
+import 'package:naviapp/providers/theme_provider.dart';
+import 'package:naviapp/widgets/text_field.dart';
+import 'package:naviapp/providers/class_update_notifier.dart';
 
 double res(BuildContext context, double value) {
   final provider = Provider.of<ThemeProvider>(context, listen: false);

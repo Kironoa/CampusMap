@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_app/models/resource_model.dart';
+import 'package:naviapp/models/resource_model.dart';
 
 final polSciCategory = ResourceCategory(
   title: "Coming Soon!",

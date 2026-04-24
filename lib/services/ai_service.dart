@@ -1,5 +1,5 @@
 import 'package:google_generative_ai/google_generative_ai.dart';
-import 'package:mobile_app/config/env.dart';
+import 'package:naviapp/config/env.dart';
 
 class AIService {
   static final AIService _instance = AIService._internal();

@@ -1,5 +1,5 @@
-import 'package:mobile_app/helper/db_helper.dart';
-import 'package:mobile_app/models/assignment_model.dart';
+import 'package:naviapp/helper/db_helper.dart';
+import 'package:naviapp/models/assignment_model.dart';
 
 class AssignmentService {
   final DatabaseHelper _dbHelper;

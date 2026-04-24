@@ -1,11 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:mobile_app/models/class_model.dart';
-import 'package:mobile_app/models/assignment_model.dart';
-import 'package:mobile_app/repositories/class_repository.dart';
-import 'package:mobile_app/services/assignment_service.dart';
-import 'package:mobile_app/providers/class_update_notifier.dart';
-import 'package:mobile_app/utils/schedule_utils.dart';
+import 'package:naviapp/models/class_model.dart';
+import 'package:naviapp/models/assignment_model.dart';
+import 'package:naviapp/repositories/class_repository.dart';
+import 'package:naviapp/services/assignment_service.dart';
+import 'package:naviapp/providers/class_update_notifier.dart';
+import 'package:naviapp/utils/schedule_utils.dart';
 
 final classRepositoryProvider = Provider<ClassRepository>((ref) {
   return ClassRepository();

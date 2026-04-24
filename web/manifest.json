@@ -1,11 +1,6 @@
 {
-<<<<<<< HEAD
-    "name": "naviapp",
+"name": "naviapp",
     "short_name": "naviapp",
-=======
-    "name": "mobile_app",
-    "short_name": "mobile_app",
->>>>>>> 8a35f843624a455ebaf6c1defb4b1077f73e75bc
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

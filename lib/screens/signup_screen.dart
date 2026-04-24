@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_app/glass_modal.dart';
-import 'package:mobile_app/services/auth_service.dart';
-import 'package:mobile_app/providers/theme_provider.dart';
+import 'package:naviapp/glass_modal.dart';
+import 'package:naviapp/services/auth_service.dart';
+import 'package:naviapp/providers/theme_provider.dart';
 import 'package:provider/provider.dart';
 
 double res(BuildContext context, double value) {

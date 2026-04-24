@@ -1,4 +1,4 @@
-import 'package:mobile_app/models/resource_model.dart';
+import 'package:naviapp/models/resource_model.dart';
 import 'programs/bscs_data.dart';
 import 'programs/business_data.dart';
 import 'programs/polsci_data.dart';

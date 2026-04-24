@@ -1,4 +1,4 @@
-import 'package:mobile_app/helper/time_helper.dart';
+import 'package:naviapp/helper/time_helper.dart';
 
 class Schedule {
   final int? id;

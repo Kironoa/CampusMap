@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'package:intl/intl.dart';
-import 'package:mobile_app/models/assignment_model.dart';
 import 'package:provider/provider.dart';
-import 'package:mobile_app/providers/theme_provider.dart';
-import 'package:mobile_app/services/assignment_service.dart';
-import 'package:mobile_app/widgets/text_field.dart';
+import 'package:naviapp/models/assignment_model.dart';
+import 'package:naviapp/providers/theme_provider.dart';
+import 'package:naviapp/services/assignment_service.dart';
+import 'package:naviapp/widgets/text_field.dart';
 
 double res(BuildContext context, double value) {
   final provider = Provider.of<ThemeProvider>(context, listen: false);

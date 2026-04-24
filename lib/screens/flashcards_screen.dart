@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flip_card/flip_card.dart';
-import 'package:mobile_app/models/study_resource_model.dart';
-import 'package:mobile_app/services/study_resource_service.dart';
-import 'package:mobile_app/providers/theme_provider.dart';
-import 'package:mobile_app/services/alert_service.dart';
+import 'package:naviapp/models/study_resource_model.dart';
+import 'package:naviapp/services/study_resource_service.dart';
+import 'package:naviapp/providers/theme_provider.dart';
+import 'package:naviapp/services/alert_service.dart';
 import 'package:provider/provider.dart';
 import 'dart:ui';
 

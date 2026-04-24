@@ -1,7 +1,7 @@
-import 'package:mobile_app/models/study_note_model.dart';
-import 'package:mobile_app/models/assignment_model.dart';
-import 'package:mobile_app/models/schedule_model.dart';
-import 'package:mobile_app/models/study_resource_model.dart';
+import 'package:naviapp/models/study_note_model.dart';
+import 'package:naviapp/models/assignment_model.dart';
+import 'package:naviapp/models/schedule_model.dart';
+import 'package:naviapp/models/study_resource_model.dart';
 
 abstract class ModelFactory<T> {
   T fromMap(Map<String, dynamic> map);

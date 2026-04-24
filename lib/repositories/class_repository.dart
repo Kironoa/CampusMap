@@ -1,7 +1,7 @@
-import 'package:mobile_app/helper/db_helper.dart';
-import 'package:mobile_app/models/class_model.dart';
-import 'package:mobile_app/models/schedule_model.dart';
-import 'package:mobile_app/services/notification_service.dart';
+import 'package:naviapp/helper/db_helper.dart';
+import 'package:naviapp/models/class_model.dart';
+import 'package:naviapp/models/schedule_model.dart';
+import 'package:naviapp/services/notification_service.dart';
 import 'package:flutter/foundation.dart';
 
 class ClassRepository {

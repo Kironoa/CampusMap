@@ -1,10 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart' as rp;
 import 'package:intl/intl.dart';
-import 'package:mobile_app/helper/db_helper.dart';
-import 'package:mobile_app/models/app_user.dart';
-import 'package:mobile_app/models/schedule_model.dart';
-import 'package:mobile_app/services/user_service.dart';
-import 'package:mobile_app/utils/schedule_utils.dart';
+import 'package:naviapp/helper/db_helper.dart';
+import 'package:naviapp/models/app_user.dart';
+import 'package:naviapp/models/schedule_model.dart';
+import 'package:naviapp/services/user_service.dart';
+import 'package:naviapp/utils/schedule_utils.dart';
 
 final databaseHelperProvider = rp.Provider<DatabaseHelper>((ref) => DatabaseHelper());
 final userServiceProvider = rp.Provider<UserService>((ref) => UserService());

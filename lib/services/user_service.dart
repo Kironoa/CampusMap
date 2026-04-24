@@ -1,5 +1,5 @@
-import 'package:mobile_app/helper/db_helper.dart';
-import 'package:mobile_app/models/app_user.dart';
+import 'package:naviapp/helper/db_helper.dart';
+import 'package:naviapp/models/app_user.dart';
 
 class UserService {
   final DatabaseHelper _dbHelper;

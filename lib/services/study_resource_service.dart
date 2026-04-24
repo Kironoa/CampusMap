@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
-import 'package:mobile_app/helper/db_helper.dart';
-import 'package:mobile_app/models/study_resource_model.dart';
+import 'package:naviapp/helper/db_helper.dart';
+import 'package:naviapp/models/study_resource_model.dart';
 
 class StudyResourceService {
   final DatabaseHelper _dbHelper;

@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
-import 'package:mobile_app/models/study_note_model.dart';
-import 'package:mobile_app/repositories/notes_repository.dart';
-import 'package:mobile_app/core/interfaces.dart';
+import 'package:naviapp/models/study_note_model.dart';
+import 'package:naviapp/repositories/notes_repository.dart';
+import 'package:naviapp/core/interfaces.dart';
 
 class NotesServiceBase extends ChangeNotifier implements INotesRepository {
   final NotesRepository _repository;

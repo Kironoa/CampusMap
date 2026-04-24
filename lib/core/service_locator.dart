@@ -1,8 +1,8 @@
-import 'package:mobile_app/helper/db_helper.dart';
-import 'package:mobile_app/repositories/notes_repository.dart';
-import 'package:mobile_app/repositories/assignment_repository.dart';
-import 'package:mobile_app/repositories/schedule_repository.dart';
-import 'package:mobile_app/services/notes_service_base.dart';
+import 'package:naviapp/helper/db_helper.dart';
+import 'package:naviapp/repositories/notes_repository.dart';
+import 'package:naviapp/repositories/assignment_repository.dart';
+import 'package:naviapp/repositories/schedule_repository.dart';
+import 'package:naviapp/services/notes_service_base.dart';
 
 class ServiceLocator {
   static final ServiceLocator _instance = ServiceLocator._internal();

@@ -1,6 +1,6 @@
-import 'package:mobile_app/helper/db_helper.dart';
-import 'package:mobile_app/models/schedule_model.dart';
-import 'package:mobile_app/core/base_repository.dart';
+import 'package:naviapp/helper/db_helper.dart';
+import 'package:naviapp/models/schedule_model.dart';
+import 'package:naviapp/core/base_repository.dart';
 
 class ScheduleRepository implements BaseRepository<Schedule> {
   final DatabaseHelper _dbHelper;

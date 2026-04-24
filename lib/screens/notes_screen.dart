@@ -1,17 +1,17 @@
-import 'package:flutter/material.dart';
 import 'dart:ui';
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:mobile_app/models/study_note_model.dart';
-import 'package:mobile_app/models/study_resource_model.dart';
 import 'package:provider/provider.dart';
-import 'package:mobile_app/widgets/text_field.dart';
-import 'package:mobile_app/services/notes_service.dart';
-import 'package:mobile_app/providers/theme_provider.dart';
-import 'package:mobile_app/services/ai_service.dart';
-import 'package:mobile_app/services/study_resource_service.dart';
-import 'package:mobile_app/services/notification_service.dart';
-import 'package:mobile_app/services/alert_service.dart';
-import 'package:mobile_app/screens/flashcards_screen.dart';
+import 'package:naviapp/models/study_note_model.dart';
+import 'package:naviapp/models/study_resource_model.dart';
+import 'package:naviapp/widgets/text_field.dart';
+import 'package:naviapp/services/notes_service.dart';
+import 'package:naviapp/providers/theme_provider.dart';
+import 'package:naviapp/services/ai_service.dart';
+import 'package:naviapp/services/study_resource_service.dart';
+import 'package:naviapp/services/notification_service.dart';
+import 'package:naviapp/services/alert_service.dart';
+import 'package:naviapp/screens/flashcards_screen.dart';
 
 double res(BuildContext context, double value) {
   final provider = Provider.of<ThemeProvider>(context, listen: false);

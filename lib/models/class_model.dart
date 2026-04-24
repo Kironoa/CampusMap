@@ -1,5 +1,5 @@
 import 'package:intl/intl.dart';
-import 'package:mobile_app/helper/time_helper.dart';
+import 'package:naviapp/helper/time_helper.dart';
 
 class ClassModel {
   final int? id;

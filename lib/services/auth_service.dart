@@ -1,7 +1,7 @@
-import 'package:mobile_app/helper/db_helper.dart';
-import 'package:mobile_app/models/app_user.dart';
-import 'package:mobile_app/models/user_session.dart';
-import 'package:mobile_app/services/user_session_service.dart';
+import 'package:naviapp/helper/db_helper.dart';
+import 'package:naviapp/models/app_user.dart';
+import 'package:naviapp/models/user_session.dart';
+import 'package:naviapp/services/user_session_service.dart';
 
 class AuthService {
   final DatabaseHelper _dbHelper;

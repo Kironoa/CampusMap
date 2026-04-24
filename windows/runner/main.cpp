@@ -27,11 +27,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   FlutterWindow window(project);
   Win32Window::Point origin(10, 10);
   Win32Window::Size size(1280, 720);
-<<<<<<< HEAD
-  if (!window.Create(L"naviapp", origin, size)) {
-=======
-  if (!window.Create(L"mobile_app", origin, size)) {
->>>>>>> 8a35f843624a455ebaf6c1defb4b1077f73e75bc
+if (!window.Create(L"naviapp", origin, size)) {
     return EXIT_FAILURE;
   }
   window.SetQuitOnClose(true);
