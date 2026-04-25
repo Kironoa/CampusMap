@@ -16,6 +16,7 @@ class RecordScreen extends StatefulWidget {
 class _RecordScreenState extends State<RecordScreen> {
   final List<SavedSpot> _savedSpots = [];
   final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
   GoogleMapController? _mapController;
   StreamSubscription<Position>? _positionStream;
   Position? _currentPosition;
@@ -43,6 +44,7 @@ class _RecordScreenState extends State<RecordScreen> {
   void dispose() {
     _positionStream?.cancel();
     _nameController.dispose();
+    _descriptionController.dispose();
     super.dispose();
   }
 
@@ -93,12 +95,16 @@ class _RecordScreenState extends State<RecordScreen> {
       name: name,
       latitude: _currentPosition!.latitude,
       longitude: _currentPosition!.longitude,
+      description: _descriptionController.text.trim().isEmpty 
+          ? null 
+          : _descriptionController.text.trim(),
     );
 
     await SavedSpotStorage.addSpot(spot);
     await _loadSpots();
 
     _nameController.clear();
+    _descriptionController.clear();
     _showToast("Spot saved!", Colors.green);
   }
 
@@ -137,38 +143,59 @@ class _RecordScreenState extends State<RecordScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       color: colorScheme.surfaceContainerHighest,
-      child: Row(
+      child: Column(
         children: [
-          Expanded(
-            child: TextField(
-              controller: _nameController,
-              decoration: InputDecoration(
-                hintText: "Enter spot name",
-                filled: true,
-                fillColor: colorScheme.surface,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _nameController,
+                  decoration: InputDecoration(
+                    hintText: "Enter spot name",
+                    filled: true,
+                    fillColor: colorScheme.surface,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                  ),
+                  onSubmitted: (_) => _saveCurrentLocation(),
                 ),
               ),
-              onSubmitted: (_) => _saveCurrentLocation(),
-            ),
+              const SizedBox(width: 12),
+              ElevatedButton.icon(
+                onPressed: _saveCurrentLocation,
+                icon: const Icon(Icons.add_location_alt),
+                label: const Text("Save"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          ElevatedButton.icon(
-            onPressed: _saveCurrentLocation,
-            icon: const Icon(Icons.add_location_alt),
-            label: const Text("Save"),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(
+          const SizedBox(height: 8),
+          TextField(
+            controller: _descriptionController,
+            decoration: InputDecoration(
+              hintText: "Enter description (optional)",
+              filled: true,
+              fillColor: colorScheme.surface,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
-                vertical: 16,
+                vertical: 12,
               ),
             ),
           ),
@@ -255,12 +282,26 @@ class _RecordScreenState extends State<RecordScreen> {
             spot.name,
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
-          subtitle: Text(
-            "${spot.latitude.toStringAsFixed(5)}, ${spot.longitude.toStringAsFixed(5)}",
-            style: TextStyle(
-              fontSize: 12,
-              color: colorScheme.onSurface.withValues(alpha: 0.6),
-            ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "${spot.latitude.toStringAsFixed(5)}, ${spot.longitude.toStringAsFixed(5)}",
+                style: TextStyle(
+                  fontSize: 12,
+                  color: colorScheme.onSurface.withValues(alpha: 0.6),
+                ),
+              ),
+              if (spot.description != null && spot.description!.isNotEmpty)
+                Text(
+                  spot.description!,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic,
+                    color: colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                ),
+            ],
           ),
           trailing: IconButton(
             icon: Icon(Icons.delete_outline, color: Colors.red.shade400),
