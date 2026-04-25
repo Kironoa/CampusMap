@@ -1,25 +1,26 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart' hide Provider;
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart' as pm;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:naviapp/models/schedule_model.dart';
 import 'package:naviapp/helper/db_helper.dart';
-import 'package:naviapp/screens/resource_screen.dart' hide res;
-import 'package:naviapp/screens/schedule_screen.dart' hide res;
+import 'package:naviapp/screens/resource_screen.dart';
+import 'package:naviapp/screens/schedule_screen.dart';
 import 'package:naviapp/screens/settings_screen.dart';
 import 'package:naviapp/providers/theme_provider.dart';
 import 'package:naviapp/services/notification_service.dart';
-import 'package:naviapp/screens/notes_screen.dart' hide res;
-import 'package:naviapp/screens/assignments_screen.dart' hide res;
-import 'package:naviapp/screens/chat_screen.dart' hide res;
-import 'package:naviapp/screens/quizzes_screen.dart' hide res;
-import 'package:naviapp/screens/flashcards_screen.dart' hide res;
-import 'package:naviapp/screens/summaries_screen.dart' hide res;
+import 'package:naviapp/screens/notes_screen.dart';
+import 'package:naviapp/screens/assignments_screen.dart';
+import 'package:naviapp/screens/chat_screen.dart';
+import 'package:naviapp/screens/quizzes_screen.dart';
+import 'package:naviapp/screens/flashcards_screen.dart';
+import 'package:naviapp/screens/summaries_screen.dart';
 import 'package:naviapp/screens/login_screen.dart';
+import 'package:naviapp/utils/ui_utils.dart' as ui;
+import 'package:naviapp/core/user_session.dart';
 
 class LiveClockWidget extends StatefulWidget {
   final double Function(double) r;
@@ -99,15 +100,15 @@ class _LiveClockWidgetState extends State<LiveClockWidget> {
   }
 }
 
-class StudentDashboard extends ConsumerStatefulWidget {
+class StudentDashboard extends StatefulWidget {
   final int userId;
   const StudentDashboard({super.key, required this.userId});
 
   @override
-  ConsumerState<StudentDashboard> createState() => _StudentDashboardState();
+  State<StudentDashboard> createState() => _StudentDashboardState();
 }
 
-class _StudentDashboardState extends ConsumerState<StudentDashboard>
+class _StudentDashboardState extends State<StudentDashboard>
     with TickerProviderStateMixin {
   late Timer _classTimer;
   late AnimationController _bgAnimationController;
@@ -123,6 +124,7 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
   Schedule? _currentClass;
   Schedule? _nextClass;
 
+  @override
   void initState() {
     super.initState();
     _fetchUserData();
@@ -134,7 +136,7 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
     )..repeat();
   }
 
-  double res(BuildContext context, double value) => value;
+  double res(BuildContext context, double value) => ui.res(context, value);
 
   Future<void> _fetchUserData() async {
     final user = await _dbHelper.getUser(widget.userId);

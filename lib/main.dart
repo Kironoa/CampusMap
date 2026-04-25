@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:naviapp/providers/theme_provider.dart';
+import 'package:naviapp/core/user_session.dart';
+import 'package:naviapp/services/ai_service.dart';
+import 'package:naviapp/services/notification_service.dart';
 import 'package:naviapp/screens/splash_screen.dart';
 import 'package:naviapp/screens/dashboard_screen.dart' show StudentDashboard;
 import 'package:naviapp/screens/navigation_screen.dart';
@@ -11,6 +14,12 @@ import 'package:naviapp/screens/settings_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SharedPreferences.getInstance();
+  
+  await AIService.initialize();
+  
+  final notifService = NotificationService();
+  await notifService.init();
+  
   runApp(const NaviApp());
 }
 
@@ -37,7 +46,7 @@ class NaviApp extends StatelessWidget {
             darkTheme: _buildDarkTheme(),
             home: const SplashScreen(),
             routes: {
-              '/dashboard': (context) => const StudentDashboard(userId: 1),
+              '/dashboard': (context) => StudentDashboard(userId: UserSession().userId),
               '/navigation': (context) => const NavigationScreen(),
               '/record': (context) => const RecordScreen(),
               '/settings': (context) => const SettingsScreen(),
@@ -171,7 +180,7 @@ class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
 
   final List<Widget> _screens = [
-    const StudentDashboard(userId: 1),
+    StudentDashboard(userId: UserSession().userId),
     const NavigationScreen(),
     const SettingsScreen(),
   ];
