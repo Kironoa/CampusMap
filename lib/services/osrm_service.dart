@@ -1,10 +1,24 @@
 import 'package:dio/dio.dart';
 import 'package:latlong2/latlong.dart';
 
+class RouteInfo {
+  final List<LatLng> points;
+  final double distance;
+  final String distanceText;
+  final String timeText;
+
+  RouteInfo({
+    required this.points,
+    required this.distance,
+    required this.distanceText,
+    required this.timeText,
+  });
+}
+
 class OSRMRouteService {
   static const String _baseUrl = 'http://router.project-osrm.org/route/v1/walking';
 
-  static Future<List<LatLng>> getRoute(LatLng origin, LatLng destination) async {
+  static Future<RouteInfo?> getRoute(LatLng origin, LatLng destination) async {
     try {
       final dio = Dio();
       final url = '$_baseUrl/${origin.longitude},${origin.latitude};${destination.longitude},${destination.latitude}?overview=full&geometries=geojson';
@@ -16,12 +30,18 @@ class OSRMRouteService {
         if (data['code'] == 'Ok' && data['routes'] != null && data['routes'].isNotEmpty) {
           final route = data['routes'][0];
           final geometry = route['geometry'];
-          return _decodeGeoJSON(geometry);
+          final distance = (route['distance'] as num?)?.toDouble() ?? calculateDistance(origin, destination);
+          return RouteInfo(
+            points: _decodeGeoJSON(geometry),
+            distance: distance,
+            distanceText: formatDistance(distance),
+            timeText: formatWalkingTime(distance),
+          );
         }
       }
-      return [];
+      return null;
     } catch (e) {
-      return [];
+      return null;
     }
   }
 

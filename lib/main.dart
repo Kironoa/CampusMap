@@ -9,6 +9,7 @@ import 'package:naviapp/screens/home_screen.dart';
 import 'package:naviapp/screens/navigation_screen.dart';
 import 'package:naviapp/screens/record_screen.dart';
 import 'package:naviapp/screens/settings_screen.dart';
+import 'package:naviapp/screens/floor_plan_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,17 +19,21 @@ void main() async {
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.dark,
   ));
-  runApp(const NaviApp());
+  final themeProvider = ThemeProvider();
+  await themeProvider.loadTheme();
+  runApp(NaviApp(themeProvider: themeProvider));
 }
 
 class NaviApp extends StatelessWidget {
-  const NaviApp({super.key});
+  final ThemeProvider themeProvider;
+
+  const NaviApp({super.key, required this.themeProvider});
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => ThemeProvider()..loadTheme()),
+        ChangeNotifierProvider.value(value: themeProvider),
         ChangeNotifierProvider(create: (_) => NavigationProvider()),
       ],
       child: Consumer<ThemeProvider>(
@@ -51,6 +56,7 @@ class NaviApp extends StatelessWidget {
               ),
               '/record': (context) => const RecordScreen(),
               '/settings': (context) => const SettingsScreen(),
+              '/floor_plan': (context) => const FloorPlanScreen(),
             },
           );
         },

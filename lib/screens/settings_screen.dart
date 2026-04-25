@@ -13,12 +13,15 @@ class MapSettings {
   static int mapType = 3;
   static bool followLocation = true;
   static bool showMarkers = true;
+  static bool _loaded = false;
 
   static Future<void> load() async {
+    if (_loaded) return;
     final prefs = await SharedPreferences.getInstance();
     mapType = prefs.getInt(_mapTypeKey) ?? 3;
     followLocation = prefs.getBool(_followLocationKey) ?? true;
     showMarkers = prefs.getBool(_showMarkersKey) ?? true;
+    _loaded = true;
   }
 
   static Future<void> setMapType(int value) async {
@@ -51,6 +54,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   int _mapType = 3;
   bool _followLocation = true;
   bool _showMarkers = true;
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -65,6 +69,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _mapType = MapSettings.mapType;
         _followLocation = MapSettings.followLocation;
         _showMarkers = MapSettings.showMarkers;
+        _isLoading = false;
       });
     }
   }
@@ -85,6 +90,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: SafeArea(
         child: Consumer<ThemeProvider>(
           builder: (context, themeProvider, _) {
+            if (_isLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
             return ListView(
               padding: const EdgeInsets.all(20),
               children: [
@@ -184,7 +192,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       _buildTile(
                         icon: Icons.help_outline,
                         title: 'Help & FAQ',
-                        onTap: () => _showHelpFAQ(context),
+                        onTap: () => _showHelpFAQ(context, colorScheme),
                       ),
                       _buildTile(
                         icon: Icons.feedback_outlined,
@@ -394,7 +402,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showHelpFAQ(BuildContext context) {
+  void _showHelpFAQ(BuildContext context, ColorScheme colorScheme) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -427,7 +435,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         padding: const EdgeInsets.all(16),
                         child: Text(
                           'Use the Map tab to view the campus. Tap on any landmark marker to see details and get walking directions. The blue route line will guide you to your destination.',
-                          style: TextStyle(color: Colors.grey.shade600),
+                          style: TextStyle(color: colorScheme.onSurface.withValues(alpha: 0.6)),
                         ),
                       ),
                     ],
@@ -439,7 +447,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         padding: const EdgeInsets.all(16),
                         child: Text(
                           'The app requires an internet connection to load the map tiles and calculate routes. However, landmark information will still be visible when offline.',
-                          style: TextStyle(color: Colors.grey.shade600),
+                          style: TextStyle(color: colorScheme.onSurface.withValues(alpha: 0.6)),
                         ),
                       ),
                     ],
@@ -451,7 +459,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         padding: const EdgeInsets.all(16),
                         child: Text(
                           'Tap "Record Spot" from the home screen or the quick actions panel on the map. Walk to the location you want to save, then tap the record button to save your current GPS coordinates.',
-                          style: TextStyle(color: Colors.grey.shade600),
+                          style: TextStyle(color: colorScheme.onSurface.withValues(alpha: 0.6)),
                         ),
                       ),
                     ],
@@ -463,7 +471,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         padding: const EdgeInsets.all(16),
                         child: Text(
                           'Blue markers indicate buildings, orange markers show offices, violet markers are for labs, and cyan markers represent facilities. This color coding helps you quickly identify different types of campus locations.',
-                          style: TextStyle(color: Colors.grey.shade600),
+                          style: TextStyle(color: colorScheme.onSurface.withValues(alpha: 0.6)),
                         ),
                       ),
                     ],
@@ -475,7 +483,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         padding: const EdgeInsets.all(16),
                         child: Text(
                           'Go to Settings > Map Preferences > Map Type. You can choose between Normal, Satellite, Terrain, or Hybrid map views. Your preference will be saved and applied automatically.',
-                          style: TextStyle(color: Colors.grey.shade600),
+                          style: TextStyle(color: colorScheme.onSurface.withValues(alpha: 0.6)),
                         ),
                       ),
                     ],

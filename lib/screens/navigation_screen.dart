@@ -28,7 +28,8 @@ class NavigationScreen extends StatefulWidget {
 }
 
 class _NavigationScreenState extends State<NavigationScreen> {
-  static const LatLng _tcgcCenter = LatLng(8.0645, 123.7510);
+  static const LatLng _tcgcCenter = LatLng(8.0593, 123.7538);
+  static const LatLng _defaultFallback = LatLng(8.0593, 123.7538);
   final MapController _mapController = MapController();
   final TextEditingController _searchController = TextEditingController();
   CampusLandmark? _selectedLandmark;
@@ -39,6 +40,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
   bool _isLoadingRoute = false;
   Position? _currentPosition;
   StreamSubscription<Position>? _positionStream;
+  bool _locationFailed = false;
 
   final List<String> _categories = [
     'All',
@@ -81,24 +83,44 @@ class _NavigationScreenState extends State<NavigationScreen> {
   }
 
   void _startLocationTracking() {
-    _positionStream =
-        Geolocator.getPositionStream(
-          locationSettings: const LocationSettings(
-            accuracy: LocationAccuracy.high,
-            distanceFilter: 2,
-          ),
-        ).listen((Position position) {
-          if (!mounted) return;
-          setState(() {
-            _currentPosition = position;
+    try {
+      _positionStream =
+          Geolocator.getPositionStream(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.high,
+              distanceFilter: 2,
+            ),
+          ).listen((Position position) {
+            if (!mounted) return;
+            if (!position.latitude.isFinite || !position.longitude.isFinite) {
+              return;
+            }
+            setState(() {
+              _currentPosition = position;
+              _locationFailed = false;
+            });
+            if (_followLocation) {
+              _mapController.move(
+                LatLng(position.latitude, position.longitude),
+                _mapController.camera.zoom,
+              );
+            }
+          }, onError: (error) {
+            if (mounted) {
+              setState(() {
+                _locationFailed = true;
+              });
+              _mapController.move(_tcgcCenter, 16.0);
+            }
           });
-          if (_followLocation) {
-            _mapController.move(
-              LatLng(position.latitude, position.longitude),
-              _mapController.camera.zoom,
-            );
-          }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _locationFailed = true;
         });
+        _mapController.move(_tcgcCenter, 16.0);
+      }
+    }
   }
 
   @override
@@ -151,15 +173,23 @@ class _NavigationScreenState extends State<NavigationScreen> {
     final origin = LatLng(_currentPosition!.latitude, _currentPosition!.longitude);
     final destination = landmark.position;
 
-    final route = await OSRMRouteService.getRoute(origin, destination);
+    final routeInfo = await OSRMRouteService.getRoute(origin, destination);
 
     if (!mounted) return;
     setState(() {
-      _routePoints = route;
+      if (routeInfo != null) {
+        _routePoints = routeInfo.points;
+      }
       _isLoadingRoute = false;
     });
-    if (route.isNotEmpty) {
+    if (routeInfo != null && routeInfo.points.isNotEmpty) {
       _mapController.move(LatLng(_currentPosition!.latitude, _currentPosition!.longitude), 18.0);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${routeInfo.distanceText} - ${routeInfo.timeText}'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 
@@ -374,6 +404,46 @@ class _NavigationScreenState extends State<NavigationScreen> {
               right: 0,
               child: _buildCategoryChips(activeCategory),
             ),
+            if (_locationFailed)
+              Positioned(
+                top: MediaQuery.of(context).padding.top + 56,
+                left: 16,
+                right: 16,
+                child: Material(
+                  color: Colors.orange.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    child: Row(
+                      children: [
+                        Icon(Icons.location_off, size: 18, color: Colors.orange.shade800),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Location unavailable. Defaulting to TCGC Campus view.',
+                            style: TextStyle(
+                              color: Colors.orange.shade900,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _locationFailed = false;
+                            });
+                          },
+                          child: Icon(
+                            Icons.close,
+                            size: 18,
+                            color: Colors.orange.shade800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
           ],
         );
       },

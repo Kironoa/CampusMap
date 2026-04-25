@@ -427,6 +427,12 @@ class _HomeTabState extends State<_HomeTab>
         'color': const Color(0xFF0891B2),
       },
       {
+        'name': 'Floor Plan',
+        'filter': 'floor_plan',
+        'icon': Icons.map_outlined,
+        'color': const Color(0xFF0F766E),
+      },
+      {
         'name': 'Record Spot',
         'filter': '',
         'icon': Icons.add_location_alt_outlined,
@@ -471,6 +477,8 @@ class _HomeTabState extends State<_HomeTab>
                 onTap: () {
                   if (category['filter'] == '') {
                     Navigator.pushNamed(context, '/record');
+                  } else if (category['filter'] == 'floor_plan') {
+                    Navigator.pushNamed(context, '/floor_plan');
                   } else {
                     widget.categoryFilter.value = category['filter'] as String;
                     widget.onMapTap();
