@@ -272,6 +272,7 @@ class _RecordScreenState extends State<RecordScreen> {
         final formattedTime = DateFormat('h:mm a').format(dateTime);
 
         return ListTile(
+          isThreeLine: true,
           leading: CircleAvatar(
             backgroundColor: colorScheme.primaryContainer,
             child: Text(

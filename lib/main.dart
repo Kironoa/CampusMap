@@ -9,6 +9,9 @@ import 'package:naviapp/screens/navigation_screen.dart';
 import 'package:naviapp/screens/record_screen.dart';
 import 'package:naviapp/screens/settings_screen.dart';
 
+final ValueNotifier<String> _categoryFilter = ValueNotifier<String>('All');
+final ValueNotifier<bool> _searchOpen = ValueNotifier<bool>(false);
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
@@ -39,8 +42,14 @@ class NaviApp extends StatelessWidget {
             darkTheme: _buildTheme(Brightness.dark),
             home: const SplashScreen(),
             routes: {
-              '/home': (context) => const HomeScreen(),
-              '/navigation': (context) => const NavigationScreen(),
+              '/home': (context) => HomeScreen(
+                categoryFilter: _categoryFilter,
+                searchOpen: _searchOpen,
+              ),
+              '/navigation': (context) => NavigationScreen(
+                categoryFilter: _categoryFilter,
+                searchOpen: _searchOpen,
+              ),
               '/record': (context) => const RecordScreen(),
               '/settings': (context) => const SettingsScreen(),
             },
@@ -145,7 +154,10 @@ class _SplashScreenState extends State<SplashScreen>
       if (mounted) {
         Navigator.of(context).pushReplacement(
           PageRouteBuilder(
-            pageBuilder: (_, __, ___) => const HomeScreen(),
+            pageBuilder: (_, __, ___) => HomeScreen(
+              categoryFilter: _categoryFilter,
+              searchOpen: _searchOpen,
+            ),
             transitionsBuilder: (_, anim, __, child) =>
                 FadeTransition(opacity: anim, child: child),
             transitionDuration: const Duration(milliseconds: 400),
@@ -209,7 +221,7 @@ class _SplashScreenState extends State<SplashScreen>
                   height: 24,
                   child: CircularProgressIndicator(
                     strokeWidth: 2.5,
-                    valueColor: AlwaysStoppedAnimation(
+                    valueColor: AlwaysStoppedAnimation<Color>(
                       Colors.white.withValues(alpha: 0.7),
                     ),
                   ),

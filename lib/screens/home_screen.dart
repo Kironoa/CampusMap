@@ -7,7 +7,14 @@ import 'package:naviapp/screens/settings_screen.dart';
 enum GpsStatus { searching, active, unavailable }
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final ValueNotifier<String> categoryFilter;
+  final ValueNotifier<bool> searchOpen;
+
+  const HomeScreen({
+    super.key,
+    required this.categoryFilter,
+    required this.searchOpen,
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -15,15 +22,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
-  final ValueNotifier<String> _categoryFilter = ValueNotifier<String>('All');
-  final ValueNotifier<bool> _searchOpen = ValueNotifier<bool>(false);
-
-  @override
-  void dispose() {
-    _categoryFilter.dispose();
-    _searchOpen.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,15 +30,15 @@ class _HomeScreenState extends State<HomeScreen> {
         index: _currentIndex,
         children: [
           _HomeTab(
-            categoryFilter: _categoryFilter,
-            searchOpen: _searchOpen,
+            categoryFilter: widget.categoryFilter,
+            searchOpen: widget.searchOpen,
             onMapTap: () => setState(() {
               _currentIndex = 1;
             }),
           ),
           NavigationScreen(
-            categoryFilter: _categoryFilter,
-            searchOpen: _searchOpen,
+            categoryFilter: widget.categoryFilter,
+            searchOpen: widget.searchOpen,
           ),
           const SettingsScreen(),
         ],
@@ -57,7 +55,8 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         child: NavigationBar(
           selectedIndex: _currentIndex,
-          onDestinationSelected: (index) => setState(() => _currentIndex = index),
+          onDestinationSelected: (index) =>
+              setState(() => _currentIndex = index),
           destinations: const [
             NavigationDestination(
               icon: Icon(Icons.home_outlined),
@@ -96,7 +95,8 @@ class _HomeTab extends StatefulWidget {
   State<_HomeTab> createState() => _HomeTabState();
 }
 
-class _HomeTabState extends State<_HomeTab> with SingleTickerProviderStateMixin {
+class _HomeTabState extends State<_HomeTab>
+    with SingleTickerProviderStateMixin {
   GpsStatus _gpsStatus = GpsStatus.searching;
   late AnimationController _pulseController;
   late Animation<double> _pulseAnim;
@@ -156,9 +156,9 @@ class _HomeTabState extends State<_HomeTab> with SingleTickerProviderStateMixin 
     }
   }
 
-  int _getLandmarkCount(String category) {
-    if (category == 'All') return tcgcLandmarks.length;
-    return filterByCategory(category).length;
+  int _getLandmarkCount(String filter) {
+    if (filter == 'All' || filter.isEmpty) return tcgcLandmarks.length;
+    return filterByCategory(filter).length;
   }
 
   @override
@@ -169,15 +169,9 @@ class _HomeTabState extends State<_HomeTab> with SingleTickerProviderStateMixin 
     return SafeArea(
       child: CustomScrollView(
         slivers: [
-          SliverToBoxAdapter(
-            child: _buildHeader(theme, colorScheme),
-          ),
-          SliverToBoxAdapter(
-            child: _buildSearchBar(theme, colorScheme),
-          ),
-          SliverToBoxAdapter(
-            child: _buildCategoryGrid(theme, colorScheme),
-          ),
+          SliverToBoxAdapter(child: _buildHeader(theme, colorScheme)),
+          SliverToBoxAdapter(child: _buildSearchBar(theme, colorScheme)),
+          SliverToBoxAdapter(child: _buildCategoryGrid(theme, colorScheme)),
           const SliverToBoxAdapter(child: SizedBox(height: 20)),
         ],
       ),
@@ -233,7 +227,11 @@ class _HomeTabState extends State<_HomeTab> with SingleTickerProviderStateMixin 
                       color: Colors.white.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.school, color: Colors.white, size: 28),
+                    child: const Icon(
+                      Icons.school,
+                      color: Colors.white,
+                      size: 28,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -268,7 +266,10 @@ class _HomeTabState extends State<_HomeTab> with SingleTickerProviderStateMixin 
                 animation: _pulseAnim,
                 builder: (context, child) {
                   return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(20),
@@ -280,7 +281,9 @@ class _HomeTabState extends State<_HomeTab> with SingleTickerProviderStateMixin 
                           width: 8,
                           height: 8,
                           decoration: BoxDecoration(
-                            color: statusColor.withValues(alpha: _pulseAnim.value),
+                            color: statusColor.withValues(
+                              alpha: _pulseAnim.value,
+                            ),
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -305,11 +308,7 @@ class _HomeTabState extends State<_HomeTab> with SingleTickerProviderStateMixin 
             top: -10,
             child: Opacity(
               opacity: 0.1,
-              child: Icon(
-                Icons.map,
-                size: 120,
-                color: Colors.white,
-              ),
+              child: Icon(Icons.map, size: 120, color: Colors.white),
             ),
           ),
         ],
@@ -329,9 +328,14 @@ class _HomeTabState extends State<_HomeTab> with SingleTickerProviderStateMixin 
                 widget.searchOpen.value = true;
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
                 decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  color: colorScheme.surfaceContainerHighest.withValues(
+                    alpha: 0.5,
+                  ),
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
                     color: colorScheme.outline.withValues(alpha: 0.1),
@@ -339,7 +343,11 @@ class _HomeTabState extends State<_HomeTab> with SingleTickerProviderStateMixin 
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.search, color: colorScheme.onSurface.withValues(alpha: 0.5), size: 20),
+                    Icon(
+                      Icons.search,
+                      color: colorScheme.onSurface.withValues(alpha: 0.5),
+                      size: 20,
+                    ),
                     const SizedBox(width: 12),
                     Text(
                       'Search campus locations...',
@@ -364,7 +372,11 @@ class _HomeTabState extends State<_HomeTab> with SingleTickerProviderStateMixin 
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.place, color: colorScheme.onPrimaryContainer, size: 16),
+                Icon(
+                  Icons.place,
+                  color: colorScheme.onPrimaryContainer,
+                  size: 16,
+                ),
                 const SizedBox(width: 4),
                 Text(
                   '${tcgcLandmarks.length}',
@@ -384,12 +396,42 @@ class _HomeTabState extends State<_HomeTab> with SingleTickerProviderStateMixin 
 
   Widget _buildCategoryGrid(ThemeData theme, ColorScheme colorScheme) {
     final categories = [
-      {'name': 'Buildings', 'icon': Icons.business_outlined, 'color': const Color(0xFF2563EB)},
-      {'name': 'Offices', 'icon': Icons.meeting_room_outlined, 'color': const Color(0xFFEA580C)},
-      {'name': 'Labs', 'icon': Icons.computer_outlined, 'color': const Color(0xFF7C3AED)},
-      {'name': 'Facilities', 'icon': Icons.sports_basketball_outlined, 'color': const Color(0xFF059669)},
-      {'name': 'All Locations', 'icon': Icons.place_outlined, 'color': const Color(0xFF0891B2)},
-      {'name': 'Record Spot', 'icon': Icons.add_location_alt_outlined, 'color': const Color(0xFFDC2626)},
+      {
+        'name': 'Buildings',
+        'filter': 'Buildings',
+        'icon': Icons.business_outlined,
+        'color': const Color(0xFF2563EB),
+      },
+      {
+        'name': 'Offices',
+        'filter': 'Offices',
+        'icon': Icons.meeting_room_outlined,
+        'color': const Color(0xFFEA580C),
+      },
+      {
+        'name': 'Labs',
+        'filter': 'Labs',
+        'icon': Icons.computer_outlined,
+        'color': const Color(0xFF7C3AED),
+      },
+      {
+        'name': 'Facilities',
+        'filter': 'Facilities',
+        'icon': Icons.sports_basketball_outlined,
+        'color': const Color(0xFF059669),
+      },
+      {
+        'name': 'All Locations',
+        'filter': 'All',
+        'icon': Icons.place_outlined,
+        'color': const Color(0xFF0891B2),
+      },
+      {
+        'name': 'Record Spot',
+        'filter': '',
+        'icon': Icons.add_location_alt_outlined,
+        'color': const Color(0xFFDC2626),
+      },
     ];
 
     return Padding(
@@ -416,21 +458,21 @@ class _HomeTabState extends State<_HomeTab> with SingleTickerProviderStateMixin 
             itemCount: categories.length,
             itemBuilder: (context, index) {
               final category = categories[index];
-              final count = category['name'] == 'Record Spot'
+              final count = category['filter'] == ''
                   ? ''
-                  : _getLandmarkCount(category['name'] as String).toString();
+                  : _getLandmarkCount(category['filter'] as String).toString();
 
               return _CategoryTile(
                 name: category['name'] as String,
                 icon: category['icon'] as IconData,
                 color: category['color'] as Color,
                 count: count,
-                isRecordSpot: category['name'] == 'Record Spot',
+                isRecordSpot: (category['filter'] as String).isEmpty,
                 onTap: () {
-                  if (category['name'] == 'Record Spot') {
+                  if (category['filter'] == '') {
                     Navigator.pushNamed(context, '/record');
                   } else {
-                    widget.categoryFilter.value = category['name'] as String;
+                    widget.categoryFilter.value = category['filter'] as String;
                     widget.onMapTap();
                   }
                 },
@@ -469,9 +511,7 @@ class _CategoryTile extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: colorScheme.outline.withValues(alpha: 0.1),
-        ),
+        side: BorderSide(color: colorScheme.outline.withValues(alpha: 0.1)),
       ),
       child: InkWell(
         onTap: onTap,
@@ -502,7 +542,9 @@ class _CategoryTile extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                count.isEmpty ? 'Save a spot' : '$count ${count == "1" ? "location" : "locations"}',
+                count.isEmpty
+                    ? 'Save a spot'
+                    : '$count ${count == "1" ? "location" : "locations"}',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
