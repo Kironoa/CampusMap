@@ -1,6 +1,7 @@
 import 'package:latlong2/latlong.dart';
 
 class SavedSpot {
+  final String id;
   final String name;
   final double latitude;
   final double longitude;
@@ -8,6 +9,7 @@ class SavedSpot {
   final String category;
 
   SavedSpot({
+    required this.id,
     required this.name,
     required this.latitude,
     required this.longitude,
@@ -18,6 +20,7 @@ class SavedSpot {
   LatLng get position => LatLng(latitude, longitude);
 
   Map<String, dynamic> toJson() => {
+    'id': id,
     'name': name,
     'latitude': latitude,
     'longitude': longitude,
@@ -27,6 +30,7 @@ class SavedSpot {
 
   factory SavedSpot.fromJson(Map<String, dynamic> json) {
     return SavedSpot(
+      id: json['id'] as String? ?? DateTime.now().microsecondsSinceEpoch.toString(),
       name: json['name'] as String,
       latitude: (json['latitude'] as num).toDouble(),
       longitude: (json['longitude'] as num).toDouble(),

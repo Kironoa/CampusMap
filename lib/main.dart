@@ -4,13 +4,11 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:naviapp/providers/theme_provider.dart';
+import 'package:naviapp/providers/navigation_provider.dart';
 import 'package:naviapp/screens/home_screen.dart';
 import 'package:naviapp/screens/navigation_screen.dart';
 import 'package:naviapp/screens/record_screen.dart';
 import 'package:naviapp/screens/settings_screen.dart';
-
-final ValueNotifier<String> _categoryFilter = ValueNotifier<String>('All');
-final ValueNotifier<bool> _searchOpen = ValueNotifier<bool>(false);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,6 +29,7 @@ class NaviApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()..loadTheme()),
+        ChangeNotifierProvider(create: (_) => NavigationProvider()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {
@@ -43,12 +42,12 @@ class NaviApp extends StatelessWidget {
             home: const SplashScreen(),
             routes: {
               '/home': (context) => HomeScreen(
-                categoryFilter: _categoryFilter,
-                searchOpen: _searchOpen,
+                categoryFilter: context.read<NavigationProvider>().categoryFilterNotifier,
+                searchOpen: context.read<NavigationProvider>().searchOpenNotifier,
               ),
               '/navigation': (context) => NavigationScreen(
-                categoryFilter: _categoryFilter,
-                searchOpen: _searchOpen,
+                categoryFilter: context.read<NavigationProvider>().categoryFilterNotifier,
+                searchOpen: context.read<NavigationProvider>().searchOpenNotifier,
               ),
               '/record': (context) => const RecordScreen(),
               '/settings': (context) => const SettingsScreen(),
@@ -155,8 +154,8 @@ class _SplashScreenState extends State<SplashScreen>
         Navigator.of(context).pushReplacement(
           PageRouteBuilder(
             pageBuilder: (_, __, ___) => HomeScreen(
-              categoryFilter: _categoryFilter,
-              searchOpen: _searchOpen,
+              categoryFilter: context.read<NavigationProvider>().categoryFilterNotifier,
+              searchOpen: context.read<NavigationProvider>().searchOpenNotifier,
             ),
             transitionsBuilder: (_, anim, __, child) =>
                 FadeTransition(opacity: anim, child: child),

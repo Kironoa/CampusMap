@@ -34,6 +34,12 @@ class SavedSpotStorage {
     return saveSpots(spots);
   }
 
+  static Future<bool> removeSpotById(String id) async {
+    final spots = await loadSpots();
+    spots.removeWhere((spot) => spot.id == id);
+    return saveSpots(spots);
+  }
+
   static Future<bool> removeSpot(int index) async {
     final spots = await loadSpots();
     if (index >= 0 && index < spots.length) {

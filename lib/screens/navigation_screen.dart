@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:naviapp/data/campus_landmarks.dart';
 import 'package:naviapp/data/saved_spot.dart';
 import 'package:naviapp/services/saved_spot_storage.dart';
+import 'package:naviapp/services/osrm_service.dart';
+import 'package:naviapp/screens/settings_screen.dart';
+import 'dart:async';
 
 class NavigationScreen extends StatefulWidget {
   final String? initialSearch;
@@ -24,11 +28,17 @@ class NavigationScreen extends StatefulWidget {
 }
 
 class _NavigationScreenState extends State<NavigationScreen> {
-  static const LatLng _tcgcCenter = LatLng(8.0600, 123.7540);
+  static const LatLng _tcgcCenter = LatLng(8.0645, 123.7510);
   final MapController _mapController = MapController();
   final TextEditingController _searchController = TextEditingController();
   CampusLandmark? _selectedLandmark;
   List<SavedSpot> _personalSpots = [];
+  bool _showMarkers = true;
+  bool _followLocation = true;
+  List<LatLng> _routePoints = [];
+  bool _isLoadingRoute = false;
+  Position? _currentPosition;
+  StreamSubscription<Position>? _positionStream;
 
   final List<String> _categories = [
     'All',
@@ -48,36 +58,109 @@ class _NavigationScreenState extends State<NavigationScreen> {
     if (widget.initialSearch != null) {
       _searchController.text = widget.initialSearch!;
     }
+    _loadMapSettings();
     _loadPersonalSpots();
+    _startLocationTracking();
   }
 
   Future<void> _loadPersonalSpots() async {
     final spots = await SavedSpotStorage.loadSpots();
-    if (mounted) {
-      setState(() {
-        _personalSpots = spots;
-      });
-    }
+    if (!mounted) return;
+    setState(() {
+      _personalSpots = spots;
+    });
+  }
+
+  Future<void> _loadMapSettings() async {
+    await MapSettings.load();
+    if (!mounted) return;
+    setState(() {
+      _showMarkers = MapSettings.showMarkers;
+      _followLocation = MapSettings.followLocation;
+    });
+  }
+
+  void _startLocationTracking() {
+    _positionStream =
+        Geolocator.getPositionStream(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+            distanceFilter: 2,
+          ),
+        ).listen((Position position) {
+          if (!mounted) return;
+          setState(() {
+            _currentPosition = position;
+          });
+          if (_followLocation) {
+            _mapController.move(
+              LatLng(position.latitude, position.longitude),
+              _mapController.camera.zoom,
+            );
+          }
+        });
   }
 
   @override
   void dispose() {
+    _positionStream?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
   void _onCategorySelected(String category) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      widget.categoryFilter.value = category;
-    });
+    widget.categoryFilter.value = category;
   }
 
   void _navigateToLandmark(CampusLandmark landmark) {
     setState(() {
       _selectedLandmark = landmark;
+      _routePoints = [];
     });
     _mapController.move(landmark.position, 18.0);
     _showLandmarkBottomSheet(landmark);
+  }
+
+  Future<void> _getDirections(CampusLandmark landmark) async {
+    if (!mounted) return;
+    Navigator.pop(context);
+    
+    if (_currentPosition == null) {
+      try {
+        _currentPosition = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+          timeLimit: const Duration(seconds: 10),
+        );
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Unable to get your location. Please enable GPS.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _isLoadingRoute = true;
+    });
+
+    final origin = LatLng(_currentPosition!.latitude, _currentPosition!.longitude);
+    final destination = landmark.position;
+
+    final route = await OSRMRouteService.getRoute(origin, destination);
+
+    if (!mounted) return;
+    setState(() {
+      _routePoints = route;
+      _isLoadingRoute = false;
+    });
+    if (route.isNotEmpty) {
+      _mapController.move(LatLng(_currentPosition!.latitude, _currentPosition!.longitude), 18.0);
+    }
   }
 
   void _showLandmarkBottomSheet(CampusLandmark landmark) {
@@ -141,13 +224,22 @@ class _NavigationScreenState extends State<NavigationScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: _isLoadingRoute ? null : () => _getDirections(landmark),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: categoryColor(landmark.category),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
-                child: const Text("GET DIRECTIONS"),
+                child: _isLoadingRoute
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation(Colors.white),
+                        ),
+                      )
+                    : const Text("GET DIRECTIONS"),
               ),
             ),
           ],
@@ -172,6 +264,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
                 onTap: (tapPos, point) {
                   setState(() {
                     _selectedLandmark = null;
+                    _routePoints = [];
                   });
                 },
               ),
@@ -180,19 +273,57 @@ class _NavigationScreenState extends State<NavigationScreen> {
                   urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                   userAgentPackageName: 'com.example.naviapp',
                 ),
-                MarkerLayer(
-                  markers: [
-                    ...filteredLandmarks.map((landmark) {
-                      final isSelected = _selectedLandmark?.id == landmark.id;
-                      return Marker(
-                        point: landmark.position,
-                        width: isSelected ? 50 : 40,
-                        height: isSelected ? 50 : 40,
-                        child: GestureDetector(
-                          onTap: () => _navigateToLandmark(landmark),
+                if (_routePoints.isNotEmpty)
+                  PolylineLayer(
+                    polylines: [
+                      Polyline(
+                        points: _routePoints,
+                        color: const Color(0xFF2563EB),
+                        strokeWidth: 4.0,
+                      ),
+                    ],
+                  ),
+                if (_showMarkers)
+                  MarkerLayer(
+                    markers: [
+                      ...filteredLandmarks.map((landmark) {
+                        final isSelected = _selectedLandmark?.id == landmark.id;
+                        return Marker(
+                          point: landmark.position,
+                          width: isSelected ? 50 : 40,
+                          height: isSelected ? 50 : 40,
+                          child: GestureDetector(
+                            onTap: () => _navigateToLandmark(landmark),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: categoryColor(landmark.category),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 2),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.2),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Icon(
+                                categoryIcon(landmark.category),
+                                color: Colors.white,
+                                size: isSelected ? 28 : 22,
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
+                      ..._personalSpots.map((spot) {
+                        return Marker(
+                          point: spot.position,
+                          width: 40,
+                          height: 40,
                           child: Container(
                             decoration: BoxDecoration(
-                              color: categoryColor(landmark.category),
+                              color: Colors.orange,
                               shape: BoxShape.circle,
                               border: Border.all(color: Colors.white, width: 2),
                               boxShadow: [
@@ -203,43 +334,38 @@ class _NavigationScreenState extends State<NavigationScreen> {
                                 ),
                               ],
                             ),
-                            child: Icon(
-                              categoryIcon(landmark.category),
+                            child: const Icon(
+                              Icons.bookmark,
                               color: Colors.white,
-                              size: isSelected ? 28 : 22,
+                              size: 22,
                             ),
                           ),
-                        ),
-                      );
-                    }),
-                    ..._personalSpots.map((spot) {
-                      return Marker(
-                        point: spot.position,
-                        width: 40,
-                        height: 40,
+                        );
+                      }),
+                    ],
+                  ),
+                if (_currentPosition != null)
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        point: LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+                        width: 24,
+                        height: 24,
                         child: Container(
                           decoration: BoxDecoration(
-                            color: Colors.orange,
+                            color: Colors.blue,
                             shape: BoxShape.circle,
                             border: Border.all(color: Colors.white, width: 2),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.2),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
                           ),
                           child: const Icon(
-                            Icons.bookmark,
+                            Icons.my_location,
                             color: Colors.white,
-                            size: 22,
+                            size: 12,
                           ),
                         ),
-                      );
-                    }),
-                  ],
-                ),
+                      ),
+                    ],
+                  ),
               ],
             ),
             Positioned(
