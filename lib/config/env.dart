@@ -1,3 +1,5 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 class Env {
-  static const String mapsApiKey = 'YOUR_GOOGLE_MAPS_API_KEY';
+  static String get mapsApiKey => dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
 }

@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:intl/intl.dart';
 import 'dart:async';
-import 'dart:convert'; // For JSON export
+import 'dart:convert';
 
 class RecordScreen extends StatefulWidget {
   const RecordScreen({super.key});
@@ -39,7 +40,7 @@ class _RecordScreenState extends State<RecordScreen> {
         Geolocator.getPositionStream(
           locationSettings: const LocationSettings(
             accuracy: LocationAccuracy.bestForNavigation,
-            distanceFilter: 1, // Update every 1 meter to reduce jitter
+            distanceFilter: 1,
           ),
         ).listen((Position position) {
           if (mounted) {
@@ -53,7 +54,6 @@ class _RecordScreenState extends State<RecordScreen> {
         });
   }
 
-  // Exports data as a JSON string for easy DB integration
   void _copyAsJson() {
     if (_capturedPoints.isEmpty) return;
     String jsonString = jsonEncode(_capturedPoints);
@@ -93,7 +93,6 @@ class _RecordScreenState extends State<RecordScreen> {
       return;
     }
 
-    // Haptic feedback so you know it clicked while walking
     HapticFeedback.heavyImpact();
 
     showDialog(
@@ -134,6 +133,9 @@ class _RecordScreenState extends State<RecordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Campus Mapper"),
@@ -159,11 +161,11 @@ class _RecordScreenState extends State<RecordScreen> {
       body: Column(
         children: [
           _buildMapHeader(),
-          _buildStatusIndicator(),
+          _buildStatusIndicator(theme, colorScheme),
           Expanded(
             child: _capturedPoints.isEmpty
-                ? _buildEmptyState()
-                : _buildPointsList(),
+                ? _buildEmptyState(theme, colorScheme)
+                : _buildPointsList(theme, colorScheme),
           ),
         ],
       ),
@@ -201,17 +203,17 @@ class _RecordScreenState extends State<RecordScreen> {
     );
   }
 
-  Widget _buildStatusIndicator() {
+  Widget _buildStatusIndicator(ThemeData theme, ColorScheme colorScheme) {
     return Container(
       padding: const EdgeInsets.all(10),
-      color: Colors.blueGrey[900],
+      color: colorScheme.inverseSurface,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            _currentPosition == null ? "🛰️ SEARCHING..." : "🛰️ GPS READY",
-            style: const TextStyle(
-              color: Colors.white,
+            _currentPosition == null ? "SEARCHING..." : "GPS READY",
+            style: TextStyle(
+              color: colorScheme.onInverseSurface,
               fontWeight: FontWeight.bold,
               fontSize: 12,
             ),
@@ -219,42 +221,97 @@ class _RecordScreenState extends State<RecordScreen> {
           if (_currentPosition != null)
             Text(
               "Accuracy: ${_currentPosition!.accuracy.toStringAsFixed(1)}m",
-              style: const TextStyle(color: Colors.greenAccent, fontSize: 12),
+              style: TextStyle(color: Colors.greenAccent.shade700, fontSize: 12),
             ),
         ],
       ),
     );
   }
 
-  Widget _buildPointsList() {
+  Widget _buildEmptyState(ThemeData theme, ColorScheme colorScheme) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.add_location_alt_outlined,
+              size: 72,
+              color: colorScheme.outline,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No spots recorded yet',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Walk around TCGC and tap "Record Spot"\nto save GPS coordinates of places.',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPointsList(ThemeData theme, ColorScheme colorScheme) {
     return ListView.separated(
       itemCount: _capturedPoints.length,
       separatorBuilder: (context, index) => const Divider(height: 1),
       itemBuilder: (context, index) {
         final point = _capturedPoints[index];
+        final dateTime = DateTime.parse(point['timestamp']);
+        final formattedDate = DateFormat('MMM d, yyyy').format(dateTime);
+        final formattedTime = DateFormat('h:mm a').format(dateTime);
+
         return ListTile(
-          leading: CircleAvatar(child: Text("${index + 1}")),
+          leading: CircleAvatar(
+            backgroundColor: colorScheme.primaryContainer,
+            child: Text(
+              "${index + 1}",
+              style: TextStyle(
+                color: colorScheme.onPrimaryContainer,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
           title: Text(
             point['name'],
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
-          subtitle: Text("${point['lat']}, ${point['lng']}"),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "${point['lat']}, ${point['lng']}",
+                style: TextStyle(
+                  fontSize: 12,
+                  color: colorScheme.onSurface.withValues(alpha: 0.6),
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '$formattedDate · $formattedTime',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: colorScheme.onSurface.withValues(alpha: 0.5),
+                ),
+              ),
+            ],
+          ),
           trailing: IconButton(
-            icon: const Icon(Icons.delete_outline, color: Colors.red),
+            icon: Icon(Icons.delete_outline, color: Colors.red.shade400),
             onPressed: () => setState(() => _capturedPoints.removeAt(index)),
           ),
         );
       },
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return const Center(
-      child: Text(
-        "No points recorded yet.\nWalk around TCGC and tap 'Record Spot'.",
-        textAlign: TextAlign.center,
-        style: TextStyle(color: Colors.grey),
-      ),
     );
   }
 }

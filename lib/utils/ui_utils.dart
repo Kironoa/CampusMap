@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:naviapp/providers/theme_provider.dart';
 
 double res(BuildContext context, double value) {
-  final provider = Provider.of<ThemeProvider>(context, listen: false);
-  return value * provider.uiScale;
+  final width = MediaQuery.of(context).size.width;
+  return value * (width / 390).clamp(0.8, 1.4);
 }

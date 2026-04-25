@@ -1,4 +1,5 @@
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter/material.dart';
 
 class CampusLandmark {
   final String id;
@@ -174,4 +175,30 @@ List<CampusLandmark> filterByCategory(String category) {
   return tcgcLandmarks.where((l) => 
     l.category.toLowerCase() == category.toLowerCase()
   ).toList();
+}
+
+IconData categoryIcon(String category) {
+  return switch (category.toLowerCase()) {
+    'buildings'  => Icons.business_outlined,
+    'offices'    => Icons.meeting_room_outlined,
+    'labs'       => Icons.computer_outlined,
+    'facilities' => Icons.sports_basketball_outlined,
+    _            => Icons.place_outlined,
+  };
+}
+
+Color categoryColor(String category) {
+  return switch (category.toLowerCase()) {
+    'buildings'  => const Color(0xFF2563EB),
+    'offices'    => const Color(0xFFEA580C),
+    'labs'       => const Color(0xFF7C3AED),
+    'facilities' => const Color(0xFF059669),
+    _            => const Color(0xFF0891B2),
+  };
+}
+
+List<String> get landmarkCategories {
+  final cats = tcgcLandmarks.map((l) => l.category).toSet().toList();
+  cats.sort();
+  return cats;
 }

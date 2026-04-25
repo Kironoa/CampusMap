@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:provider/provider.dart';
+import 'package:naviapp/providers/theme_provider.dart';
+import 'package:naviapp/data/campus_landmarks.dart';
 
 class MapSettings {
   static const String _mapTypeKey = 'map_type';
   static const String _followLocationKey = 'follow_location';
   static const String _showMarkersKey = 'show_markers';
 
-  static int mapType = 1;
+  static int mapType = 3;
   static bool followLocation = true;
   static bool showMarkers = true;
 
   static Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
-    mapType = prefs.getInt(_mapTypeKey) ?? 1;
+    mapType = prefs.getInt(_mapTypeKey) ?? 3;
     followLocation = prefs.getBool(_followLocationKey) ?? true;
     showMarkers = prefs.getBool(_showMarkersKey) ?? true;
   }
@@ -45,7 +48,7 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  int _mapType = 1;
+  int _mapType = 3;
   bool _followLocation = true;
   bool _showMarkers = true;
 
@@ -80,93 +83,174 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            Text(
-              'Map Preferences',
-              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Customize your navigation experience',
-              style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface.withOpacity(0.6)),
-            ),
-            const SizedBox(height: 24),
-            _buildMapTypeSelector(theme, colorScheme),
-            const SizedBox(height: 16),
-            _buildToggleTile(
-              theme: theme,
-              colorScheme: colorScheme,
-              icon: Icons.my_location,
-              title: 'Follow Location',
-              subtitle: 'Auto-center map on your position',
-              value: _followLocation,
-              onChanged: (value) async {
-                await MapSettings.setFollowLocation(value);
-                setState(() => _followLocation = value);
-              },
-            ),
-            const SizedBox(height: 8),
-            _buildToggleTile(
-              theme: theme,
-              colorScheme: colorScheme,
-              icon: Icons.place,
-              title: 'Show Markers',
-              subtitle: 'Display landmark markers on map',
-              value: _showMarkers,
-              onChanged: (value) async {
-                await MapSettings.setShowMarkers(value);
-                setState(() => _showMarkers = value);
-              },
-            ),
-            const SizedBox(height: 32),
-            _buildSectionTitle(theme, 'Support'),
-            const SizedBox(height: 8),
-            Container(
-              decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                children: [
-                  _buildTile(
-                    icon: Icons.help_outline,
-                    title: 'Help & FAQ',
-                    onTap: () => _showHelpFAQ(context),
+        child: Consumer<ThemeProvider>(
+          builder: (context, themeProvider, _) {
+            return ListView(
+              padding: const EdgeInsets.all(20),
+              children: [
+                Text(
+                  'Map Preferences',
+                  style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Customize your navigation experience',
+                  style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface.withValues(alpha: 0.6)),
+                ),
+                const SizedBox(height: 24),
+                _buildMapTypeSelector(theme, colorScheme),
+                const SizedBox(height: 16),
+                _buildToggleTile(
+                  theme: theme,
+                  colorScheme: colorScheme,
+                  icon: Icons.my_location,
+                  title: 'Follow Location',
+                  subtitle: 'Auto-center map on your position',
+                  value: _followLocation,
+                  onChanged: (value) async {
+                    await MapSettings.setFollowLocation(value);
+                    setState(() => _followLocation = value);
+                  },
+                ),
+                const SizedBox(height: 8),
+                _buildToggleTile(
+                  theme: theme,
+                  colorScheme: colorScheme,
+                  icon: Icons.place,
+                  title: 'Show Markers',
+                  subtitle: 'Display landmark markers on map',
+                  value: _showMarkers,
+                  onChanged: (value) async {
+                    await MapSettings.setShowMarkers(value);
+                    setState(() => _showMarkers = value);
+                  },
+                ),
+                const SizedBox(height: 32),
+                Text(
+                  'Appearance',
+                  style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Customize app appearance',
+                  style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface.withValues(alpha: 0.6)),
+                ),
+                const SizedBox(height: 16),
+                _buildToggleTile(
+                  theme: theme,
+                  colorScheme: colorScheme,
+                  icon: Icons.dark_mode_outlined,
+                  title: 'Dark Mode',
+                  subtitle: 'Switch to dark theme',
+                  value: themeProvider.isDarkMode,
+                  onChanged: (value) async {
+                    await themeProvider.setDarkMode(value);
+                  },
+                ),
+                const SizedBox(height: 32),
+                Text(
+                  'Campus Info',
+                  style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  _buildTile(
-                    icon: Icons.feedback_outlined,
-                    title: 'Send Feedback',
-                    onTap: () => _sendFeedback(context),
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      _buildInfoRow('College', 'Tangub City Global College', Icons.school),
+                      const Divider(height: 24),
+                      _buildInfoRow('Location', 'Tangub City, Misamis Occidental', Icons.location_on_outlined),
+                      const Divider(height: 24),
+                      _buildInfoRow('Total Landmarks', '${tcgcLandmarks.length} locations', Icons.place_outlined),
+                      const Divider(height: 24),
+                      _buildInfoRow('App Version', '1.0.0', Icons.info_outline),
+                    ],
                   ),
-                  _buildTile(
-                    icon: Icons.info_outline,
-                    title: 'About',
-                    subtitle: 'Version 1.0.0',
-                    onTap: () => _showAbout(context),
+                ),
+                const SizedBox(height: 32),
+                _buildSectionTitle(theme, 'Support'),
+                const SizedBox(height: 8),
+                Container(
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                ],
-              ),
-            ),
-          ],
+                  child: Column(
+                    children: [
+                      _buildTile(
+                        icon: Icons.help_outline,
+                        title: 'Help & FAQ',
+                        onTap: () => _showHelpFAQ(context),
+                      ),
+                      _buildTile(
+                        icon: Icons.feedback_outlined,
+                        title: 'Send Feedback',
+                        onTap: () => _sendFeedback(context),
+                      ),
+                      _buildTile(
+                        icon: Icons.info_outline,
+                        title: 'About',
+                        subtitle: 'Version 1.0.0',
+                        onTap: () => _showAbout(context),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
   }
 
+  Widget _buildInfoRow(String label, String value, IconData icon) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: colorScheme.primary),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: colorScheme.onSurface.withValues(alpha: 0.6),
+                ),
+              ),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildMapTypeSelector(ThemeData theme, ColorScheme colorScheme) {
     final mapTypes = [
-      ('Normal', 1, Icons.map),
-      ('Satellite', 2, Icons.satellite),
-      ('Terrain', 3, Icons.terrain),
-      ('Hybrid', 4, Icons.layers),
+      ('Normal', 0, Icons.map),
+      ('Satellite', 1, Icons.satellite),
+      ('Terrain', 2, Icons.terrain),
+      ('Hybrid', 3, Icons.layers),
     ];
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -246,7 +330,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -265,7 +349,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title, style: theme.textTheme.titleMedium),
-                Text(subtitle, style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurface.withOpacity(0.6))),
+                Text(subtitle, style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurface.withValues(alpha: 0.6))),
               ],
             ),
           ),
@@ -306,7 +390,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       title: Text(title),
       subtitle: subtitle != null ? Text(subtitle) : null,
-      trailing: Icon(Icons.chevron_right, color: colorScheme.onSurface.withOpacity(0.4)),
+      trailing: Icon(Icons.chevron_right, color: colorScheme.onSurface.withValues(alpha: 0.4)),
       onTap: onTap,
     );
   }
@@ -342,16 +426,58 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: [
                       Padding(
                         padding: const EdgeInsets.all(16),
-                        child: Text('Use the Explore tab to view the campus map. Tap on any landmark to see details and get directions.', style: TextStyle(color: Colors.grey.shade600)),
+                        child: Text(
+                          'Use the Map tab to view the campus. Tap on any landmark marker to see details and get walking directions. The blue route line will guide you to your destination.',
+                          style: TextStyle(color: Colors.grey.shade600),
+                        ),
                       ),
                     ],
                   ),
                   ExpansionTile(
-                    title: const Text('Can I track my own landmarks?'),
+                    title: const Text('Can I use this offline?'),
                     children: [
                       Padding(
                         padding: const EdgeInsets.all(16),
-                        child: Text('Yes! Use the Record tab to save GPS coordinates of places you want to remember on campus.', style: TextStyle(color: Colors.grey.shade600)),
+                        child: Text(
+                          'The app requires an internet connection to load the map tiles and calculate routes. However, landmark information will still be visible when offline.',
+                          style: TextStyle(color: Colors.grey.shade600),
+                        ),
+                      ),
+                    ],
+                  ),
+                  ExpansionTile(
+                    title: const Text('How do I record a new landmark?'),
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text(
+                          'Tap "Record Spot" from the home screen or the quick actions panel on the map. Walk to the location you want to save, then tap the record button to save your current GPS coordinates.',
+                          style: TextStyle(color: Colors.grey.shade600),
+                        ),
+                      ),
+                    ],
+                  ),
+                  ExpansionTile(
+                    title: const Text('What do the marker colors mean?'),
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text(
+                          'Blue markers indicate buildings, orange markers show offices, violet markers are for labs, and cyan markers represent facilities. This color coding helps you quickly identify different types of campus locations.',
+                          style: TextStyle(color: Colors.grey.shade600),
+                        ),
+                      ),
+                    ],
+                  ),
+                  ExpansionTile(
+                    title: const Text('How do I change the map style?'),
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text(
+                          'Go to Settings > Map Preferences > Map Type. You can choose between Normal, Satellite, Terrain, or Hybrid map views. Your preference will be saved and applied automatically.',
+                          style: TextStyle(color: Colors.grey.shade600),
+                        ),
                       ),
                     ],
                   ),
