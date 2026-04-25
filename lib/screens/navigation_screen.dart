@@ -179,23 +179,13 @@ class _NavigationScreenState extends State<NavigationScreen> {
       final results = searchLandmarks(_searchController.text);
       if (_selectedCategory != 'All') {
         setState(() {
-          _filteredLandmarks = results.where((l) => l.category == _mapCategoryToType(_selectedCategory)).toList();
+          _filteredLandmarks = results.where((l) => l.category.toLowerCase() == _selectedCategory.toLowerCase()).toList();
         });
       } else {
         setState(() {
           _filteredLandmarks = results;
         });
       }
-    }
-  }
-
-  String _mapCategoryToType(String category) {
-    switch (category) {
-      case 'Buildings': return 'building';
-      case 'Offices': return 'office';
-      case 'Labs': return 'lab';
-      case 'Facilities': return 'facility';
-      default: return '';
     }
   }
 
@@ -218,7 +208,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
     final routePoints = await DirectionsService.getRoute(
       _lastKnownPosition!,
       landmark.position,
-      Env.googleMapsApiKey,
+      Env.mapsApiKey,
     );
 
     if (routePoints.isNotEmpty) {
@@ -336,11 +326,12 @@ class _NavigationScreenState extends State<NavigationScreen> {
   }
 
   BitmapDescriptor _getMarkerHue(String category) {
-    final hue = switch (category) {
-      'building' => BitmapDescriptor.hueBlue,
-      'office' => BitmapDescriptor.hueOrange,
-      'lab' => BitmapDescriptor.hueViolet,
-      'facility' => BitmapDescriptor.hueCyan,
+    final categoryLower = category.toLowerCase();
+    final hue = switch (categoryLower) {
+      'buildings' => BitmapDescriptor.hueBlue,
+      'offices' => BitmapDescriptor.hueOrange,
+      'labs' => BitmapDescriptor.hueViolet,
+      'facilities' => BitmapDescriptor.hueCyan,
       'restroom' => BitmapDescriptor.hueYellow,
       _ => BitmapDescriptor.hueAzure,
     };
@@ -536,11 +527,12 @@ class _NavigationScreenState extends State<NavigationScreen> {
   }
 
   IconData _getCategoryIcon(String category) {
-    return switch (category) {
-      'building' => Icons.business,
-      'office' => Icons.meeting_room,
-      'lab' => Icons.computer,
-      'facility' => Icons.local_activity,
+    final categoryLower = category.toLowerCase();
+    return switch (categoryLower) {
+      'buildings' => Icons.business,
+      'offices' => Icons.meeting_room,
+      'labs' => Icons.computer,
+      'facilities' => Icons.local_activity,
       'restroom' => Icons.wc,
       _ => Icons.place,
     };

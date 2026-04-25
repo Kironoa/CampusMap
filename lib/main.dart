@@ -2,11 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:naviapp/providers/theme_provider.dart';
-import 'package:naviapp/core/user_session.dart';
-import 'package:naviapp/services/ai_service.dart';
-import 'package:naviapp/services/notification_service.dart';
-import 'package:naviapp/screens/splash_screen.dart';
-import 'package:naviapp/screens/dashboard_screen.dart' show StudentDashboard;
 import 'package:naviapp/screens/navigation_screen.dart';
 import 'package:naviapp/screens/record_screen.dart';
 import 'package:naviapp/screens/settings_screen.dart';
@@ -14,17 +9,8 @@ import 'package:naviapp/screens/settings_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SharedPreferences.getInstance();
-  
-  await AIService.initialize();
-  
-  final notifService = NotificationService();
-  await notifService.init();
-  
   runApp(const NaviApp());
 }
-
-final GlobalKey<ScaffoldMessengerState> messengerKey =
-    GlobalKey<ScaffoldMessengerState>();
 
 class NaviApp extends StatelessWidget {
   const NaviApp({super.key});
@@ -39,14 +25,12 @@ class NaviApp extends StatelessWidget {
         builder: (context, themeProvider, _) {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
-            scaffoldMessengerKey: messengerKey,
             title: 'TCGC Guide',
-            themeMode: ThemeMode.system,
+            themeMode: themeProvider.themeMode,
             theme: _buildLightTheme(),
             darkTheme: _buildDarkTheme(),
-            home: const SplashScreen(),
+            home: const HomeScreen(),
             routes: {
-              '/dashboard': (context) => StudentDashboard(userId: UserSession().userId),
               '/navigation': (context) => const NavigationScreen(),
               '/record': (context) => const RecordScreen(),
               '/settings': (context) => const SettingsScreen(),
@@ -69,9 +53,7 @@ class NaviApp extends StatelessWidget {
       cardTheme: CardThemeData(
         elevation: 0,
         margin: const EdgeInsets.all(8),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
       appBarTheme: const AppBarTheme(
         centerTitle: false,
@@ -95,11 +77,7 @@ class NaviApp extends StatelessWidget {
         indicatorColor: const Color(0xFF2563EB).withOpacity(0.1),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF2563EB),
-            );
+            return const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF2563EB));
           }
           return const TextStyle(fontSize: 12, color: Color(0xFF94A3B8));
         }),
@@ -125,9 +103,7 @@ class NaviApp extends StatelessWidget {
       cardTheme: CardThemeData(
         elevation: 0,
         margin: const EdgeInsets.all(8),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
       appBarTheme: const AppBarTheme(
         centerTitle: false,
@@ -150,11 +126,7 @@ class NaviApp extends StatelessWidget {
         indicatorColor: const Color(0xFF2563EB).withOpacity(0.2),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF60A5FA),
-            );
+            return const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF60A5FA));
           }
           return const TextStyle(fontSize: 12, color: Color(0xFF64748B));
         }),
@@ -169,28 +141,26 @@ class NaviApp extends StatelessWidget {
   }
 }
 
-class MainNavigation extends StatefulWidget {
-  const MainNavigation({super.key});
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
 
   @override
-  State<MainNavigation> createState() => _MainNavigationState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _MainNavigationState extends State<MainNavigation> {
+class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
-
-  final List<Widget> _screens = [
-    StudentDashboard(userId: UserSession().userId),
-    const NavigationScreen(),
-    const SettingsScreen(),
-  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
-        children: _screens,
+        children: const [
+          _HomeContent(),
+          NavigationScreen(),
+          SettingsScreen(),
+        ],
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
@@ -204,13 +174,11 @@ class _MainNavigationState extends State<MainNavigation> {
         ),
         child: NavigationBar(
           selectedIndex: _currentIndex,
-          onDestinationSelected: (index) {
-            setState(() => _currentIndex = index);
-          },
+          onDestinationSelected: (index) => setState(() => _currentIndex = index),
           destinations: const [
             NavigationDestination(
-              icon: Icon(Icons.dashboard_outlined),
-              selectedIcon: Icon(Icons.dashboard),
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home),
               label: 'Home',
             ),
             NavigationDestination(
@@ -223,6 +191,140 @@ class _MainNavigationState extends State<MainNavigation> {
               selectedIcon: Icon(Icons.settings),
               label: 'Settings',
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeContent extends StatelessWidget {
+  const _HomeContent();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return SafeArea(
+      child: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('TCGC Guide', style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Navigate Tangub City Global College',
+                    style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface.withOpacity(0.6)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: GestureDetector(
+                onTap: () => Navigator.pushNamed(context, '/navigation'),
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [colorScheme.primary, colorScheme.primary.withOpacity(0.8)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.navigation, color: Colors.white, size: 40),
+                      const SizedBox(height: 12),
+                      const Text('Start Navigation', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                      Text('Find your way around campus', style: TextStyle(color: Colors.white.withOpacity(0.8))),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Quick Actions', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _QuickActionCard(
+                          icon: Icons.location_on,
+                          label: 'Explore',
+                          color: Colors.blue,
+                          onTap: () => Navigator.pushNamed(context, '/navigation'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _QuickActionCard(
+                          icon: Icons.add_location_alt,
+                          label: 'Record',
+                          color: Colors.orange,
+                          onTap: () => Navigator.pushNamed(context, '/record'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _QuickActionCard(
+                          icon: Icons.settings,
+                          label: 'Settings',
+                          color: Colors.grey,
+                          onTap: () => Navigator.pushNamed(context, '/settings'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SliverToBoxAdapter(child: SizedBox(height: 20)),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuickActionCard extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _QuickActionCard({required this.icon, required this.label, required this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 28),
+            const SizedBox(height: 8),
+            Text(label, style: TextStyle(fontWeight: FontWeight.w500, color: color)),
           ],
         ),
       ),
