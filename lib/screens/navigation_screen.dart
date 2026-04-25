@@ -90,29 +90,32 @@ class _NavigationScreenState extends State<NavigationScreen> {
               accuracy: LocationAccuracy.high,
               distanceFilter: 2,
             ),
-          ).listen((Position position) {
-            if (!mounted) return;
-            if (!position.latitude.isFinite || !position.longitude.isFinite) {
-              return;
-            }
-            setState(() {
-              _currentPosition = position;
-              _locationFailed = false;
-            });
-            if (_followLocation) {
-              _mapController.move(
-                LatLng(position.latitude, position.longitude),
-                _mapController.camera.zoom,
-              );
-            }
-          }, onError: (error) {
-            if (mounted) {
+          ).listen(
+            (Position position) {
+              if (!mounted) return;
+              if (!position.latitude.isFinite || !position.longitude.isFinite) {
+                return;
+              }
               setState(() {
-                _locationFailed = true;
+                _currentPosition = position;
+                _locationFailed = false;
               });
-              _mapController.move(_tcgcCenter, 16.0);
-            }
-          });
+              if (_followLocation) {
+                _mapController.move(
+                  LatLng(position.latitude, position.longitude),
+                  _mapController.camera.zoom,
+                );
+              }
+            },
+            onError: (error) {
+              if (mounted) {
+                setState(() {
+                  _locationFailed = true;
+                });
+                _mapController.move(_tcgcCenter, 16.0);
+              }
+            },
+          );
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -131,7 +134,9 @@ class _NavigationScreenState extends State<NavigationScreen> {
   }
 
   void _onCategorySelected(String category) {
-    widget.categoryFilter.value = category;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.categoryFilter.value = category;
+    });
   }
 
   void _navigateToLandmark(CampusLandmark landmark) {
@@ -146,7 +151,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
   Future<void> _getDirections(CampusLandmark landmark) async {
     if (!mounted) return;
     Navigator.pop(context);
-    
+
     if (_currentPosition == null) {
       try {
         _currentPosition = await Geolocator.getCurrentPosition(
@@ -170,7 +175,10 @@ class _NavigationScreenState extends State<NavigationScreen> {
       _isLoadingRoute = true;
     });
 
-    final origin = LatLng(_currentPosition!.latitude, _currentPosition!.longitude);
+    final origin = LatLng(
+      _currentPosition!.latitude,
+      _currentPosition!.longitude,
+    );
     final destination = landmark.position;
 
     final routeInfo = await OSRMRouteService.getRoute(origin, destination);
@@ -183,7 +191,10 @@ class _NavigationScreenState extends State<NavigationScreen> {
       _isLoadingRoute = false;
     });
     if (routeInfo != null && routeInfo.points.isNotEmpty) {
-      _mapController.move(LatLng(_currentPosition!.latitude, _currentPosition!.longitude), 18.0);
+      _mapController.move(
+        LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+        18.0,
+      );
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${routeInfo.distanceText} - ${routeInfo.timeText}'),
@@ -207,7 +218,9 @@ class _NavigationScreenState extends State<NavigationScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: categoryColor(landmark.category).withValues(alpha: 0.1),
+                    color: categoryColor(
+                      landmark.category,
+                    ).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
@@ -254,7 +267,9 @@ class _NavigationScreenState extends State<NavigationScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _isLoadingRoute ? null : () => _getDirections(landmark),
+                onPressed: _isLoadingRoute
+                    ? null
+                    : () => _getDirections(landmark),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: categoryColor(landmark.category),
                   foregroundColor: Colors.white,
@@ -289,10 +304,12 @@ class _NavigationScreenState extends State<NavigationScreen> {
             FlutterMap(
               mapController: _mapController,
               options: MapOptions(
-                initialCenter: _tcgcCenter,
-                initialZoom: 16.0,
+                // Use your fallback variable here to fix the "unused_field" warning
+                initialCenter: _defaultFallback,
+                initialZoom: 17.5,
                 onTap: (tapPos, point) {
                   setState(() {
+                    // Clear selections and existing routes when tapping empty map space
                     _selectedLandmark = null;
                     _routePoints = [];
                   });
@@ -328,7 +345,10 @@ class _NavigationScreenState extends State<NavigationScreen> {
                               decoration: BoxDecoration(
                                 color: categoryColor(landmark.category),
                                 shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 2),
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 2,
+                                ),
                                 boxShadow: [
                                   BoxShadow(
                                     color: Colors.black.withValues(alpha: 0.2),
@@ -378,7 +398,10 @@ class _NavigationScreenState extends State<NavigationScreen> {
                   MarkerLayer(
                     markers: [
                       Marker(
-                        point: LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+                        point: LatLng(
+                          _currentPosition!.latitude,
+                          _currentPosition!.longitude,
+                        ),
                         width: 24,
                         height: 24,
                         child: Container(
@@ -413,10 +436,17 @@ class _NavigationScreenState extends State<NavigationScreen> {
                   color: Colors.orange.shade100,
                   borderRadius: BorderRadius.circular(8),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     child: Row(
                       children: [
-                        Icon(Icons.location_off, size: 18, color: Colors.orange.shade800),
+                        Icon(
+                          Icons.location_off,
+                          size: 18,
+                          color: Colors.orange.shade800,
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(

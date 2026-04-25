@@ -9,7 +9,8 @@ class FloorPlanScreen extends StatefulWidget {
 }
 
 class _FloorPlanScreenState extends State<FloorPlanScreen> {
-  final TransformationController _transformationController = TransformationController();
+  final TransformationController _transformationController =
+      TransformationController();
   FloorRoom? _selectedRoom;
   double _scale = 1.0;
 
@@ -41,36 +42,48 @@ class _FloorPlanScreenState extends State<FloorPlanScreen> {
   }
 
   void _handleTap(TapUpDetails details, Size viewportSize) {
+    // Safety check: Don't process taps if the screen is closing
+    if (!mounted) return;
+
     final localPos = details.localPosition;
-    
+
     final scale = _scale;
     final scaledWidth = viewportSize.width * scale;
     final scaledHeight = viewportSize.height * scale;
     final offsetX = (viewportSize.width - scaledWidth) / 2;
     final offsetY = (viewportSize.height - scaledHeight) / 2;
-    
+
     final normalizedX = (localPos.dx - offsetX) / scaledWidth;
     final normalizedY = (localPos.dy - offsetY) / scaledHeight;
-    
-    if (normalizedX < 0 || normalizedX > 1 || normalizedY < 0 || normalizedY > 1) {
+
+    if (normalizedX < 0 ||
+        normalizedX > 1 ||
+        normalizedY < 0 ||
+        normalizedY > 1) {
       return;
     }
-    
-    final normalizedPos = Offset(normalizedX.clamp(0.0, 1.0), normalizedY.clamp(0.0, 1.0));
+
+    final normalizedPos = Offset(
+      normalizedX.clamp(0.0, 1.0),
+      normalizedY.clamp(0.0, 1.0),
+    );
     final room = FloorPlanData.getRoomAtPosition(normalizedPos);
-    
+
     setState(() {
       _selectedRoom = room;
     });
-    
+
     if (room != null) {
       _showRoomDetails(room);
     }
   }
 
   void _showRoomDetails(FloorRoom room) {
+    // Safety check before opening a bottom sheet
+    if (!mounted) return;
+
     final colorScheme = Theme.of(context).colorScheme;
-    
+
     showModalBottomSheet(
       context: context,
       builder: (ctx) => Container(
@@ -82,7 +95,10 @@ class _FloorPlanScreenState extends State<FloorPlanScreen> {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: _getCategoryColor(room.category, 0.2),
                     borderRadius: BorderRadius.circular(20),
@@ -106,10 +122,7 @@ class _FloorPlanScreenState extends State<FloorPlanScreen> {
             const SizedBox(height: 12),
             Text(
               room.name,
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
             if (room.description != null) ...[
               const SizedBox(height: 8),
@@ -143,7 +156,7 @@ class _FloorPlanScreenState extends State<FloorPlanScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).colorScheme.brightness == Brightness.dark;
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Floor Plan - 2nd Floor'),
@@ -158,14 +171,18 @@ class _FloorPlanScreenState extends State<FloorPlanScreen> {
         maxScale: 4.0,
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final viewportSize = Size(constraints.maxWidth, constraints.maxHeight);
-            final minDimension = constraints.maxWidth < constraints.maxHeight 
-                ? constraints.maxWidth 
+            final viewportSize = Size(
+              constraints.maxWidth,
+              constraints.maxHeight,
+            );
+            final minDimension = constraints.maxWidth < constraints.maxHeight
+                ? constraints.maxWidth
                 : constraints.maxHeight;
-            
+
             _scale = minDimension / 400;
-            final scaledSize = Size(400 * _scale * 1.5, 400 * _scale);
-            
+            // Kept your 2.8x scaling factor for the stretched building layout
+            final scaledSize = Size(400 * _scale * 2.8, 400 * _scale);
+
             return Center(
               child: SizedBox(
                 width: scaledSize.width,
@@ -218,7 +235,7 @@ class FloorPlanPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final baseSize = 400 * 1.5;
+    final baseSize = 400 * 2.8;
     final height = 400.0;
     final scaleX = size.width / baseSize;
     final scaleY = size.height / height;
@@ -227,14 +244,14 @@ class FloorPlanPainter extends CustomPainter {
     final scaledHeight = height * scaleFactor;
     final offsetX = (size.width - scaledWidth) / 2;
     final offsetY = (size.height - scaledHeight) / 2;
-    
+
     canvas.save();
     canvas.translate(offsetX, offsetY);
     canvas.scale(scaleFactor);
-    
+
     final borderColor = isDark ? Colors.grey.shade500 : Colors.grey.shade400;
     final textColor = isDark ? Colors.white : Colors.black87;
-    
+
     for (final room in rooms) {
       final rect = Rect.fromLTRB(
         room.bounds.left * baseSize,
@@ -253,37 +270,38 @@ class FloorPlanPainter extends CustomPainter {
       canvas.drawRect(rect, fillPaint);
 
       final outlinePaint = Paint()
-        ..color = isSelected 
+        ..color = isSelected
             ? getCategoryBorderColor(room.category)
             : borderColor
         ..style = PaintingStyle.stroke
         ..strokeWidth = borderWidth;
       canvas.drawRect(rect, outlinePaint);
 
+      // Safe Area Drawing (Matches the red physical sign in your photo)
       if (room.category == 'amenity' && room.id == 'safe_area') {
         final safeCenter = Offset(
           (room.bounds.left + room.bounds.width / 2) * baseSize,
           (room.bounds.top + room.bounds.height / 2) * height,
         );
-        
-        final safeRadius = 18.0;
+
+        const safeRadius = 18.0;
         final safeFillPaint = Paint()
-          ..color = const Color(0xFF059669)
+          ..color = const Color(0xFFDC2626)
           ..style = PaintingStyle.fill;
         canvas.drawCircle(safeCenter, safeRadius, safeFillPaint);
-        
+
         final safeOutlinePaint = Paint()
           ..color = Colors.white
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2 / scaleFactor;
         canvas.drawCircle(safeCenter, safeRadius, safeOutlinePaint);
-        
+
         final textStyle = TextStyle(
           color: Colors.white,
           fontSize: 9 / scaleFactor,
           fontWeight: FontWeight.bold,
         );
-        
+
         final shieldPainter = TextPainter(
           text: TextSpan(text: 'SAFE', style: textStyle),
           textDirection: TextDirection.ltr,
@@ -304,7 +322,7 @@ class FloorPlanPainter extends CustomPainter {
           (room.bounds.left + room.bounds.width / 2) * baseSize,
           (room.bounds.top + room.bounds.height / 2) * height,
         );
-        
+
         final iconPaint = Paint()
           ..color = isDark ? Colors.grey.shade400 : Colors.grey.shade600
           ..style = PaintingStyle.fill;
@@ -327,8 +345,9 @@ class FloorPlanPainter extends CustomPainter {
           textAlign: TextAlign.center,
         );
         textPainter.layout(maxWidth: rect.width - 4);
-        
-        if (textPainter.width <= rect.width - 4 && textPainter.height <= rect.height - 4) {
+
+        if (textPainter.width <= rect.width - 4 &&
+            textPainter.height <= rect.height - 4) {
           textPainter.paint(
             canvas,
             Offset(
@@ -339,14 +358,16 @@ class FloorPlanPainter extends CustomPainter {
         }
       }
     }
-    
+
     canvas.restore();
   }
 
   @override
-  bool shouldRepaint(covariant FloorPlanPainter oldDelegate) {
-    return oldDelegate.selectedRoom != selectedRoom || 
-           oldDelegate.isDark != isDark ||
-           oldDelegate.scale != scale;
+  bool shouldRepaint(CustomPainter oldDelegate) {
+    // Fixed: This is now inside the class and correctly casts the delegate
+    final old = oldDelegate as FloorPlanPainter;
+    return old.selectedRoom != selectedRoom ||
+        old.isDark != isDark ||
+        old.scale != scale;
   }
 }
