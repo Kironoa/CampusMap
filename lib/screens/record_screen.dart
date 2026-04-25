@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:intl/intl.dart';
+import 'package:naviapp/data/saved_spot.dart';
+import 'package:naviapp/services/saved_spot_storage.dart';
 import 'dart:async';
-import 'dart:convert';
 
 class RecordScreen extends StatefulWidget {
   const RecordScreen({super.key});
@@ -14,18 +14,29 @@ class RecordScreen extends StatefulWidget {
 }
 
 class _RecordScreenState extends State<RecordScreen> {
-  final List<Map<String, dynamic>> _capturedPoints = [];
+  final List<SavedSpot> _savedSpots = [];
   final TextEditingController _nameController = TextEditingController();
   GoogleMapController? _mapController;
   StreamSubscription<Position>? _positionStream;
   Position? _currentPosition;
-
-  static const LatLng _tcgcCenter = LatLng(8.0645, 123.7508);
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
+    _loadSpots();
     _startLocationTracking();
+  }
+
+  Future<void> _loadSpots() async {
+    final spots = await SavedSpotStorage.loadSpots();
+    if (mounted) {
+      setState(() {
+        _savedSpots.clear();
+        _savedSpots.addAll(spots);
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -54,29 +65,6 @@ class _RecordScreenState extends State<RecordScreen> {
         });
   }
 
-  void _copyAsJson() {
-    if (_capturedPoints.isEmpty) return;
-    String jsonString = jsonEncode(_capturedPoints);
-    Clipboard.setData(ClipboardData(text: jsonString)).then((_) {
-      _showToast("Points copied as JSON!", Colors.blue);
-    });
-  }
-
-  void _copyToClipboard() {
-    if (_capturedPoints.isEmpty) return;
-
-    String buffer = "// TCGC MARKER DATA\n";
-    for (var point in _capturedPoints) {
-      buffer +=
-          "Marker(markerId: MarkerId('${point['name']}'), "
-          "position: LatLng(${point['lat']}, ${point['lng']})),\n";
-    }
-
-    Clipboard.setData(ClipboardData(text: buffer)).then((_) {
-      _showToast("Marker code copied!", Colors.green);
-    });
-  }
-
   void _showToast(String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -87,48 +75,37 @@ class _RecordScreenState extends State<RecordScreen> {
     );
   }
 
-  void _savePoint() {
+  Future<void> _saveCurrentLocation() async {
     if (_currentPosition == null) {
       _showToast("Waiting for GPS...", Colors.orange);
       return;
     }
 
+    final name = _nameController.text.trim();
+    if (name.isEmpty) {
+      _showToast("Please enter a name", Colors.orange);
+      return;
+    }
+
     HapticFeedback.heavyImpact();
 
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Name this Spot"),
-        content: TextField(
-          controller: _nameController,
-          decoration: const InputDecoration(hintText: "Registrar, Lab 1, etc."),
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              setState(() {
-                _capturedPoints.add({
-                  'name': _nameController.text.trim().isEmpty
-                      ? "Point ${_capturedPoints.length + 1}"
-                      : _nameController.text.trim(),
-                  'lat': _currentPosition!.latitude,
-                  'lng': _currentPosition!.longitude,
-                  'timestamp': DateTime.now().toIso8601String(),
-                });
-              });
-              _nameController.clear();
-              Navigator.pop(context);
-            },
-            child: const Text("Save"),
-          ),
-        ],
-      ),
+    final spot = SavedSpot(
+      name: name,
+      latitude: _currentPosition!.latitude,
+      longitude: _currentPosition!.longitude,
     );
+
+    await SavedSpotStorage.addSpot(spot);
+    await _loadSpots();
+
+    _nameController.clear();
+    _showToast("Spot saved!", Colors.green);
+  }
+
+  Future<void> _deleteSpot(int index) async {
+    await SavedSpotStorage.removeSpot(index);
+    await _loadSpots();
+    _showToast("Spot removed", Colors.red);
   }
 
   @override
@@ -138,67 +115,64 @@ class _RecordScreenState extends State<RecordScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Campus Mapper"),
-        actions: [
-          if (_capturedPoints.isNotEmpty) ...[
-            IconButton(
-              icon: const Icon(Icons.code),
-              onPressed: _copyAsJson,
-              tooltip: "Copy JSON",
-            ),
-            IconButton(
-              icon: const Icon(Icons.copy_all),
-              onPressed: _copyToClipboard,
-              tooltip: "Copy Code",
-            ),
-            IconButton(
-              icon: const Icon(Icons.delete_sweep, color: Colors.red),
-              onPressed: () => setState(() => _capturedPoints.clear()),
-            ),
-          ],
-        ],
+        title: const Text("Personal Saved Spots"),
       ),
       body: Column(
         children: [
-          _buildMapHeader(),
+          _buildInputSection(colorScheme),
           _buildStatusIndicator(theme, colorScheme),
           Expanded(
-            child: _capturedPoints.isEmpty
-                ? _buildEmptyState(theme, colorScheme)
-                : _buildPointsList(theme, colorScheme),
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _savedSpots.isEmpty
+                    ? _buildEmptyState(theme, colorScheme)
+                    : _buildSpotsList(theme, colorScheme),
           ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _savePoint,
-        label: const Text("Record Spot"),
-        icon: const Icon(Icons.add_location_alt),
       ),
     );
   }
 
-  Widget _buildMapHeader() {
-    return SizedBox(
-      height: 220,
-      child: GoogleMap(
-        initialCameraPosition: const CameraPosition(
-          target: _tcgcCenter,
-          zoom: 18,
-        ),
-        onMapCreated: (controller) => _mapController = controller,
-        myLocationEnabled: true,
-        mapType: MapType.hybrid,
-        markers: _capturedPoints
-            .map(
-              (p) => Marker(
-                markerId: MarkerId(p['name']),
-                position: LatLng(p['lat'], p['lng']),
-                icon: BitmapDescriptor.defaultMarkerWithHue(
-                  BitmapDescriptor.hueCyan,
+  Widget _buildInputSection(ColorScheme colorScheme) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      color: colorScheme.surfaceContainerHighest,
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _nameController,
+              decoration: InputDecoration(
+                hintText: "Enter spot name",
+                filled: true,
+                fillColor: colorScheme.surface,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
                 ),
               ),
-            )
-            .toSet(),
+              onSubmitted: (_) => _saveCurrentLocation(),
+            ),
+          ),
+          const SizedBox(width: 12),
+          ElevatedButton.icon(
+            onPressed: _saveCurrentLocation,
+            icon: const Icon(Icons.add_location_alt),
+            label: const Text("Save"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 16,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -236,20 +210,20 @@ class _RecordScreenState extends State<RecordScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.add_location_alt_outlined,
+              Icons.bookmark_border,
               size: 72,
               color: colorScheme.outline,
             ),
             const SizedBox(height: 16),
             Text(
-              'No spots recorded yet',
+              'No personal spots saved',
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Walk around TCGC and tap "Record Spot"\nto save GPS coordinates of places.',
+              'Enter a name and tap "Save"\nto save your current location.',
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: colorScheme.onSurface.withValues(alpha: 0.6),
@@ -261,55 +235,36 @@ class _RecordScreenState extends State<RecordScreen> {
     );
   }
 
-  Widget _buildPointsList(ThemeData theme, ColorScheme colorScheme) {
+  Widget _buildSpotsList(ThemeData theme, ColorScheme colorScheme) {
     return ListView.separated(
-      itemCount: _capturedPoints.length,
+      itemCount: _savedSpots.length,
       separatorBuilder: (context, index) => const Divider(height: 1),
       itemBuilder: (context, index) {
-        final point = _capturedPoints[index];
-        final dateTime = DateTime.parse(point['timestamp']);
-        final formattedDate = DateFormat('MMM d, yyyy').format(dateTime);
-        final formattedTime = DateFormat('h:mm a').format(dateTime);
+        final spot = _savedSpots[index];
 
         return ListTile(
-          isThreeLine: true,
-          leading: CircleAvatar(
-            backgroundColor: colorScheme.primaryContainer,
-            child: Text(
-              "${index + 1}",
-              style: TextStyle(
-                color: colorScheme.onPrimaryContainer,
-                fontWeight: FontWeight.bold,
-              ),
+          leading: const CircleAvatar(
+            backgroundColor: Colors.orange,
+            child: Icon(
+              Icons.bookmark,
+              color: Colors.white,
+              size: 20,
             ),
           ),
           title: Text(
-            point['name'],
+            spot.name,
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "${point['lat']}, ${point['lng']}",
-                style: TextStyle(
-                  fontSize: 12,
-                  color: colorScheme.onSurface.withValues(alpha: 0.6),
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                '$formattedDate · $formattedTime',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: colorScheme.onSurface.withValues(alpha: 0.5),
-                ),
-              ),
-            ],
+          subtitle: Text(
+            "${spot.latitude.toStringAsFixed(5)}, ${spot.longitude.toStringAsFixed(5)}",
+            style: TextStyle(
+              fontSize: 12,
+              color: colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
           ),
           trailing: IconButton(
             icon: Icon(Icons.delete_outline, color: Colors.red.shade400),
-            onPressed: () => setState(() => _capturedPoints.removeAt(index)),
+            onPressed: () => _deleteSpot(index),
           ),
         );
       },

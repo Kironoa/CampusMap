@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:naviapp/data/campus_landmarks.dart';
+import 'package:naviapp/data/saved_spot.dart';
+import 'package:naviapp/services/saved_spot_storage.dart';
 
 class NavigationScreen extends StatefulWidget {
   final String? initialSearch;
@@ -25,8 +27,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
   static const LatLng _tcgcCenter = LatLng(8.0600, 123.7540);
   final MapController _mapController = MapController();
   final TextEditingController _searchController = TextEditingController();
-  List<CampusLandmark> _filteredLandmarks = tcgcLandmarks;
   CampusLandmark? _selectedLandmark;
+  List<SavedSpot> _personalSpots = [];
 
   final List<String> _categories = [
     'All',
@@ -36,12 +38,25 @@ class _NavigationScreenState extends State<NavigationScreen> {
     'Facilities',
   ];
 
+  List<CampusLandmark> _getFilteredLandmarks(String category) {
+    return filterByCategory(category);
+  }
+
   @override
   void initState() {
     super.initState();
     if (widget.initialSearch != null) {
       _searchController.text = widget.initialSearch!;
-      _updateSearchResults();
+    }
+    _loadPersonalSpots();
+  }
+
+  Future<void> _loadPersonalSpots() async {
+    final spots = await SavedSpotStorage.loadSpots();
+    if (mounted) {
+      setState(() {
+        _personalSpots = spots;
+      });
     }
   }
 
@@ -51,35 +66,10 @@ class _NavigationScreenState extends State<NavigationScreen> {
     super.dispose();
   }
 
-  void _updateSearchResults() {
-    if (_searchController.text.isEmpty) {
-      _applyCategoryFilter();
-    } else {
-      final results = searchLandmarks(_searchController.text);
-      final category = widget.categoryFilter.value;
-      if (category != 'All') {
-        setState(() {
-          _filteredLandmarks = results
-              .where((l) => l.category == category)
-              .toList();
-        });
-      } else {
-        setState(() {
-          _filteredLandmarks = results;
-        });
-      }
-    }
-  }
-
-  void _applyCategoryFilter() {
-    final category = widget.categoryFilter.value;
-    setState(() {
-      _filteredLandmarks = filterByCategory(category);
-    });
-  }
-
   void _onCategorySelected(String category) {
-    widget.categoryFilter.value = category;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.categoryFilter.value = category;
+    });
   }
 
   void _navigateToLandmark(CampusLandmark landmark) {
@@ -171,7 +161,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
     return ValueListenableBuilder<String>(
       valueListenable: widget.categoryFilter,
       builder: (context, activeCategory, _) {
-        _applyCategoryFilter();
+        final filteredLandmarks = _getFilteredLandmarks(activeCategory);
         return Stack(
           children: [
             FlutterMap(
@@ -191,17 +181,45 @@ class _NavigationScreenState extends State<NavigationScreen> {
                   userAgentPackageName: 'com.example.naviapp',
                 ),
                 MarkerLayer(
-                  markers: _filteredLandmarks.map((landmark) {
-                    final isSelected = _selectedLandmark?.id == landmark.id;
-                    return Marker(
-                      point: landmark.position,
-                      width: isSelected ? 50 : 40,
-                      height: isSelected ? 50 : 40,
-                      child: GestureDetector(
-                        onTap: () => _navigateToLandmark(landmark),
+                  markers: [
+                    ...filteredLandmarks.map((landmark) {
+                      final isSelected = _selectedLandmark?.id == landmark.id;
+                      return Marker(
+                        point: landmark.position,
+                        width: isSelected ? 50 : 40,
+                        height: isSelected ? 50 : 40,
+                        child: GestureDetector(
+                          onTap: () => _navigateToLandmark(landmark),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: categoryColor(landmark.category),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.2),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              categoryIcon(landmark.category),
+                              color: Colors.white,
+                              size: isSelected ? 28 : 22,
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                    ..._personalSpots.map((spot) {
+                      return Marker(
+                        point: spot.position,
+                        width: 40,
+                        height: 40,
                         child: Container(
                           decoration: BoxDecoration(
-                            color: categoryColor(landmark.category),
+                            color: Colors.orange,
                             shape: BoxShape.circle,
                             border: Border.all(color: Colors.white, width: 2),
                             boxShadow: [
@@ -212,15 +230,15 @@ class _NavigationScreenState extends State<NavigationScreen> {
                               ),
                             ],
                           ),
-                          child: Icon(
-                            categoryIcon(landmark.category),
+                          child: const Icon(
+                            Icons.bookmark,
                             color: Colors.white,
-                            size: isSelected ? 28 : 22,
+                            size: 22,
                           ),
                         ),
-                      ),
-                    );
-                  }).toList(),
+                      );
+                    }),
+                  ],
                 ),
               ],
             ),
