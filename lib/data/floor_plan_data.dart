@@ -18,9 +18,6 @@ class FloorRoom {
 
 class FloorPlanData {
   static const List<FloorRoom> secondFloorRooms = [
-    // ==========================================
-    // TOP ROW ROOMS (y: 0.25 to 0.45)
-    // ==========================================
     FloorRoom(
       id: 'guidance_testing',
       name: 'Guidance Testing Center',
@@ -28,7 +25,6 @@ class FloorPlanData {
       bounds: Rect.fromLTRB(0.00, 0.25, 0.06, 0.45),
       description: 'Testing and assessment center for students',
     ),
-    // Notice the gap from 0.06 to 0.09 for the Sub-Lobby
     FloorRoom(
       id: 'computer_lab',
       name: 'Computer Laboratory',
@@ -99,7 +95,6 @@ class FloorPlanData {
       bounds: Rect.fromLTRB(0.77, 0.25, 0.92, 0.45),
       description: 'Communication and speech laboratory',
     ),
-    // Notice the gap from 0.92 to 0.95 for the Right Sub-Lobby
     FloorRoom(
       id: 'bseed_sim_1',
       name: 'BSEED Simulation Room',
@@ -107,15 +102,6 @@ class FloorPlanData {
       bounds: Rect.fromLTRB(0.95, 0.25, 1.00, 0.45),
       description: 'Business simulation room',
     ),
-
-    // ==========================================
-    // MAIN HALLWAY GAP (y: 0.45 to 0.52)
-    // No rooms are placed here to create the path
-    // ==========================================
-
-    // ==========================================
-    // BOTTOM ROW ROOMS (y: 0.52 to 0.72)
-    // ==========================================
     FloorRoom(
       id: 'guidance_counseling',
       name: 'Guidance Counseling Room',
@@ -155,8 +141,6 @@ class FloorPlanData {
       category: 'academic',
       bounds: Rect.fromLTRB(0.35, 0.52, 0.42, 0.72),
     ),
-
-    // Protruding Bottom Left Offices
     FloorRoom(
       id: 'deans_office',
       name: "Deans Office",
@@ -171,16 +155,12 @@ class FloorPlanData {
       bounds: Rect.fromLTRB(0.42, 0.68, 0.48, 0.84),
       description: 'Vice President for Academic Affairs office',
     ),
-
-    // Center Elevator Block (Breaks the hallway)
     FloorRoom(
       id: 'center_elevator',
       name: 'Elevator',
       category: 'facility',
       bounds: Rect.fromLTRB(0.48, 0.45, 0.54, 0.65),
     ),
-
-    // Protruding Bottom Right Office
     FloorRoom(
       id: 'president_office',
       name: 'Office Of The President',
@@ -188,8 +168,6 @@ class FloorPlanData {
       bounds: Rect.fromLTRB(0.54, 0.52, 0.60, 0.84),
       description: "President's executive office",
     ),
-
-    // Continuing Bottom Row
     FloorRoom(
       id: 'board_room',
       name: 'Board Room',
@@ -245,10 +223,6 @@ class FloorPlanData {
       bounds: Rect.fromLTRB(0.95, 0.52, 1.00, 0.72),
       description: 'Business simulation room',
     ),
-
-    // ==========================================
-    // EXTERIOR AND SPECIAL ZONES
-    // ==========================================
     FloorRoom(
       id: 'main_stage',
       name: 'MAIN STAGE',
@@ -272,12 +246,103 @@ class FloorPlanData {
     ),
   ];
 
-  static FloorRoom? getRoomAtPosition(Offset normalizedPos) {
-    for (final room in secondFloorRooms) {
+  static const List<FloorRoom> groundFloorRooms = [
+    FloorRoom(
+      id: 'library',
+      name: 'LIBRARY',
+      category: 'amenity',
+      bounds: Rect.fromLTRB(0.00, 0.25, 0.18, 0.45),
+      description: 'Campus Library',
+    ),
+    FloorRoom(
+      id: 'icje',
+      name: 'INSTITUTE OF\nCRIMINAL JUSTICE',
+      category: 'academic',
+      bounds: Rect.fromLTRB(0.00, 0.52, 0.15, 0.72),
+      description: 'Institute of Criminal Justice Education',
+    ),
+    FloorRoom(
+      id: 'criminology_lab',
+      name: 'CRIMINOLOGY\nLABORATORY',
+      category: 'academic',
+      bounds: Rect.fromLTRB(0.15, 0.52, 0.25, 0.72),
+      description: 'Criminology Laboratory',
+    ),
+    FloorRoom(
+      id: 'vp_admin_finance',
+      name: 'VP ADMIN\nAND FINANCE',
+      category: 'office',
+      bounds: Rect.fromLTRB(0.25, 0.52, 0.35, 0.72),
+      description: 'VP Admin and Finance Office',
+    ),
+    FloorRoom(
+      id: 'registrar',
+      name: "REGISTRAR'S\nOFFICE",
+      category: 'office',
+      bounds: Rect.fromLTRB(0.35, 0.52, 0.42, 0.72),
+      description: "Registrar's Office",
+    ),
+    FloorRoom(
+      id: 'main_lobby',
+      name: 'MAIN LOBBY',
+      category: 'facility',
+      bounds: Rect.fromLTRB(0.42, 0.45, 0.50, 0.65),
+      description: 'Main entry lobby - Navigation start point',
+    ),
+    FloorRoom(
+      id: 'elevator_core',
+      name: 'ELEVATOR',
+      category: 'facility',
+      bounds: Rect.fromLTRB(0.50, 0.45, 0.54, 0.65),
+    ),
+    FloorRoom(
+      id: 'ics',
+      name: 'INSTITUTE OF\nCOMPUTER STUDIES',
+      category: 'academic',
+      bounds: Rect.fromLTRB(0.54, 0.52, 0.68, 0.72),
+      description: 'Institute of Computer Studies',
+    ),
+    FloorRoom(
+      id: 'tcgc_training',
+      name: 'TCGC DEV\'T\nTRAINING CTR',
+      category: 'academic',
+      bounds: Rect.fromLTRB(0.68, 0.52, 0.78, 0.72),
+      description: 'TCGC Development Training Center',
+    ),
+    FloorRoom(
+      id: 'health_sciences',
+      name: 'INSTITUTE OF\nHEALTH SCIENCES',
+      category: 'academic',
+      bounds: Rect.fromLTRB(0.78, 0.52, 0.92, 0.72),
+      description: 'Institute of Health Sciences',
+    ),
+    FloorRoom(
+      id: 'bleachers',
+      name: 'BLEACHERS /\nMAIN STAGE',
+      category: 'facility',
+      bounds: Rect.fromLTRB(0.82, 0.25, 1.00, 0.45),
+      description: 'Bleachers and Main Stage Area',
+    ),
+    FloorRoom(
+      id: 'safe_area_ground',
+      name: 'SAFE AREA',
+      category: 'amenity',
+      bounds: Rect.fromLTRB(0.08, 0.78, 0.14, 0.88),
+      description: 'Emergency evacuation safe area',
+    ),
+  ];
+
+  static FloorRoom? getRoomAtPosition(Offset normalizedPos, {bool secondFloor = true}) {
+    final rooms = secondFloor ? secondFloorRooms : groundFloorRooms;
+    for (final room in rooms) {
       if (room.bounds.contains(normalizedPos)) {
         return room;
       }
     }
     return null;
   }
+
+  static Offset get mainLobbyPosition => const Offset(0.46, 0.55);
+
+  static Offset get safeAreaPosition => const Offset(0.11, 0.83);
 }

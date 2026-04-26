@@ -13,6 +13,7 @@ class _FloorPlanScreenState extends State<FloorPlanScreen> {
       TransformationController();
   FloorRoom? _selectedRoom;
   double _scale = 1.0;
+  bool _isSecondFloor = true;
 
   @override
   void dispose() {
@@ -67,7 +68,7 @@ class _FloorPlanScreenState extends State<FloorPlanScreen> {
       normalizedX.clamp(0.0, 1.0),
       normalizedY.clamp(0.0, 1.0),
     );
-    final room = FloorPlanData.getRoomAtPosition(normalizedPos);
+    final room = FloorPlanData.getRoomAtPosition(normalizedPos, secondFloor: _isSecondFloor);
 
     setState(() {
       _selectedRoom = room;
@@ -159,11 +160,22 @@ class _FloorPlanScreenState extends State<FloorPlanScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Floor Plan - 2nd Floor'),
+        title: Text(_isSecondFloor ? 'Floor Plan - 2nd Floor' : 'Floor Plan - Ground Floor'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              setState(() {
+                _isSecondFloor = !_isSecondFloor;
+                _selectedRoom = null;
+              });
+            },
+            child: Text(_isSecondFloor ? 'Ground' : '2nd Floor'),
+          ),
+        ],
       ),
       body: InteractiveViewer(
         transformationController: _transformationController,
@@ -192,7 +204,9 @@ class _FloorPlanScreenState extends State<FloorPlanScreen> {
                   child: CustomPaint(
                     size: scaledSize,
                     painter: FloorPlanPainter(
-                      rooms: FloorPlanData.secondFloorRooms,
+                      rooms: _isSecondFloor 
+                          ? FloorPlanData.secondFloorRooms 
+                          : FloorPlanData.groundFloorRooms,
                       selectedRoom: _selectedRoom,
                       isDark: isDark,
                       scale: _scale,
