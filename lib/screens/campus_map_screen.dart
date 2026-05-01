@@ -34,8 +34,9 @@ class _CampusMapScreenState extends State<CampusMapScreen> {
   int _currentStepIndex = 0;
   String? _selectedFloorPlanPath;
 
+  // TCGC campus center calculated from landmark coordinates
   static const gmap.CameraPosition _initialPosition = gmap.CameraPosition(
-    target: gmap.LatLng(8.0644, 123.7512),
+    target: gmap.LatLng(8.06435, 123.7510), // Center of all landmarks
     zoom: 17.5,
   );
 
@@ -81,15 +82,22 @@ class _CampusMapScreenState extends State<CampusMapScreen> {
   }
 
   CampusLandmark _landmarkFromMap(Map<String, dynamic> map) {
+    // Safely parse coordinates from various types (num, String, etc.)
+    double parseCoordinate(dynamic value) {
+      if (value is num) return value.toDouble();
+      if (value is String) return double.tryParse(value) ?? 0.0;
+      return 0.0;
+    }
+
+    final lat = parseCoordinate(map['latitude']);
+    final lng = parseCoordinate(map['longitude']);
+
     return CampusLandmark(
       id: map['id'] as String,
       name: map['name'] as String,
       category: map['category'] as String? ?? 'Unknown',
       description: map['description'] as String? ?? '',
-      position: gmap.LatLng(
-        map['latitude'] as double,
-        map['longitude'] as double,
-      ),
+      position: gmap.LatLng(lat, lng),
       floor: map['floor'] as String?,
     );
   }

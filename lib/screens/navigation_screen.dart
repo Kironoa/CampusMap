@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' as liblong;
@@ -8,7 +9,6 @@ import 'package:naviapp/services/saved_spot_storage.dart';
 import 'package:naviapp/services/osrm_service.dart';
 import 'package:naviapp/screens/settings_screen.dart';
 import 'package:naviapp/widgets/ai_nav_sheet.dart';
-import 'dart:async';
 
 class NavigationScreen extends StatefulWidget {
   final String? initialSearch;

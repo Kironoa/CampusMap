@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart' as gmaps;
 import '../data/database_helper.dart';
 import '../data/campus_landmarks.dart';
 import '../repositories/local_landmark_repository.dart';
-
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class CampusController extends ChangeNotifier {
   final LocalLandmarkRepository _repository;
@@ -54,17 +53,22 @@ class CampusController extends ChangeNotifier {
   }
 
   CampusLandmark _landmarkFromMap(Map<String, dynamic> map) {
-    // Determine coordinates from map or fallback to default
-    double lat = (map['latitude'] as num?)?.toDouble() ?? 0.0;
-    double lng = (map['longitude'] as num?)?.toDouble() ?? 0.0;
+    // Safely parse coordinates from various types (num, String, etc.)
+    double parseCoordinate(dynamic value) {
+      if (value is num) return value.toDouble();
+      if (value is String) return double.tryParse(value) ?? 0.0;
+      return 0.0;
+    }
+
+    final lat = parseCoordinate(map['latitude']);
+    final lng = parseCoordinate(map['longitude']);
 
     return CampusLandmark(
       id: map['id'] as String,
       name: map['name'] as String,
       category: map['category'] as String? ?? 'Unknown',
       description: map['description'] as String? ?? '',
-      // Use LatLng from google_maps_flutter
-      position: LatLng(lat, lng),
+      position: gmaps.LatLng(lat, lng),
       floor: map['floor'] as String?,
     );
   }
