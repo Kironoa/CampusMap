@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:naviapp/data/floor_plan_data.dart';
 
 class FloorPlanScreen extends StatefulWidget {
@@ -8,15 +10,82 @@ class FloorPlanScreen extends StatefulWidget {
   State<FloorPlanScreen> createState() => _FloorPlanScreenState();
 }
 
-class _FloorPlanScreenState extends State<FloorPlanScreen> {
+class _FloorPlanScreenState extends State<FloorPlanScreen>
+    with SingleTickerProviderStateMixin {
   final TransformationController _transformationController =
       TransformationController();
   FloorRoom? _selectedRoom;
   double _scale = 1.0;
   bool _isSecondFloor = true;
 
+  Offset? _userNormalizedPosition;
+  StreamSubscription<Position>? _positionStream;
+  late AnimationController _positionAnimController;
+  late Animation<Offset> _positionAnimation;
+  Offset _animatedPosition = const Offset(0.5, 0.5);
+  String? _highlightedRoomId;
+
+  static const double _campusMinLat = 8.0635;
+  static const double _campusMaxLat = 8.0655;
+  static const double _campusMinLng = 123.7502;
+  static const double _campusMaxLng = 123.7522;
+
+  Offset _gpsToNormalized(double lat, double lng) {
+    final x = (lng - _campusMinLng) / (_campusMaxLng - _campusMinLng);
+    final y = 1.0 - (lat - _campusMinLat) / (_campusMaxLat - _campusMinLat);
+    return Offset(x.clamp(0.0, 1.0), y.clamp(0.0, 1.0));
+  }
+
+  void _animatePositionTo(Offset target) {
+    _positionAnimation = Tween<Offset>(begin: _animatedPosition, end: target)
+        .animate(
+          CurvedAnimation(
+            parent: _positionAnimController,
+            curve: Curves.easeInOut,
+          ),
+        );
+    _positionAnimController.forward(from: 0);
+  }
+
+  void _startPositionTracking() {
+    _positionStream =
+        Geolocator.getPositionStream(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.bestForNavigation,
+            distanceFilter: 1,
+          ),
+        ).listen(
+          (Position pos) {
+            final normalized = _gpsToNormalized(pos.latitude, pos.longitude);
+            setState(() => _userNormalizedPosition = normalized);
+            _animatePositionTo(normalized);
+          },
+          onError: (_) {
+            setState(() => _userNormalizedPosition = const Offset(0.46, 0.55));
+            _animatePositionTo(const Offset(0.46, 0.55));
+          },
+        );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _positionAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _positionAnimController.addListener(() {
+      setState(() {
+        _animatedPosition = _positionAnimation.value;
+      });
+    });
+    _startPositionTracking();
+  }
+
   @override
   void dispose() {
+    _positionStream?.cancel();
+    _positionAnimController.dispose();
     _transformationController.dispose();
     super.dispose();
   }
@@ -68,7 +137,10 @@ class _FloorPlanScreenState extends State<FloorPlanScreen> {
       normalizedX.clamp(0.0, 1.0),
       normalizedY.clamp(0.0, 1.0),
     );
-    final room = FloorPlanData.getRoomAtPosition(normalizedPos, secondFloor: _isSecondFloor);
+    final room = FloorPlanData.getRoomAtPosition(
+      normalizedPos,
+      secondFloor: _isSecondFloor,
+    );
 
     setState(() {
       _selectedRoom = room;
@@ -140,7 +212,7 @@ class _FloorPlanScreenState extends State<FloorPlanScreen> {
                 const Icon(Icons.location_on, size: 16),
                 const SizedBox(width: 4),
                 Text(
-                  'Floor: 2nd Floor',
+                  'Floor: ${_isSecondFloor ? '2nd Floor' : 'Ground Floor'}',
                   style: TextStyle(
                     color: colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
@@ -154,13 +226,72 @@ class _FloorPlanScreenState extends State<FloorPlanScreen> {
     );
   }
 
+  void highlightRoom(String roomId) {
+    setState(() {
+      _highlightedRoomId = roomId;
+    });
+    Future.delayed(const Duration(seconds: 5), () {
+      if (mounted) {
+        setState(() {
+          _highlightedRoomId = null;
+        });
+      }
+    });
+  }
+
+  Widget _buildUserPositionDot() {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.8, end: 1.2),
+      duration: const Duration(milliseconds: 900),
+      curve: Curves.easeInOut,
+      builder: (context, scale, child) {
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            Transform.scale(
+              scale: scale,
+              child: Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF2563EB).withValues(alpha: 0.25),
+                ),
+              ),
+            ),
+            Container(
+              width: 16,
+              height: 16,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF2563EB),
+                border: Border.all(color: Colors.white, width: 2.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF2563EB).withValues(alpha: 0.5),
+                    blurRadius: 6,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).colorScheme.brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isSecondFloor ? 'Floor Plan - 2nd Floor' : 'Floor Plan - Ground Floor'),
+        title: Text(
+          _isSecondFloor
+              ? 'Floor Plan - 2nd Floor'
+              : 'Floor Plan - Ground Floor',
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
@@ -201,18 +332,29 @@ class _FloorPlanScreenState extends State<FloorPlanScreen> {
                 height: scaledSize.height,
                 child: GestureDetector(
                   onTapUp: (details) => _handleTap(details, viewportSize),
-                  child: CustomPaint(
-                    size: scaledSize,
-                    painter: FloorPlanPainter(
-                      rooms: _isSecondFloor 
-                          ? FloorPlanData.secondFloorRooms 
-                          : FloorPlanData.groundFloorRooms,
-                      selectedRoom: _selectedRoom,
-                      isDark: isDark,
-                      scale: _scale,
-                      getCategoryColor: _getCategoryColor,
-                      getCategoryBorderColor: _getCategoryBorderColor,
-                    ),
+                  child: Stack(
+                    children: [
+                      CustomPaint(
+                        size: scaledSize,
+                        painter: FloorPlanPainter(
+                          rooms: _isSecondFloor
+                              ? FloorPlanData.secondFloorRooms
+                              : FloorPlanData.groundFloorRooms,
+                          selectedRoom: _selectedRoom,
+                          highlightedRoomId: _highlightedRoomId,
+                          isDark: isDark,
+                          scale: _scale,
+                          getCategoryColor: _getCategoryColor,
+                          getCategoryBorderColor: _getCategoryBorderColor,
+                        ),
+                      ),
+                      if (_userNormalizedPosition != null)
+                        Positioned(
+                          left: _animatedPosition.dx * scaledSize.width - 14,
+                          top: _animatedPosition.dy * scaledSize.height - 14,
+                          child: _buildUserPositionDot(),
+                        ),
+                    ],
                   ),
                 ),
               ),
@@ -233,6 +375,7 @@ class _FloorPlanScreenState extends State<FloorPlanScreen> {
 class FloorPlanPainter extends CustomPainter {
   final List<FloorRoom> rooms;
   final FloorRoom? selectedRoom;
+  final String? highlightedRoomId;
   final bool isDark;
   final double scale;
   final Color Function(String, double) getCategoryColor;
@@ -241,6 +384,7 @@ class FloorPlanPainter extends CustomPainter {
   FloorPlanPainter({
     required this.rooms,
     required this.selectedRoom,
+    this.highlightedRoomId,
     required this.isDark,
     required this.scale,
     required this.getCategoryColor,
@@ -275,8 +419,17 @@ class FloorPlanPainter extends CustomPainter {
       );
 
       final isSelected = selectedRoom?.id == room.id;
-      final fillOpacity = isSelected ? 0.35 : (isDark ? 0.25 : 0.15);
-      final borderWidth = isSelected ? 2.5 / scaleFactor : 1.0 / scaleFactor;
+      final isHighlighted = highlightedRoomId == room.id;
+      final fillOpacity = isSelected
+          ? 0.35
+          : isHighlighted
+          ? 0.3
+          : (isDark ? 0.25 : 0.15);
+      final borderWidth = isSelected
+          ? 2.5 / scaleFactor
+          : isHighlighted
+          ? 3.0 / scaleFactor
+          : 1.0 / scaleFactor;
 
       final fillPaint = Paint()
         ..color = getCategoryColor(room.category, fillOpacity)
@@ -286,10 +439,20 @@ class FloorPlanPainter extends CustomPainter {
       final outlinePaint = Paint()
         ..color = isSelected
             ? getCategoryBorderColor(room.category)
+            : isHighlighted
+            ? const Color(0xFF2563EB)
             : borderColor
         ..style = PaintingStyle.stroke
         ..strokeWidth = borderWidth;
       canvas.drawRect(rect, outlinePaint);
+
+      if (isHighlighted) {
+        final highlightPaint = Paint()
+          ..color = const Color(0xFF2563EB).withValues(alpha: 0.4)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 6.0 / scaleFactor;
+        canvas.drawRect(rect, highlightPaint);
+      }
 
       // Safe Area Drawing (Matches the red physical sign in your photo)
       if (room.category == 'amenity' && room.id == 'safe_area') {
@@ -378,9 +541,9 @@ class FloorPlanPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(CustomPainter oldDelegate) {
-    // Fixed: This is now inside the class and correctly casts the delegate
     final old = oldDelegate as FloorPlanPainter;
     return old.selectedRoom != selectedRoom ||
+        old.highlightedRoomId != highlightedRoomId ||
         old.isDark != isDark ||
         old.scale != scale;
   }

@@ -6,11 +6,11 @@ import 'package:naviapp/providers/theme_provider.dart';
 import 'package:naviapp/data/campus_landmarks.dart';
 
 class MapSettings {
-  static const String _mapTypeKey = 'map_type';
+  static const String _mapDarkKey = 'map_dark';
   static const String _followLocationKey = 'follow_location';
   static const String _showMarkersKey = 'show_markers';
 
-  static int mapType = 3;
+  static bool mapDark = false;
   static bool followLocation = true;
   static bool showMarkers = true;
   static bool _loaded = false;
@@ -18,16 +18,16 @@ class MapSettings {
   static Future<void> load() async {
     if (_loaded) return;
     final prefs = await SharedPreferences.getInstance();
-    mapType = prefs.getInt(_mapTypeKey) ?? 3;
+    mapDark = prefs.getBool(_mapDarkKey) ?? false;
     followLocation = prefs.getBool(_followLocationKey) ?? true;
     showMarkers = prefs.getBool(_showMarkersKey) ?? true;
     _loaded = true;
   }
 
-  static Future<void> setMapType(int value) async {
-    mapType = value;
+  static Future<void> setMapDark(bool value) async {
+    mapDark = value;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_mapTypeKey, value);
+    await prefs.setBool(_mapDarkKey, value);
   }
 
   static Future<void> setFollowLocation(bool value) async {
@@ -51,7 +51,7 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  int _mapType = 3;
+  bool _mapDark = false;
   bool _followLocation = true;
   bool _showMarkers = true;
   bool _isLoading = true;
@@ -66,7 +66,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await MapSettings.load();
     if (mounted) {
       setState(() {
-        _mapType = MapSettings.mapType;
+        _mapDark = MapSettings.mapDark;
         _followLocation = MapSettings.followLocation;
         _showMarkers = MapSettings.showMarkers;
         _isLoading = false;
@@ -95,19 +95,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
             }
             return ListView(
               padding: const EdgeInsets.all(20),
-              children: [
-                Text(
-                  'Map Preferences',
-                  style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Customize your navigation experience',
-                  style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface.withValues(alpha: 0.6)),
-                ),
-                const SizedBox(height: 24),
-                _buildMapTypeSelector(theme, colorScheme),
-                const SizedBox(height: 16),
+                children: [
+                  Text(
+                    'Map Preferences',
+                    style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Customize your navigation experience',
+                    style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface.withValues(alpha: 0.6)),
+                  ),
+                  const SizedBox(height: 24),
+                  _buildToggleTile(
+                    theme: theme,
+                    colorScheme: colorScheme,
+                    icon: Icons.dark_mode_outlined,
+                    title: 'Dark Map',
+                    subtitle: 'Switch between light and dark map tiles',
+                    value: _mapDark,
+                    onChanged: (value) async {
+                      await MapSettings.setMapDark(value);
+                      setState(() => _mapDark = value);
+                    },
+                  ),
+                  const SizedBox(height: 16),
                 _buildToggleTile(
                   theme: theme,
                   colorScheme: colorScheme,
@@ -244,85 +255,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildMapTypeSelector(ThemeData theme, ColorScheme colorScheme) {
-    final mapTypes = [
-      ('Normal', 0, Icons.map),
-      ('Satellite', 1, Icons.satellite),
-      ('Terrain', 2, Icons.terrain),
-      ('Hybrid', 3, Icons.layers),
-    ];
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(Icons.map, color: colorScheme.onPrimaryContainer, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Text('Map Type', style: theme.textTheme.titleMedium),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: mapTypes.map((type) {
-              final isSelected = _mapType == type.$2;
-              return Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: InkWell(
-                    onTap: () async {
-                      await MapSettings.setMapType(type.$2);
-                      setState(() => _mapType = type.$2);
-                    },
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color: isSelected ? colorScheme.primary : colorScheme.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Column(
-                        children: [
-                          Icon(
-                            type.$3,
-                            color: isSelected ? Colors.white : colorScheme.onSurface,
-                            size: 20,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            type.$1,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: isSelected ? Colors.white : colorScheme.onSurface,
-                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      ),
     );
   }
 
@@ -482,7 +414,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Padding(
                         padding: const EdgeInsets.all(16),
                         child: Text(
-                          'Go to Settings > Map Preferences > Map Type. You can choose between Normal, Satellite, Terrain, or Hybrid map views. Your preference will be saved and applied automatically.',
+                          'Go to Settings > Map Preferences > Dark Map to switch between light and dark map tiles. You can also enable Dark Mode for the app interface in the Appearance section.',
                           style: TextStyle(color: colorScheme.onSurface.withValues(alpha: 0.6)),
                         ),
                       ),
