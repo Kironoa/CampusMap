@@ -10,6 +10,7 @@ import 'package:naviapp/screens/navigation_screen.dart';
 import 'package:naviapp/screens/record_screen.dart';
 import 'package:naviapp/screens/settings_screen.dart';
 import 'package:naviapp/screens/floor_plan_screen.dart';
+import 'package:naviapp/screens/campus_map_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -56,7 +57,8 @@ class NaviApp extends StatelessWidget {
               ),
               '/record': (context) => const RecordScreen(),
               '/settings': (context) => const SettingsScreen(),
-              '/floor_plan': (context) => const FloorPlanScreen(),
+               '/floor_plan': (context) => const FloorPlanScreen(),
+               '/campus_map': (context) => const CampusMapScreen(),
             },
           );
         },

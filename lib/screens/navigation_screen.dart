@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:latlong2/latlong.dart' as liblong;
 import 'package:geolocator/geolocator.dart';
 import 'package:naviapp/data/campus_landmarks.dart';
 import 'package:naviapp/data/saved_spot.dart';
@@ -29,8 +29,8 @@ class NavigationScreen extends StatefulWidget {
 }
 
 class _NavigationScreenState extends State<NavigationScreen> {
-  static const LatLng _tcgcCenter = LatLng(8.0593, 123.7538);
-  static const LatLng _defaultFallback = LatLng(8.0593, 123.7538);
+  static const liblong.LatLng _tcgcCenter = liblong.LatLng(8.0593, 123.7538);
+  static const liblong.LatLng _defaultFallback = liblong.LatLng(8.0593, 123.7538);
   final MapController _mapController = MapController();
   final TextEditingController _searchController = TextEditingController();
   CampusLandmark? _selectedLandmark;
@@ -38,7 +38,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
   bool _showMarkers = true;
   bool _followLocation = true;
   bool _mapDark = false;
-  List<LatLng> _routePoints = [];
+  List<liblong.LatLng> _routePoints = [];
   bool _isLoadingRoute = false;
   Position? _currentPosition;
   StreamSubscription<Position>? _positionStream;
@@ -105,7 +105,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
               });
               if (_followLocation) {
                 _mapController.move(
-                  LatLng(position.latitude, position.longitude),
+                  liblong.LatLng(position.latitude, position.longitude),
                   _mapController.camera.zoom,
                 );
               }
@@ -147,7 +147,10 @@ class _NavigationScreenState extends State<NavigationScreen> {
       _selectedLandmark = landmark;
       _routePoints = [];
     });
-    _mapController.move(landmark.position, 18.0);
+    _mapController.move(
+      liblong.LatLng(landmark.position.latitude, landmark.position.longitude),
+      18.0,
+    );
     _showLandmarkBottomSheet(landmark);
   }
 
@@ -179,11 +182,14 @@ class _NavigationScreenState extends State<NavigationScreen> {
       _isLoadingRoute = true;
     });
 
-    final origin = LatLng(
+    final origin = liblong.LatLng(
       _currentPosition!.latitude,
       _currentPosition!.longitude,
     );
-    final destination = landmark.position;
+    final destination = liblong.LatLng(
+      landmark.position.latitude,
+      landmark.position.longitude,
+    );
 
     final routeInfo = await OSRMRouteService.getRoute(origin, destination);
 
@@ -196,7 +202,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
     });
     if (routeInfo != null && routeInfo.points.isNotEmpty) {
       _mapController.move(
-        LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+        liblong.LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
         18.0,
       );
       ScaffoldMessenger.of(context).showSnackBar(
@@ -338,10 +344,13 @@ class _NavigationScreenState extends State<NavigationScreen> {
                 if (_showMarkers)
                   MarkerLayer(
                     markers: [
-                      ...filteredLandmarks.map((landmark) {
-                        final isSelected = _selectedLandmark?.id == landmark.id;
-                        return Marker(
-                          point: landmark.position,
+                       ...filteredLandmarks.map((landmark) {
+                         final isSelected = _selectedLandmark?.id == landmark.id;
+                         return Marker(
+                           point: liblong.LatLng(
+                             landmark.position.latitude,
+                             landmark.position.longitude,
+                           ),
                           width: isSelected ? 50 : 40,
                           height: isSelected ? 50 : 40,
                           child: GestureDetector(
@@ -371,9 +380,12 @@ class _NavigationScreenState extends State<NavigationScreen> {
                           ),
                         );
                       }),
-                      ..._personalSpots.map((spot) {
-                        return Marker(
-                          point: spot.position,
+                       ..._personalSpots.map((spot) {
+                         return Marker(
+                           point: liblong.LatLng(
+                             spot.position.latitude,
+                             spot.position.longitude,
+                           ),
                           width: 40,
                           height: 40,
                           child: Container(
@@ -403,10 +415,10 @@ class _NavigationScreenState extends State<NavigationScreen> {
                   MarkerLayer(
                     markers: [
                       Marker(
-                        point: LatLng(
-                          _currentPosition!.latitude,
-                          _currentPosition!.longitude,
-                        ),
+                         point: liblong.LatLng(
+                           _currentPosition!.latitude,
+                           _currentPosition!.longitude,
+                         ),
                         width: 24,
                         height: 24,
                         child: Container(

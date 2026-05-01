@@ -10,20 +10,33 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # UI and Icons
   cupertino_icons: ^1.0.8
-  shared_preferences: ^2.2.2
   provider: ^6.1.1
   intl: ^0.19.0
-  url_launcher: ^6.3.0
-  connectivity_plus: ^6.0.3
+
+  # Data and Networking
+  shared_preferences: ^2.2.2
   dio: ^5.4.0
   http: ^1.2.0
-
-  geolocator: ^13.0.0
   flutter_dotenv: ^5.2.1
-  share_plus: ^10.0.0
+  connectivity_plus: ^6.0.3
+
+  # Mapping and Location
+  google_maps_flutter: ^2.5.0
+  geolocator: ^13.0.0
   flutter_map: ^7.0.0
   latlong2: ^0.9.1
+
+  # AI and Utilities
+  google_generative_ai: ^0.4.6
+  url_launcher: ^6.3.0
+  share_plus: ^10.0.0
+
+  # Local Storage
+  sqflite: ^2.3.0
+  path_provider: ^2.1.5
+  path: ^1.8.3
 
 dev_dependencies:
   flutter_test:
@@ -36,6 +49,7 @@ flutter:
   assets:
     - assets/images/
     - assets/fonts/
+    - assets/map_style.json
     - .env
 
   fonts:
