@@ -1,4 +1,5 @@
 import 'dart:ui';
+import '../models/indoor_location.dart';
 
 class FloorRoom {
   final String id;
@@ -329,6 +330,170 @@ class FloorPlanData {
       category: 'amenity',
       bounds: Rect.fromLTRB(0.08, 0.78, 0.14, 0.88),
       description: 'Emergency evacuation safe area',
+    ),
+  ];
+
+  static const List<IndoorRoom> firstFloorRooms = [
+    // Left Wing Top Row
+    IndoorRoom(
+      id: 'arts_sciences',
+      name: 'Arts & Sciences',
+      wing: Wing.left,
+      row: Row.top,
+      description: 'Institute of Arts and Sciences',
+    ),
+    IndoorRoom(
+      id: 'teacher_ed',
+      name: 'Teacher Education',
+      wing: Wing.left,
+      row: Row.top,
+      description: 'College of Teacher Education',
+    ),
+    IndoorRoom(
+      id: 'business',
+      name: 'Business',
+      wing: Wing.left,
+      row: Row.top,
+      description: 'Business Administration programs',
+    ),
+    IndoorRoom(
+      id: 'health_sciences_1f',
+      name: 'Health Sciences',
+      wing: Wing.left,
+      row: Row.top,
+      description: 'Institute of Health Sciences',
+    ),
+    IndoorRoom(
+      id: 'tcgc_training_1f',
+      name: 'TCGC Dev Training Center',
+      wing: Wing.left,
+      row: Row.top,
+      description: 'TCGC Development Training Center',
+    ),
+    IndoorRoom(
+      id: 'computer_studies',
+      name: 'Computer Studies',
+      wing: Wing.left,
+      row: Row.top,
+      description: 'Institute of Computer Studies',
+    ),
+
+    // Left Wing Bottom Row
+    IndoorRoom(
+      id: 'registrar_1f',
+      name: 'Registrar',
+      wing: Wing.left,
+      row: Row.bottom,
+      description: "Registrar's Office",
+    ),
+    IndoorRoom(
+      id: 'vp_admin_1f',
+      name: 'VP Admin',
+      wing: Wing.left,
+      row: Row.bottom,
+      description: 'Vice President for Administration Office',
+    ),
+    IndoorRoom(
+      id: 'criminology_lab_1f',
+      name: 'Criminology Lab',
+      wing: Wing.left,
+      row: Row.bottom,
+      description: 'Criminology Laboratory',
+    ),
+    IndoorRoom(
+      id: 'criminal_justice_ed',
+      name: 'Criminal Justice Ed',
+      wing: Wing.left,
+      row: Row.bottom,
+      description: 'Criminal Justice Education Department',
+    ),
+    IndoorRoom(
+      id: 'student_life',
+      name: 'Student Life',
+      wing: Wing.left,
+      row: Row.bottom,
+      description: 'Office of Student Life and Affairs',
+    ),
+
+    // Right Wing Top Row
+    IndoorRoom(
+      id: 'clinic',
+      name: 'Clinic',
+      wing: Wing.right,
+      row: Row.top,
+      description: 'Campus Health Clinic',
+    ),
+    IndoorRoom(
+      id: 'mb_105',
+      name: 'MB 105',
+      wing: Wing.right,
+      row: Row.top,
+      description: 'Room MB 105',
+    ),
+    IndoorRoom(
+      id: 'mb_103',
+      name: 'MB 103',
+      wing: Wing.right,
+      row: Row.top,
+      description: 'Room MB 103',
+    ),
+    IndoorRoom(
+      id: 'multipurpose',
+      name: 'Multi-purpose',
+      wing: Wing.right,
+      row: Row.top,
+      description: 'Multi-purpose Hall',
+    ),
+    IndoorRoom(
+      id: 'midwifery',
+      name: 'Midwifery',
+      wing: Wing.right,
+      row: Row.top,
+      description: 'Midwifery Program',
+    ),
+    IndoorRoom(
+      id: 'pfom',
+      name: 'PFOM',
+      wing: Wing.right,
+      row: Row.top,
+      description: 'Physical Fitness and Outdoor Management',
+    ),
+
+    // Right Wing Bottom Row
+    IndoorRoom(
+      id: 'ciso',
+      name: 'CISO',
+      wing: Wing.right,
+      row: Row.bottom,
+      description: 'Chief Information Security Officer Office',
+    ),
+    IndoorRoom(
+      id: 'avr',
+      name: 'AVR',
+      wing: Wing.right,
+      row: Row.bottom,
+      description: 'Audio Visual Room',
+    ),
+    IndoorRoom(
+      id: 'music',
+      name: 'Music',
+      wing: Wing.right,
+      row: Row.bottom,
+      description: 'Music Department',
+    ),
+    IndoorRoom(
+      id: 'dance',
+      name: 'Dance',
+      wing: Wing.right,
+      row: Row.bottom,
+      description: 'Dance Studio',
+    ),
+    IndoorRoom(
+      id: 'barracks',
+      name: 'Barracks',
+      wing: Wing.right,
+      row: Row.bottom,
+      description: 'ROTC Barracks',
     ),
   ];
 
