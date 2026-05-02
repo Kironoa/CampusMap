@@ -18,7 +18,7 @@ class FloorPlanData {
   // Floor 2: Third Floor
   static List<Room> get thirdFloorRooms => ThirdFloorData.getRooms();
 
-  static final _floorRoomLists = [
+  static List<List<Room>> get _allFloors => [
     groundFloorRooms,
     secondFloorRooms,
     thirdFloorRooms,
@@ -38,7 +38,7 @@ class FloorPlanData {
 
   /// Returns the correct room list for the given floor index (0, 1, or 2).
   static List<Room> getRoomsForFloor(int floorIndex) =>
-      _floorRoomLists[floorIndex.clamp(0, 2)];
+      _allFloors[floorIndex.clamp(0, 2)];
 
   /// Returns the asset image path for the given floor index.
   static String getImageAssetForFloor(int floorIndex) =>
@@ -50,7 +50,7 @@ class FloorPlanData {
 
   /// Finds a room by its ID across all floors.
   static Room? getRoomById(String roomId) {
-    for (final floor in _floorRoomLists) {
+    for (final floor in _allFloors) {
       for (final room in floor) {
         if (room.id == roomId) return room;
       }

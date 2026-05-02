@@ -1,6 +1,7 @@
 // ignore_for_file: avoid_classes_with_only_static_members
 import 'dart:convert';
 import 'dart:async';
+import 'dart:ui';
 import 'package:http/http.dart' as http;
 import 'package:naviapp/data/floor_plan_data.dart';
 import 'package:naviapp/config/env.dart';
@@ -10,101 +11,78 @@ class AINavigationResult {
   final String? targetRoomId;
   final String? floor;
   final List<String> steps;
+  final List<Offset> pathPoints;
 
   AINavigationResult({
     required this.answer,
     this.targetRoomId,
     this.floor,
     this.steps = const [],
+    this.pathPoints = const [],
   });
 }
 
 class AINavigationService {
-  static const String _apiUrl = 'https://api.anthropic.com/v1/messages';
-  static const String _model = 'claude-sonnet-4-20250514';
+  static const String _geminiBaseUrl = 'https://generativelanguage.googleapis.com/v1beta';
 
-  static final String _systemPrompt = _buildSystemPrompt();
+  static String get _systemPrompt => _buildSystemPrompt();
 
   static String _buildSystemPrompt() {
     final groundRooms = FloorPlanData.groundFloorRooms
-        .map(
-          (r) =>
-              '  • [${r.id}] ${r.name} (${r.category.name})'
-              '${r.description != null ? ' — ${r.description}' : ''}',
-        )
+        .map((r) =>
+            '  • [${r.id}] ${r.name} (${r.category.name})${r.description != null ? ' — ${r.description}' : ''}')
         .join('\n');
 
     final secondRooms = FloorPlanData.secondFloorRooms
-        .map(
-          (r) =>
-              '  • [${r.id}] ${r.name} (${r.category.name})'
-              '${r.description != null ? ' — ${r.description}' : ''}',
-        )
+        .map((r) =>
+            '  • [${r.id}] ${r.name} (${r.category.name})${r.description != null ? ' — ${r.description}' : ''}')
         .join('\n');
 
     final thirdRooms = FloorPlanData.thirdFloorRooms
-        .map(
-          (r) =>
-              '  • [${r.id}] ${r.name} (${r.category.name})'
-              '${r.description != null ? ' — ${r.description}' : ''}',
-        )
+        .map((r) =>
+            '  • [${r.id}] ${r.name} (${r.category.name})${r.description != null ? ' — ${r.description}' : ''}')
         .join('\n');
 
     return '''
 You are the AI Navigation Assistant for Tangub City Global College (TCGC) campus.
-You have complete knowledge of every room, office, lab, and facility in the campus.
 
-═══════════════════════════════════════
-FLOOR 0 (Ground / First Floor — physically the same level) — rooms/areas:
+═══ FLOOR 0 (Ground / First Floor — same physical level) ═══
 $groundRooms
 
-FLOOR 1 (Second Floor) — rooms/areas:
+═══ FLOOR 1 (Second Floor) ═══
 $secondRooms
 
-FLOOR 2 (Third Floor) — rooms/areas:
+═══ FLOOR 2 (Third Floor) ═══
 $thirdRooms
-═══════════════════════════════════════
 
-NOTE: "Ground Floor" and "First Floor" are the SAME physical level (Floor 0).
-If the user says "Ground" or "First" floor, map to floor_index: "0".
+IMPORTANT: "Ground Floor" and "First Floor" are both Floor 0.
+- Main entrance: Floor 0, center-top (x: 0.5, y: 0.9)
+- Elevator: center of all floors
+- West stairs: left side, East stairs: right side
 
-NAVIGATION CONTEXT:
-- Main entrance is on Floor 0 (Ground/First) at the Main Lobby (center of building)
-- Elevator is located at the center of all floors
-- West stairs and East stairs connect all floors
-- Floor 0 contains: Registrar, VP Admin, Library, ICJE, ICS, TCGC Training, Health Sciences
-- Floor 0 also contains: Arts & Sciences, Teacher Ed, Business, Clinic, AVR, Music, Dance
-- Floor 1 (Second Floor) has: Computer Labs, Moot Court, Business Center, President's Office
-- Floor 1 (Second Floor) center: VP offices, Board Room, HR Office, Faculty Lounge
-- Floor 2 (Third Floor) has: Library extension, Classrooms, Science Lab
-- Always mention which floor the destination is on
-- If user needs to change floors, mention taking the stairs or elevator
+NAVIGATION TASK:
+1. When user asks for a room/location, respond with JSON only
+2. Include walking path coordinates normalized (0.0-1.0) for the floor layout
+3. Path should show realistic corridor route from entrance to destination
 
-Your job is to:
-1. Understand the user's navigation request in natural language (English or Filipino).
-2. Identify the BEST matching room/office/lab from the list above.
-3. Give clear step-by-step walking directions appropriate to their current position.
-4. Return a JSON object ONLY — no markdown, no extra text.
-
-JSON format:
+JSON RESPONSE FORMAT:
 {
-  "answer": "Friendly 1-2 sentence response with directions summary",
-  "target_room_id": "the exact id from the floor plan data (or null)",
-  "floor": "0 | 1 | 2",
-  "steps": [
-    "Step 1: ...",
-    "Step 2: ...",
-    "Step 3: ..."
+  "answer": "2-3 sentence friendly directions",
+  "target_room_id": "exact room id from floor data or null",
+  "floor": "0, 1, or 2",
+  "steps": ["Step 1: ...", "Step 2: ..."],
+  "path_points": [
+    {"x": 0.5, "y": 0.9},
+    {"x": 0.5, "y": 0.7},
+    {"x": 0.5, "y": 0.5}
   ]
 }
 
-IMPORTANT:
-- Use "floor": "0" for Ground OR First floor requests
-- Use "floor": "1" for Second floor requests
-- Use "floor": "2" for Third floor requests
-- If asked about floors other than 0, 1, or 2, politely say data not yet available
+Floor 0 corridor layout: entrance at y:0.9, center x:0.5, west corridor x:0.2, east corridor x:0.8
+Floor 1 layout: similar with labs on west, offices on east
+Floor 2 layout: smaller, classrooms and library extension
 
-If the user asks something that isn't navigation-related, still return the JSON with a helpful answer and null for room ID.
+If user asks non-navigation question, return helpful answer in JSON with null for room_id and empty path_points.
 ''';
   }
 
@@ -114,80 +92,82 @@ If the user asks something that isn't navigation-related, still return the JSON 
     String? currentRoomId,
     List<Map<String, String>> conversationHistory = const [],
   }) async {
-    final apiKey = Env.anthropicApiKey;
+    final apiKey = Env.geminiApiKey;
     if (apiKey.isEmpty) {
-      throw Exception('ANTHROPIC_API_KEY not set. Add it to your .env file.');
+      throw Exception('GEMINI_API_KEY not set in .env file');
     }
 
-    final contextPrefix = currentRoomId != null
+    final contextInfo = currentRoomId != null
         ? 'User is currently at: $currentRoomId on floor $currentFloor. '
         : currentFloor != null
             ? 'User is on floor $currentFloor. '
             : '';
 
-    final messages = [
-      ...conversationHistory,
-      {
-        'role': 'user',
-        'content': '$contextPrefix$userQuery',
-      }
-    ];
+    final fullPrompt = '$_systemPrompt\n\nUser: $contextInfo$userQuery';
 
     try {
       final response = await http.post(
-        Uri.parse(_apiUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-        },
+        Uri.parse('$_geminiBaseUrl/models/gemini-2.0-flash:generateContent?key=$apiKey'),
+        headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'model': _model,
-          'max_tokens': 1024,
-          'system': _systemPrompt,
-          'messages': messages,
+          'contents': [
+            {'parts': [{'text': fullPrompt}]}
+          ],
+          'generationConfig': {
+            'temperature': 0.7,
+            'maxOutputTokens': 1024,
+          }
         }),
       ).timeout(const Duration(seconds: 30));
 
       if (response.statusCode != 200) {
-        throw Exception(
-          'AI API error: ${response.statusCode} — ${response.body}',
-        );
+        throw Exception('Gemini API error: ${response.statusCode} — ${response.body}');
       }
 
       final data = jsonDecode(response.body) as Map<String, dynamic>;
-      final rawText = (data['content'] as List)
-          .where((c) => c['type'] == 'text')
-          .map((c) => c['text'] as String)
-          .join('');
+      final rawText = (data['candidates'] as List?)?.firstOrNull?['content']?['parts']?.firstOrNull?['text'] ?? '';
 
       final cleaned = rawText
           .replaceAll('```json', '')
           .replaceAll('```', '')
+          .replaceAll('json', '')
           .trim();
 
       Map<String, dynamic> json;
       try {
         final decoded = jsonDecode(cleaned);
         if (decoded is! Map<String, dynamic>) {
-          throw Exception('Parse error: expected Map<String, dynamic>');
+          throw Exception('Expected Map<String, dynamic>');
         }
         json = decoded;
       } catch (e) {
-        throw Exception(
-          'AI returned an unexpected response format. Please try again.',
+        return AINavigationResult(
+          answer: cleaned.isNotEmpty ? cleaned : 'I understand your request. Please try asking for a specific room.',
+          targetRoomId: null,
+          floor: null,
+          steps: [],
+          pathPoints: [],
         );
+      }
+
+      List<Offset> pathPoints = [];
+      if (json['path_points'] != null) {
+        final points = json['path_points'] as List<dynamic>;
+        for (final point in points) {
+          if (point is Map<String, dynamic>) {
+            final x = (point['x'] as num?)?.toDouble() ?? 0.5;
+            final y = (point['y'] as num?)?.toDouble() ?? 0.5;
+            pathPoints.add(Offset(x.clamp(0.0, 1.0), y.clamp(0.0, 1.0)));
+          }
+        }
       }
 
       return AINavigationResult(
         answer: json['answer'] as String? ?? 'I found your destination!',
         targetRoomId: json['target_room_id'] as String?,
         floor: json['floor'] as String?,
-        steps:
-            (json['steps'] as List<dynamic>?)
-                ?.map((s) => s.toString())
-                .toList() ??
-            [],
+        steps: (json['steps'] as List<dynamic>?)?.map((s) => s.toString()).toList() ?? [],
+        pathPoints: pathPoints,
       );
     } on TimeoutException {
       throw Exception('Request timed out. Please try again.');

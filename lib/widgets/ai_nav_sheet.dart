@@ -1,14 +1,17 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:naviapp/services/ai_navigation_service.dart';
 
 class AINavSheet extends StatefulWidget {
   final String? currentFloor;
   final String? currentRoomId;
+  final void Function(List<Offset> pathPoints, int? targetFloor, String? targetRoomId)? onNavigationResult;
 
   const AINavSheet({
     super.key,
     this.currentFloor,
     this.currentRoomId,
+    this.onNavigationResult,
   });
 
   @override
@@ -20,6 +23,9 @@ class _AINavSheetState extends State<AINavSheet> {
   final List<Map<String, dynamic>> _messages = [];
   final List<Map<String, String>> _apiHistory = [];
   bool _isLoading = false;
+  List<Offset> _lastPathPoints = [];
+  int? _lastTargetFloor;
+  String? _lastTargetRoomId;
 
   Future<void> _send() async {
     final query = _controller.text.trim();
@@ -40,6 +46,12 @@ class _AINavSheetState extends State<AINavSheet> {
         conversationHistory: _apiHistory,
       );
 
+      _lastPathPoints = result.pathPoints;
+      if (result.floor != null) {
+        _lastTargetFloor = int.tryParse(result.floor!);
+      }
+      _lastTargetRoomId = result.targetRoomId;
+
       _apiHistory.addAll([
         {'role': 'user', 'content': query},
         {'role': 'assistant', 'content': result.answer},
@@ -50,7 +62,8 @@ class _AINavSheetState extends State<AINavSheet> {
         _messages.add({
           'role': 'assistant',
           'text': result.answer,
-          'steps': result.steps
+          'steps': result.steps,
+          'hasPath': result.pathPoints.isNotEmpty,
         });
         _isLoading = false;
       });
@@ -63,6 +76,13 @@ class _AINavSheetState extends State<AINavSheet> {
         });
         _isLoading = false;
       });
+    }
+  }
+
+  void _showPathOnMap() {
+    if (_lastPathPoints.isNotEmpty && widget.onNavigationResult != null) {
+      Navigator.pop(context);
+      widget.onNavigationResult!(_lastPathPoints, _lastTargetFloor, _lastTargetRoomId);
     }
   }
 
@@ -204,6 +224,7 @@ class _AINavSheetState extends State<AINavSheet> {
                   isUser: msg['role'] == 'user',
                   isDark: isDark,
                   steps: _buildSteps(msg['steps'] as List? ?? [], isDark),
+                  onShowPath: msg['hasPath'] == true ? _showPathOnMap : null,
                 );
               },
             ),
@@ -275,12 +296,14 @@ class _MessageBubble extends StatelessWidget {
   final bool isUser;
   final bool isDark;
   final List<Widget> steps;
+  final VoidCallback? onShowPath;
 
   const _MessageBubble({
     required this.message,
     required this.isUser,
     required this.isDark,
     this.steps = const [],
+    this.onShowPath,
   });
 
   @override
@@ -321,6 +344,34 @@ class _MessageBubble extends StatelessWidget {
             if (!isUser && steps.isNotEmpty) ...[
               const SizedBox(height: 8),
               ...steps,
+            ],
+            if (!isUser && message['hasPath'] == true && onShowPath != null) ...[
+              const SizedBox(height: 12),
+              GestureDetector(
+                onTap: onShowPath,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF16A34A),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.map, color: Colors.white, size: 16),
+                      SizedBox(width: 6),
+                      Text(
+                        'Show on Map',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ],
         ),
