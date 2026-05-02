@@ -6,11 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:naviapp/providers/theme_provider.dart';
 import 'package:naviapp/providers/navigation_provider.dart';
 import 'package:naviapp/screens/home_screen.dart';
-import 'package:naviapp/screens/navigation_screen.dart';
-import 'package:naviapp/screens/record_screen.dart';
-import 'package:naviapp/screens/settings_screen.dart';
 import 'package:naviapp/screens/floor_plan_screen.dart';
-import 'package:naviapp/screens/campus_map_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -47,18 +43,8 @@ class NaviApp extends StatelessWidget {
             darkTheme: _buildTheme(Brightness.dark),
             home: const SplashScreen(),
             routes: {
-              '/home': (context) => HomeScreen(
-                categoryFilter: context.read<NavigationProvider>().categoryFilterNotifier,
-                searchOpen: context.read<NavigationProvider>().searchOpenNotifier,
-              ),
-              '/navigation': (context) => NavigationScreen(
-                categoryFilter: context.read<NavigationProvider>().categoryFilterNotifier,
-                searchOpen: context.read<NavigationProvider>().searchOpenNotifier,
-              ),
-              '/record': (context) => const RecordScreen(),
-              '/settings': (context) => const SettingsScreen(),
-               '/floor_plan': (context) => const FloorPlanScreen(),
-               '/campus_map': (context) => const CampusMapScreen(),
+              '/home': (context) => const HomeScreen(),
+              '/floor_plan': (context) => const FloorPlanScreen(),
             },
           );
         },
@@ -92,15 +78,6 @@ class NaviApp extends StatelessWidget {
         systemOverlayStyle: isDark
             ? SystemUiOverlayStyle.light
             : SystemUiOverlayStyle.dark,
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
       navigationBarTheme: NavigationBarThemeData(
         elevation: 0,
@@ -161,10 +138,7 @@ class _SplashScreenState extends State<SplashScreen>
       if (mounted) {
         Navigator.of(context).pushReplacement(
           PageRouteBuilder(
-            pageBuilder: (_, __, ___) => HomeScreen(
-              categoryFilter: context.read<NavigationProvider>().categoryFilterNotifier,
-              searchOpen: context.read<NavigationProvider>().searchOpenNotifier,
-            ),
+            pageBuilder: (_, __, ___) => const HomeScreen(),
             transitionsBuilder: (_, anim, __, child) =>
                 FadeTransition(opacity: anim, child: child),
             transitionDuration: const Duration(milliseconds: 400),

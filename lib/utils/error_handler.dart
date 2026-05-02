@@ -1,7 +1,6 @@
-import 'dart:async';
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
 
 class AppErrorHandler {
   static String getUserFriendlyMessage(dynamic error) {
@@ -11,25 +10,13 @@ class AppErrorHandler {
     if (error is TimeoutException) {
       return 'Request timed out. Please try again.';
     }
-    if (error is PermissionDeniedException) {
-      return 'Location permission denied. Enable it in your device settings.';
-    }
-    if (error is LocationServiceDisabledException) {
-      return 'Location services are disabled. Please turn on GPS.';
-    }
     if (error is Exception) {
       final message = error.toString().toLowerCase();
       if (message.contains('api key') || message.contains('unauthorized')) {
         return 'Service configuration error. Please contact support.';
       }
-      if (message.contains('gemini') || message.contains('generative')) {
+      if (message.contains('ai') || message.contains('anthropic')) {
         return 'AI service is temporarily unavailable. Try again later.';
-      }
-      if (message.contains('google map') || message.contains('maps')) {
-        return 'Maps service is unavailable. Check your connection.';
-      }
-      if (message.contains('database') || message.contains('sqlite')) {
-        return 'Unable to access offline data. The app will use online mode.';
       }
     }
     return 'Something went wrong. Please try again or contact support.';

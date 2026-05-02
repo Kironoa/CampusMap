@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:naviapp/data/floor_plan_data.dart';
 
 class FloorPlanScreen extends StatefulWidget {
@@ -18,74 +17,15 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
   double _scale = 1.0;
   bool _isSecondFloor = true;
 
-  Offset? _userNormalizedPosition;
-  StreamSubscription<Position>? _positionStream;
-  late AnimationController _positionAnimController;
-  late Animation<Offset> _positionAnimation;
-  Offset _animatedPosition = const Offset(0.5, 0.5);
   String? _highlightedRoomId;
-
-  static const double _campusMinLat = 8.0635;
-  static const double _campusMaxLat = 8.0655;
-  static const double _campusMinLng = 123.7502;
-  static const double _campusMaxLng = 123.7522;
-
-  Offset _gpsToNormalized(double lat, double lng) {
-    final x = (lng - _campusMinLng) / (_campusMaxLng - _campusMinLng);
-    final y = 1.0 - (lat - _campusMinLat) / (_campusMaxLat - _campusMinLat);
-    return Offset(x.clamp(0.0, 1.0), y.clamp(0.0, 1.0));
-  }
-
-  void _animatePositionTo(Offset target) {
-    _positionAnimation = Tween<Offset>(begin: _animatedPosition, end: target)
-        .animate(
-          CurvedAnimation(
-            parent: _positionAnimController,
-            curve: Curves.easeInOut,
-          ),
-        );
-    _positionAnimController.forward(from: 0);
-  }
-
-  void _startPositionTracking() {
-    _positionStream =
-        Geolocator.getPositionStream(
-          locationSettings: const LocationSettings(
-            accuracy: LocationAccuracy.bestForNavigation,
-            distanceFilter: 1,
-          ),
-        ).listen(
-          (Position pos) {
-            final normalized = _gpsToNormalized(pos.latitude, pos.longitude);
-            setState(() => _userNormalizedPosition = normalized);
-            _animatePositionTo(normalized);
-          },
-          onError: (_) {
-            setState(() => _userNormalizedPosition = const Offset(0.46, 0.55));
-            _animatePositionTo(const Offset(0.46, 0.55));
-          },
-        );
-  }
 
   @override
   void initState() {
     super.initState();
-    _positionAnimController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    );
-    _positionAnimController.addListener(() {
-      setState(() {
-        _animatedPosition = _positionAnimation.value;
-      });
-    });
-    _startPositionTracking();
   }
 
   @override
   void dispose() {
-    _positionStream?.cancel();
-    _positionAnimController.dispose();
     _transformationController.dispose();
     super.dispose();
   }
@@ -112,7 +52,6 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
   }
 
   void _handleTap(TapUpDetails details, Size viewportSize) {
-    // Safety check: Don't process taps if the screen is closing
     if (!mounted) return;
 
     final localPos = details.localPosition;
@@ -152,7 +91,6 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
   }
 
   void _showRoomDetails(FloorRoom room) {
-    // Safety check before opening a bottom sheet
     if (!mounted) return;
 
     final colorScheme = Theme.of(context).colorScheme;
@@ -239,48 +177,6 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
     });
   }
 
-  Widget _buildUserPositionDot() {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.8, end: 1.2),
-      duration: const Duration(milliseconds: 900),
-      curve: Curves.easeInOut,
-      builder: (context, scale, child) {
-        return Stack(
-          alignment: Alignment.center,
-          children: [
-            Transform.scale(
-              scale: scale,
-              child: Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFF2563EB).withValues(alpha: 0.25),
-                ),
-              ),
-            ),
-            Container(
-              width: 16,
-              height: 16,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFF2563EB),
-                border: Border.all(color: Colors.white, width: 2.5),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF2563EB).withValues(alpha: 0.5),
-                    blurRadius: 6,
-                    spreadRadius: 1,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).colorScheme.brightness == Brightness.dark;
@@ -323,7 +219,6 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
                 : constraints.maxHeight;
 
             _scale = minDimension / 400;
-            // Kept your 2.8x scaling factor for the stretched building layout
             final scaledSize = Size(400 * _scale * 2.8, 400 * _scale);
 
             return Center(
@@ -348,12 +243,6 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
                           getCategoryBorderColor: _getCategoryBorderColor,
                         ),
                       ),
-                      if (_userNormalizedPosition != null)
-                        Positioned(
-                          left: _animatedPosition.dx * scaledSize.width - 14,
-                          top: _animatedPosition.dy * scaledSize.height - 14,
-                          child: _buildUserPositionDot(),
-                        ),
                     ],
                   ),
                 ),
@@ -423,13 +312,13 @@ class FloorPlanPainter extends CustomPainter {
       final fillOpacity = isSelected
           ? 0.35
           : isHighlighted
-          ? 0.3
-          : (isDark ? 0.25 : 0.15);
+              ? 0.3
+              : (isDark ? 0.25 : 0.15);
       final borderWidth = isSelected
           ? 2.5 / scaleFactor
           : isHighlighted
-          ? 3.0 / scaleFactor
-          : 1.0 / scaleFactor;
+              ? 3.0 / scaleFactor
+              : 1.0 / scaleFactor;
 
       final fillPaint = Paint()
         ..color = getCategoryColor(room.category, fillOpacity)
@@ -440,8 +329,8 @@ class FloorPlanPainter extends CustomPainter {
         ..color = isSelected
             ? getCategoryBorderColor(room.category)
             : isHighlighted
-            ? const Color(0xFF2563EB)
-            : borderColor
+                ? const Color(0xFF2563EB)
+                : borderColor
         ..style = PaintingStyle.stroke
         ..strokeWidth = borderWidth;
       canvas.drawRect(rect, outlinePaint);
@@ -454,7 +343,6 @@ class FloorPlanPainter extends CustomPainter {
         canvas.drawRect(rect, highlightPaint);
       }
 
-      // Safe Area Drawing (Matches the red physical sign in your photo)
       if (room.category == 'amenity' && room.id == 'safe_area') {
         final safeCenter = Offset(
           (room.bounds.left + room.bounds.width / 2) * baseSize,

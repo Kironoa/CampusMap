@@ -4,13 +4,11 @@ import 'package:naviapp/services/ai_navigation_service.dart';
 class AINavSheet extends StatefulWidget {
   final String? currentFloor;
   final String? currentRoomId;
-  final void Function(AINavigationResult result) onNavigate;
 
   const AINavSheet({
     super.key,
     this.currentFloor,
     this.currentRoomId,
-    required this.onNavigate,
   });
 
   @override
@@ -28,6 +26,7 @@ class _AINavSheetState extends State<AINavSheet> {
     if (query.isEmpty) return;
 
     _controller.clear();
+    if (!mounted) return;
     setState(() {
       _messages.add({'role': 'user', 'text': query});
       _isLoading = true;
@@ -46,18 +45,31 @@ class _AINavSheetState extends State<AINavSheet> {
         {'role': 'assistant', 'content': result.answer},
       ]);
 
+      if (!mounted) return;
       setState(() {
-        _messages.add({'role': 'assistant', 'text': result.answer, 'steps': result.steps});
+        _messages.add({
+          'role': 'assistant',
+          'text': result.answer,
+          'steps': result.steps
+        });
         _isLoading = false;
       });
-
-      widget.onNavigate(result);
     } catch (e) {
+      if (!mounted) return;
       setState(() {
-        _messages.add({'role': 'assistant', 'text': 'Sorry, I couldn\'t process that. Please try again.'});
+        _messages.add({
+          'role': 'assistant',
+          'text': 'Sorry, I couldn\'t process that. Please try again.'
+        });
         _isLoading = false;
       });
     }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
@@ -86,7 +98,9 @@ class _AINavSheetState extends State<AINavSheet> {
               children: [
                 Icon(Icons.psychology_outlined, color: theme.colorScheme.primary),
                 const SizedBox(width: 8),
-                Text('AI Navigator', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                Text('AI Navigator',
+                    style: theme.textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold)),
               ],
             ),
           ),
@@ -101,7 +115,10 @@ class _AINavSheetState extends State<AINavSheet> {
                     padding: EdgeInsets.symmetric(vertical: 8),
                     child: Row(children: [
                       SizedBox(width: 8),
-                      SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                      SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2)),
                       SizedBox(width: 8),
                       Text('Thinking...', style: TextStyle(color: Colors.grey)),
                     ]),
@@ -110,11 +127,13 @@ class _AINavSheetState extends State<AINavSheet> {
                 final msg = _messages[index];
                 final isUser = msg['role'] == 'user';
                 return Align(
-                  alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+                  alignment:
+                      isUser ? Alignment.centerRight : Alignment.centerLeft,
                   child: Container(
                     margin: const EdgeInsets.symmetric(vertical: 4),
                     padding: const EdgeInsets.all(12),
-                    constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+                    constraints: BoxConstraints(
+                        maxWidth: MediaQuery.of(context).size.width * 0.75),
                     decoration: BoxDecoration(
                       color: isUser
                           ? theme.colorScheme.primary
@@ -127,21 +146,25 @@ class _AINavSheetState extends State<AINavSheet> {
                         Text(
                           msg['text'] as String,
                           style: TextStyle(
-                            color: isUser ? Colors.white : theme.colorScheme.onSurface,
+                            color: isUser
+                                ? Colors.white
+                                : theme.colorScheme.onSurface,
                           ),
                         ),
-                        if (!isUser && (msg['steps'] as List?)?.isNotEmpty == true) ...[
+                        if (!isUser &&
+                            (msg['steps'] as List?)?.isNotEmpty == true) ...[
                           const SizedBox(height: 8),
                           ...(msg['steps'] as List).map((step) => Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: Text(
-                              step.toString(),
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
-                              ),
-                            ),
-                          )),
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text(
+                                  step.toString(),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: theme.colorScheme.onSurface
+                                        .withValues(alpha: 0.8),
+                                  ),
+                                ),
+                              )),
                         ],
                       ],
                     ),
@@ -151,7 +174,8 @@ class _AINavSheetState extends State<AINavSheet> {
             ),
           ),
           Padding(
-            padding: EdgeInsets.fromLTRB(16, 8, 16, MediaQuery.of(context).viewInsets.bottom + 12),
+            padding: EdgeInsets.fromLTRB(
+                16, 8, 16, MediaQuery.of(context).viewInsets.bottom + 12),
             child: Row(
               children: [
                 Expanded(
@@ -159,8 +183,10 @@ class _AINavSheetState extends State<AINavSheet> {
                     controller: _controller,
                     decoration: InputDecoration(
                       hintText: 'Where do you want to go?',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(24)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24)),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 10),
                     ),
                     onSubmitted: (_) => _send(),
                   ),

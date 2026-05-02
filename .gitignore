@@ -50,3 +50,19 @@ app.*.map.json
 # Google Services (keep this private)
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
+
+# Android build
+android/build/
+
+# Backup files
+*.backup
+*.bak
+
+# Flutter
+*.snap
+*.flock
+
+# Environment
+.env
+.env.local
+.env.*.local
