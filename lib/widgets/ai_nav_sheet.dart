@@ -6,12 +6,14 @@ class AINavSheet extends StatefulWidget {
   final String? currentFloor;
   final String? currentRoomId;
   final void Function(List<Offset> pathPoints, int? targetFloor, String? targetRoomId)? onNavigationResult;
+  final void Function(String destination)? onNavigateRequest;
 
   const AINavSheet({
     super.key,
     this.currentFloor,
     this.currentRoomId,
     this.onNavigationResult,
+    this.onNavigateRequest,
   });
 
   @override
@@ -30,6 +32,15 @@ class _AINavSheetState extends State<AINavSheet> {
   Future<void> _send() async {
     final query = _controller.text.trim();
     if (query.isEmpty) return;
+
+    final isNavRequest = _isNavigationRequest;
+    final destination = _destinationFromQuery;
+
+    if (isNavRequest && destination.isNotEmpty && widget.onNavigateRequest != null) {
+      Navigator.pop(context);
+      widget.onNavigateRequest!(destination);
+      return;
+    }
 
     _controller.clear();
     if (!mounted) return;
@@ -67,6 +78,10 @@ class _AINavSheetState extends State<AINavSheet> {
         });
         _isLoading = false;
       });
+
+      if (result.pathPoints.isEmpty && result.targetRoomId != null && widget.onNavigateRequest != null) {
+        widget.onNavigateRequest!(result.targetRoomId!);
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -84,6 +99,29 @@ class _AINavSheetState extends State<AINavSheet> {
       Navigator.pop(context);
       widget.onNavigationResult!(_lastPathPoints, _lastTargetFloor, _lastTargetRoomId);
     }
+  }
+
+  bool get _isNavigationRequest {
+    final query = _controller.text.trim().toLowerCase();
+    return query.contains('go to') ||
+        query.contains('take me to') ||
+        query.contains('navigate to') ||
+        query.contains('find') ||
+        query.contains('where is') ||
+        query.contains('how to get');
+  }
+
+  String get _destinationFromQuery {
+    final query = _controller.text.trim().toLowerCase();
+    String destination = query
+        .replaceAll('take me to ', '')
+        .replaceAll('go to ', '')
+        .replaceAll('navigate to ', '')
+        .replaceAll('find ', '')
+        .replaceAll('where is ', '')
+        .replaceAll('how to get to ', '')
+        .trim();
+    return destination;
   }
 
   @override

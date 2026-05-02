@@ -32,7 +32,7 @@ class NaviApp extends StatelessWidget {
         builder: (context, themeProvider, _) {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
-            title: 'TCGC Guide',
+            title: 'NaviApp',
             themeMode: themeProvider.themeMode,
             theme: _buildTheme(Brightness.light),
             darkTheme: _buildTheme(Brightness.dark),
@@ -164,7 +164,7 @@ class _SplashScreenState extends State<SplashScreen>
                     color: Colors.white.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(24),
                   ),
-                  child: const Icon(Icons.school, color: Colors.white, size: 52),
+                  child: Image.asset('assets/images/ouch.png', width: 52, height: 52, color: Colors.white),
                 ),
                 const SizedBox(height: 24),
                 const Text(
