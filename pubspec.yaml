@@ -43,6 +43,7 @@ flutter:
     - assets/images/second_floor.png
     - assets/images/third_floor.png
     - assets/images/ouch.png
+    - assets/images/dog_paw.png
     - .env
 
   fonts:

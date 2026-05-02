@@ -32,9 +32,12 @@ class _FloorPlanScreenState extends State<FloorPlanScreen> with TickerProviderSt
   void initState() {
     super.initState();
     _currentFloor = widget.initialFloor;
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+    ]);
     _pathAnimationController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 3),
+      duration: const Duration(seconds: 2),
     );
     _pathAnimation = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _pathAnimationController, curve: Curves.easeOut),
@@ -154,6 +157,9 @@ class _FloorPlanScreenState extends State<FloorPlanScreen> with TickerProviderSt
 
   @override
   void dispose() {
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+    ]);
     _transformationController.dispose();
     _pathAnimationController.dispose();
     super.dispose();
@@ -438,6 +444,16 @@ builder: (_) => AINavSheet(
                   onTapUp: (details) => _handleTap(details, viewportSize),
                   child: Stack(
                     children: [
+                      Positioned.fill(
+                        child: Image.asset(
+                          _currentFloor == 0
+                              ? 'assets/images/ground_floor.png'
+                              : _currentFloor == 1
+                                  ? 'assets/images/second_floor.png'
+                                  : 'assets/images/third_floor.png',
+                          fit: BoxFit.contain,
+                        ),
+                      ),
                       CustomPaint(
                         size: scaledSize,
                         painter: FloorPlanPainter(
@@ -453,6 +469,7 @@ builder: (_) => AINavSheet(
                           currentFloor: _currentFloor,
                           pathProgress: _pathAnimation.value,
                           isNavigating: _isNavigating,
+                          imageOriginalSize: const Size(1120, 400),
                         ),
                       ),
                     ],
@@ -536,6 +553,7 @@ class FloorPlanPainter extends CustomPainter {
   final int currentFloor;
   final double pathProgress;
   final bool isNavigating;
+  final Size imageOriginalSize;
   ui.Image? _dogPawImage;
 
   FloorPlanPainter({
@@ -551,14 +569,15 @@ class FloorPlanPainter extends CustomPainter {
     this.currentFloor = 0,
     this.pathProgress = 0,
     this.isNavigating = false,
+    this.imageOriginalSize = const Size(1120, 400),
   });
 
   @override
   void paint(Canvas canvas, Size size) {
     _loadDogPawImage();
     
-    final baseSize = 400 * 2.8;
-    final height = 400.0;
+    final baseSize = imageOriginalSize.width;
+    final height = imageOriginalSize.height;
     final scaleX = size.width / baseSize;
     final scaleY = size.height / height;
     final scaleFactor = scaleX < scaleY ? scaleX : scaleY;

@@ -8,10 +8,12 @@ import 'package:naviapp/screens/home_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.dark,
-  ));
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+    ),
+  );
   final themeProvider = ThemeProvider();
   await themeProvider.loadTheme();
   runApp(NaviApp(themeProvider: themeProvider));
@@ -25,9 +27,7 @@ class NaviApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      providers: [
-        ChangeNotifierProvider.value(value: themeProvider),
-      ],
+      providers: [ChangeNotifierProvider.value(value: themeProvider)],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {
           return MaterialApp(
@@ -37,9 +37,7 @@ class NaviApp extends StatelessWidget {
             theme: _buildTheme(Brightness.light),
             darkTheme: _buildTheme(Brightness.dark),
             home: const SplashScreen(),
-            routes: {
-              '/home': (context) => const HomeScreen(),
-            },
+            routes: {'/home': (context) => const HomeScreen()},
           );
         },
       ),
@@ -56,7 +54,9 @@ class NaviApp extends StatelessWidget {
         brightness: brightness,
       ),
       fontFamily: 'Poppins',
-      scaffoldBackgroundColor: isDark ? const Color(0xFF1A1208) : const Color(0xFFFFFBF5),
+      scaffoldBackgroundColor: isDark
+          ? const Color(0xFF1A1208)
+          : const Color(0xFFFFFBF5),
       cardTheme: CardThemeData(
         elevation: 0,
         margin: EdgeInsets.zero,
@@ -74,7 +74,9 @@ class NaviApp extends StatelessWidget {
         elevation: 0,
         height: 64,
         backgroundColor: isDark ? const Color(0xFF2C1F0E) : Colors.white,
-        indicatorColor: const Color(0xFFF97316).withValues(alpha: isDark ? 0.25 : 0.12),
+        indicatorColor: const Color(
+          0xFFF97316,
+        ).withValues(alpha: isDark ? 0.25 : 0.12),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return TextStyle(
@@ -121,9 +123,10 @@ class _SplashScreenState extends State<SplashScreen>
       duration: const Duration(milliseconds: 900),
     );
     _fadeAnim = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
-    _scaleAnim = Tween<double>(begin: 0.85, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
-    );
+    _scaleAnim = Tween<double>(
+      begin: 0.85,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
     _controller.forward();
     Future.delayed(const Duration(milliseconds: 2000), () {
       if (mounted) {
@@ -164,11 +167,16 @@ class _SplashScreenState extends State<SplashScreen>
                     color: Colors.white.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(24),
                   ),
-                  child: Image.asset('assets/images/ouch.png', width: 52, height: 52, color: Colors.white),
+                  child: Image.asset(
+                    'assets/images/ouch.png',
+                    width: 52,
+                    height: 52,
+                    color: Colors.white,
+                  ),
                 ),
                 const SizedBox(height: 24),
                 const Text(
-                  'TCGC Guide',
+                  'NaviApp',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 28,
@@ -178,7 +186,7 @@ class _SplashScreenState extends State<SplashScreen>
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Tangub City Global College',
+                  'Your Campus Navigator',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.7),
                     fontSize: 14,
