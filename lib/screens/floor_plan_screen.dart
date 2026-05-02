@@ -1,29 +1,30 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:naviapp/data/floor_plan_data.dart';
-import 'package:naviapp/models/room.dart';
+import 'package:naviapp/data/second_floor.dart';
 import 'package:naviapp/widgets/ai_nav_sheet.dart';
 
 class FloorPlanScreen extends StatefulWidget {
-  final int initialFloor;
-  const FloorPlanScreen({super.key, this.initialFloor = 0});
+  final bool initialFloor;
+  const FloorPlanScreen({super.key, this.initialFloor = true});
 
   @override
   State<FloorPlanScreen> createState() => _FloorPlanScreenState();
 }
 
-class _FloorPlanScreenState extends State<FloorPlanScreen> {
+class _FloorPlanScreenState extends State<FloorPlanScreen>
+    with SingleTickerProviderStateMixin {
   final TransformationController _transformationController =
       TransformationController();
-  Room? _selectedRoom;
+  FloorRoom? _selectedRoom;
   double _scale = 1.0;
-  late int _currentFloor = widget.initialFloor;
+  bool _isSecondFloor = true;
 
   String? _highlightedRoomId;
 
   @override
   void initState() {
     super.initState();
-    _currentFloor = widget.initialFloor;
+    _isSecondFloor = widget.initialFloor;
   }
 
   @override
@@ -32,45 +33,29 @@ class _FloorPlanScreenState extends State<FloorPlanScreen> {
     super.dispose();
   }
 
-  Color _getCategoryColor(RoomCategory category, double opacity) {
-    final baseColor = Room.categoryColor(category);
+  Color _getCategoryColor(String category, double opacity) {
+    final baseColor = switch (category) {
+      'academic' => const Color(0xFF2563EB),
+      'office' => const Color(0xFFEA580C),
+      'facility' => const Color(0xFF16A34A),
+      'amenity' => const Color(0xFF7C3AED),
+      _ => const Color(0xFFF97316),
+    };
     return baseColor.withValues(alpha: opacity);
   }
 
-  Color categoryColor(RoomCategory category) {
-    return Room.categoryColor(category);
-  }
-
-  List<Room> _getRoomsForFloor(int floorIndex) {
-    return FloorPlanData.getRoomsForFloor(floorIndex);
-  }
-
-  String _getImageAssetForFloor(int floorIndex) {
-    return FloorPlanData.getImageAssetForFloor(floorIndex);
-  }
-
-  String _getFloorName(int floorIndex) {
-    return FloorPlanData.getFloorName(floorIndex);
-  }
-
-  String _getNextFloorLabel(int currentFloor) {
-    final next = (currentFloor + 1) % 3;
-    return '${_getFloorName(next)} ↑';
+  Color _getCategoryBorderColor(String category) {
+    return switch (category) {
+      'academic' => const Color(0xFF2563EB),
+      'office' => const Color(0xFFEA580C),
+      'facility' => const Color(0xFF16A34A),
+      'amenity' => const Color(0xFF7C3AED),
+      _ => const Color(0xFFF97316),
+    };
   }
 
   void _handleTap(TapUpDetails details, Size viewportSize) {
     if (!mounted) return;
-
-    final rooms = _getRoomsForFloor(_currentFloor);
-    if (rooms.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Tap to select rooms coming soon for this floor. Use AI Navigator instead.'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-      return;
-    }
 
     final localPos = details.localPosition;
 
@@ -94,14 +79,10 @@ class _FloorPlanScreenState extends State<FloorPlanScreen> {
       normalizedX.clamp(0.0, 1.0),
       normalizedY.clamp(0.0, 1.0),
     );
-
-    Room? room;
-    for (final r in rooms) {
-      if (r.bounds?.contains(normalizedPos) == true) {
-        room = r;
-        break;
-      }
-    }
+    final room = FloorPlanData.getRoomAtPosition(
+      normalizedPos,
+      secondFloor: _isSecondFloor,
+    );
 
     setState(() {
       _selectedRoom = room;
@@ -112,18 +93,17 @@ class _FloorPlanScreenState extends State<FloorPlanScreen> {
     }
   }
 
-  void _showRoomDetails(Room room) {
+  void _showRoomDetails(FloorRoom room) {
     if (!mounted) return;
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final colorScheme = Theme.of(context).colorScheme;
 
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
         decoration: BoxDecoration(
-          color: isDark ? colorScheme.surface : Colors.white,
+          color: isDark ? const Color(0xFF2C1F0E) : Colors.white,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
         padding: const EdgeInsets.all(20),
@@ -143,9 +123,9 @@ class _FloorPlanScreenState extends State<FloorPlanScreen> {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    room.category.name.toUpperCase(),
+                    room.category.toUpperCase(),
                     style: TextStyle(
-                      color: categoryColor(room.category),
+                      color: _getCategoryBorderColor(room.category),
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                     ),
@@ -164,7 +144,9 @@ class _FloorPlanScreenState extends State<FloorPlanScreen> {
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: isDark ? colorScheme.onSurface : const Color(0xFF1C0A00),
+                color: isDark
+                    ? const Color(0xFFFFF7ED)
+                    : const Color(0xFF1C0A00),
               ),
             ),
             if (room.description != null) ...[
@@ -174,7 +156,7 @@ class _FloorPlanScreenState extends State<FloorPlanScreen> {
                 style: TextStyle(
                   fontSize: 14,
                   color: isDark
-                      ? colorScheme.onSurface.withValues(alpha: 0.7)
+                      ? const Color(0xFFFED7AA)
                       : const Color(0xFF78350F),
                 ),
               ),
@@ -182,14 +164,17 @@ class _FloorPlanScreenState extends State<FloorPlanScreen> {
             const SizedBox(height: 16),
             Row(
               children: [
-                Icon(Icons.location_on,
-                    size: 16, color: Theme.of(context).colorScheme.primary),
+                Icon(
+                  Icons.location_on,
+                  size: 16,
+                  color: const Color(0xFFF97316),
+                ),
                 const SizedBox(width: 4),
                 Text(
-                  'Floor: ${_getFloorName(_currentFloor)}',
+                  'Floor: ${_isSecondFloor ? '2nd Floor' : 'Ground Floor'}',
                   style: TextStyle(
                     color: isDark
-                        ? colorScheme.onSurface.withValues(alpha: 0.7)
+                        ? const Color(0xFFFED7AA)
                         : const Color(0xFF78350F),
                   ),
                 ),
@@ -213,7 +198,7 @@ class _FloorPlanScreenState extends State<FloorPlanScreen> {
                   isScrollControlled: true,
                   backgroundColor: Colors.transparent,
                   builder: (_) => AINavSheet(
-                    currentFloor: _getFloorName(_currentFloor).toLowerCase(),
+                    currentFloor: _isSecondFloor ? 'second' : 'ground',
                     currentRoomId: room.id,
                   ),
                 );
@@ -241,42 +226,43 @@ class _FloorPlanScreenState extends State<FloorPlanScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).colorScheme.brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          _getFloorName(_currentFloor),
+          _isSecondFloor ? '2nd Floor' : 'Ground Floor',
           style: const TextStyle(
-              fontFamily: 'Poppins', fontWeight: FontWeight.bold),
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.bold,
+          ),
         ),
-        backgroundColor: colorScheme.primary,
-        foregroundColor: colorScheme.onPrimary,
+        backgroundColor: const Color(0xFFF97316),
+        foregroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: colorScheme.onPrimary),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
           GestureDetector(
             onTap: () {
               setState(() {
-                _currentFloor = (_currentFloor + 1) % 3;
+                _isSecondFloor = !_isSecondFloor;
                 _selectedRoom = null;
               });
             },
             child: Container(
               decoration: BoxDecoration(
-                color: colorScheme.onPrimary.withValues(alpha: 0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(20),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               margin: const EdgeInsets.only(right: 12),
               child: Text(
-                _getNextFloorLabel(_currentFloor),
-                style: TextStyle(
-                  color: colorScheme.onPrimary,
+                _isSecondFloor ? 'Ground ↓' : '2nd Floor ↑',
+                style: const TextStyle(
+                  color: Colors.white,
                   fontWeight: FontWeight.w600,
                   fontSize: 13,
                 ),
@@ -302,8 +288,6 @@ class _FloorPlanScreenState extends State<FloorPlanScreen> {
             _scale = minDimension / 400;
             final scaledSize = Size(400 * _scale * 2.8, 400 * _scale);
 
-            final rooms = _getRoomsForFloor(_currentFloor);
-
             return Center(
               child: SizedBox(
                 width: scaledSize.width,
@@ -312,20 +296,18 @@ class _FloorPlanScreenState extends State<FloorPlanScreen> {
                   onTapUp: (details) => _handleTap(details, viewportSize),
                   child: Stack(
                     children: [
-                      Image.asset(
-                        _getImageAssetForFloor(_currentFloor),
-                        width: scaledSize.width,
-                        height: scaledSize.height,
-                        fit: BoxFit.fill,
-                      ),
                       CustomPaint(
                         size: scaledSize,
                         painter: FloorPlanPainter(
-                          rooms: rooms,
+                          rooms: _isSecondFloor
+                              ? FloorPlanData.secondFloorRooms
+                              : FloorPlanData.groundFloorRooms,
                           selectedRoom: _selectedRoom,
                           highlightedRoomId: _highlightedRoomId,
                           isDark: isDark,
                           scale: _scale,
+                          getCategoryColor: _getCategoryColor,
+                          getCategoryBorderColor: _getCategoryBorderColor,
                         ),
                       ),
                     ],
@@ -347,7 +329,7 @@ class _FloorPlanScreenState extends State<FloorPlanScreen> {
                 isScrollControlled: true,
                 backgroundColor: Colors.transparent,
                 builder: (_) => AINavSheet(
-                  currentFloor: _getFloorName(_currentFloor).toLowerCase(),
+                  currentFloor: _isSecondFloor ? 'second' : 'ground',
                   currentRoomId: _selectedRoom?.id,
                 ),
               );
@@ -361,8 +343,8 @@ class _FloorPlanScreenState extends State<FloorPlanScreen> {
             onPressed: () {
               _transformationController.value = Matrix4.identity();
             },
-            backgroundColor: colorScheme.primary,
-            foregroundColor: colorScheme.onPrimary,
+            backgroundColor: const Color(0xFFF97316),
+            foregroundColor: Colors.white,
             child: const Icon(Icons.center_focus_strong),
           ),
         ],
@@ -372,11 +354,13 @@ class _FloorPlanScreenState extends State<FloorPlanScreen> {
 }
 
 class FloorPlanPainter extends CustomPainter {
-  final List<Room> rooms;
-  final Room? selectedRoom;
+  final List<FloorRoom> rooms;
+  final FloorRoom? selectedRoom;
   final String? highlightedRoomId;
   final bool isDark;
   final double scale;
+  final Color Function(String, double) getCategoryColor;
+  final Color Function(String) getCategoryBorderColor;
 
   FloorPlanPainter({
     required this.rooms,
@@ -384,17 +368,19 @@ class FloorPlanPainter extends CustomPainter {
     this.highlightedRoomId,
     required this.isDark,
     required this.scale,
+    required this.getCategoryColor,
+    required this.getCategoryBorderColor,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    const baseWidth = 400 * 2.8;
-    const baseHeight = 400.0;
-    final scaleX = size.width / baseWidth;
-    final scaleY = size.height / baseHeight;
+    final baseSize = 400 * 2.8;
+    final height = 400.0;
+    final scaleX = size.width / baseSize;
+    final scaleY = size.height / height;
     final scaleFactor = scaleX < scaleY ? scaleX : scaleY;
-    final scaledWidth = baseWidth * scaleFactor;
-    final scaledHeight = baseHeight * scaleFactor;
+    final scaledWidth = baseSize * scaleFactor;
+    final scaledHeight = height * scaleFactor;
     final offsetX = (size.width - scaledWidth) / 2;
     final offsetY = (size.height - scaledHeight) / 2;
 
@@ -406,13 +392,11 @@ class FloorPlanPainter extends CustomPainter {
     final textColor = isDark ? Colors.white : Colors.black87;
 
     for (final room in rooms) {
-      if (room.bounds == null) continue;
-
       final rect = Rect.fromLTRB(
-        room.bounds!.left * baseWidth,
-        room.bounds!.top * baseHeight,
-        room.bounds!.right * baseWidth,
-        room.bounds!.bottom * baseHeight,
+        room.bounds.left * baseSize,
+        room.bounds.top * height,
+        room.bounds.right * baseSize,
+        room.bounds.bottom * height,
       );
 
       final isSelected = selectedRoom?.id == room.id;
@@ -420,25 +404,25 @@ class FloorPlanPainter extends CustomPainter {
       final fillOpacity = isSelected
           ? 0.35
           : isHighlighted
-              ? 0.3
-              : (isDark ? 0.25 : 0.15);
+          ? 0.3
+          : (isDark ? 0.25 : 0.15);
       final borderWidth = isSelected
           ? 2.5 / scaleFactor
           : isHighlighted
-              ? 3.0 / scaleFactor
-              : 1.0 / scaleFactor;
+          ? 3.0 / scaleFactor
+          : 1.0 / scaleFactor;
 
       final fillPaint = Paint()
-        ..color = Room.categoryColor(room.category).withValues(alpha: fillOpacity)
+        ..color = getCategoryColor(room.category, fillOpacity)
         ..style = PaintingStyle.fill;
       canvas.drawRect(rect, fillPaint);
 
       final outlinePaint = Paint()
         ..color = isSelected
-            ? Room.categoryColor(room.category)
+            ? getCategoryBorderColor(room.category)
             : isHighlighted
-                ? const Color(0xFFF97316)
-                : borderColor
+            ? const Color(0xFFF97316)
+            : borderColor
         ..style = PaintingStyle.stroke
         ..strokeWidth = borderWidth;
       canvas.drawRect(rect, outlinePaint);
@@ -451,10 +435,10 @@ class FloorPlanPainter extends CustomPainter {
         canvas.drawRect(rect, highlightPaint);
       }
 
-      if (room.category == RoomCategory.utility && room.id.contains('safe')) {
+      if (room.category == 'amenity' && room.id == 'safe_area') {
         final safeCenter = Offset(
-          (room.bounds!.left + room.bounds!.width / 2) * baseWidth,
-          (room.bounds!.top + room.bounds!.height / 2) * baseHeight,
+          (room.bounds.left + room.bounds.width / 2) * baseSize,
+          (room.bounds.top + room.bounds.height / 2) * height,
         );
 
         const safeRadius = 18.0;
@@ -490,10 +474,10 @@ class FloorPlanPainter extends CustomPainter {
         continue;
       }
 
-      if (room.category == RoomCategory.utility && room.id.contains('rest')) {
+      if (room.category == 'amenity' && room.id.contains('restroom')) {
         final center = Offset(
-          (room.bounds!.left + room.bounds!.width / 2) * baseWidth,
-          (room.bounds!.top + room.bounds!.height / 2) * baseHeight,
+          (room.bounds.left + room.bounds.width / 2) * baseSize,
+          (room.bounds.top + room.bounds.height / 2) * height,
         );
 
         final iconPaint = Paint()

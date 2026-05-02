@@ -1,7 +1,8 @@
+// ignore_for_file: avoid_classes_with_only_static_members
 import 'dart:convert';
+import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:naviapp/data/floor_plan_data.dart';
-import 'package:naviapp/models/room.dart';
 import 'package:naviapp/config/env.dart';
 
 class AINavigationResult {
@@ -21,6 +22,8 @@ class AINavigationResult {
 class AINavigationService {
   static const String _apiUrl = 'https://api.anthropic.com/v1/messages';
   static const String _model = 'claude-sonnet-4-20250514';
+
+  static final String _systemPrompt = _buildSystemPrompt();
 
   static String _buildSystemPrompt() {
     final groundRooms = FloorPlanData.groundFloorRooms
@@ -51,7 +54,7 @@ class AINavigationService {
 You are the AI Navigation Assistant for Tangub City Global College (TCGC) campus.
 You have complete knowledge of every room, office, lab, and facility in the campus.
 
-═════════════════════════════════════════
+═══════════════════════════════════════
 FLOOR 0 (Ground / First Floor — physically the same level) — rooms/areas:
 $groundRooms
 
@@ -60,7 +63,7 @@ $secondRooms
 
 FLOOR 2 (Third Floor) — rooms/areas:
 $thirdRooms
-═════════════════════════════════════════
+═══════════════════════════════════════
 
 NOTE: "Ground Floor" and "First Floor" are the SAME physical level (Floor 0).
 If the user says "Ground" or "First" floor, map to floor_index: "0".
@@ -141,10 +144,10 @@ If the user asks something that isn't navigation-related, still return the JSON 
         body: jsonEncode({
           'model': _model,
           'max_tokens': 1024,
-          'system': _buildSystemPrompt(),
+          'system': _systemPrompt,
           'messages': messages,
         }),
-      );
+      ).timeout(const Duration(seconds: 30));
 
       if (response.statusCode != 200) {
         throw Exception(
@@ -186,34 +189,10 @@ If the user asks something that isn't navigation-related, still return the JSON 
                 .toList() ??
             [],
       );
+    } on TimeoutException {
+      throw Exception('Request timed out. Please try again.');
     } catch (e) {
       throw Exception('Failed to get AI navigation: $e');
     }
-  }
-
-  static String? getRoomDirections(String roomName) {
-    final query = roomName.toLowerCase().trim();
-
-    for (final floor in [
-      FloorPlanData.groundFloorRooms,
-      FloorPlanData.secondFloorRooms,
-      FloorPlanData.thirdFloorRooms,
-    ]) {
-      for (final room in floor) {
-        if (room.name.toLowerCase().contains(query) ||
-            query.contains(room.name.toLowerCase())) {
-          return "The ${room.name} is located on Floor ${_floorIndexOf(floor)}.";
-        }
-      }
-    }
-
-    return null;
-  }
-
-  static String _floorIndexOf(List<Room> floor) {
-    if (floor == FloorPlanData.groundFloorRooms) return '0 (Ground/First)';
-    if (floor == FloorPlanData.secondFloorRooms) return '1 (Second)';
-    if (floor == FloorPlanData.thirdFloorRooms) return '2 (Third)';
-    return '0';
   }
 }

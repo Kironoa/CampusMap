@@ -47,49 +47,7 @@ class HomeScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF2C1F0E) : Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: isDark ? const Color(0xFF3D2A10) : const Color(0xFFFED7AA),
-                ),
-              ),
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.school,
-                    size: 48,
-                    color: Color(0xFFF97316),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Tangub City Global College',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? const Color(0xFFFFF7ED) : const Color(0xFF1C0A00),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'AI-Powered Campus Navigation',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: isDark ? const Color(0xFFFED7AA) : const Color(0xFF78350F),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            _buildHeader(isDark),
             const SizedBox(height: 24),
             Text(
               'NAVIGATE',
@@ -101,134 +59,34 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            GestureDetector(
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const FloorPlanScreen(),
-                  ),
-                );
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF2C1F0E) : Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: const Color(0xFFF97316).withValues(alpha: 0.2),
-                  ),
-                ),
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFF7ED),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.map_outlined,
-                        size: 28,
-                        color: Color(0xFFF97316),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Floor Plan',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: isDark ? const Color(0xFFFFF7ED) : const Color(0xFF1C0A00),
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Tap rooms • Zoom • Explore floors',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: isDark ? const Color(0xFFFED7AA) : const Color(0xFF78350F),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Icon(
-                      Icons.chevron_right,
-                      color: Color(0xFFF97316),
-                    ),
-                  ],
-                ),
+            _buildNavCard(
+              context: context,
+              isDark: isDark,
+              icon: Icons.map_outlined,
+              iconBgColor: const Color(0xFFFFF7ED),
+              iconColor: const Color(0xFFF97316),
+              title: 'Floor Plan',
+              subtitle: 'Tap rooms • Zoom • Explore floors',
+              borderColor: const Color(0xFFF97316).withValues(alpha: 0.2),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const FloorPlanScreen()),
               ),
             ),
             const SizedBox(height: 12),
-            GestureDetector(
-              onTap: () {
-                showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  backgroundColor: Colors.transparent,
-                  builder: (_) => const AINavSheet(),
-                );
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF2C1F0E) : Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: const Color(0xFF16A34A).withValues(alpha: 0.2),
-                  ),
-                ),
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF0FDF4),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.psychology_outlined,
-                        size: 28,
-                        color: Color(0xFF16A34A),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'AI Navigator',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: isDark ? const Color(0xFFFFF7ED) : const Color(0xFF1C0A00),
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Ask in English or Filipino',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: isDark ? const Color(0xFFFED7AA) : const Color(0xFF78350F),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Icon(
-                      Icons.chevron_right,
-                      color: Color(0xFF16A34A),
-                    ),
-                  ],
-                ),
+            _buildNavCard(
+              context: context,
+              isDark: isDark,
+              icon: Icons.psychology_outlined,
+              iconBgColor: const Color(0xFFF0FDF4),
+              iconColor: const Color(0xFF16A34A),
+              title: 'AI Navigator',
+              subtitle: 'Ask in English or Filipino',
+              borderColor: const Color(0xFF16A34A).withValues(alpha: 0.2),
+              onTap: () => showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (_) => const AINavSheet(),
               ),
             ),
             const SizedBox(height: 24),
@@ -243,60 +101,165 @@ class HomeScreen extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Column(
-              children: _floorData.map((data) {
-                return Column(
-                  children: [
-                    FloorCard(
-                      floorIndex: data.index,
-                      label: data.label,
-                      rooms: data.rooms,
-                      icon: data.icon,
-                      color: data.color,
-                      bgDark: data.bgDark,
-                      bgLight: data.bgLight,
-                      borderColor: data.border,
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-                );
-              }).toList()
-                ..removeLast(),
+              children: [
+                for (int i = 0; i < _floorData.length; i++) ...[
+                  FloorCard(
+                    floorIndex: _floorData[i].index,
+                    label: _floorData[i].label,
+                    rooms: _floorData[i].rooms,
+                    icon: _floorData[i].icon,
+                    color: _floorData[i].color,
+                    bgDark: _floorData[i].bgDark,
+                    bgLight: _floorData[i].bgLight,
+                    borderColor: _floorData[i].border,
+                  ),
+                  if (i < _floorData.length - 1) const SizedBox(height: 12),
+                ],
+              ],
             ),
             const SizedBox(height: 24),
-            Container(
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF2C1F0E) : Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: isDark ? const Color(0xFF3D2A10) : const Color(0xFFFED7AA),
+            _buildLegend(isDark),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(bool isDark) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF2C1F0E) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? const Color(0xFF3D2A10) : const Color(0xFFFED7AA),
+        ),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          const Icon(Icons.school, size: 48, color: Color(0xFFF97316)),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Tangub City Global College',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? const Color(0xFFFFF7ED) : const Color(0xFF1C0A00),
+                  ),
                 ),
+                const SizedBox(height: 4),
+                Text(
+                  'AI-Powered Campus Navigation',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: isDark ? const Color(0xFFFED7AA) : const Color(0xFF78350F),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNavCard({
+    required BuildContext context,
+    required bool isDark,
+    required IconData icon,
+    required Color iconBgColor,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required Color borderColor,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF2C1F0E) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: borderColor),
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: iconBgColor,
+                borderRadius: BorderRadius.circular(12),
               ),
-              padding: const EdgeInsets.all(16),
+              child: Icon(icon, size: 28, color: iconColor),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Room Categories',
+                    title,
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: 16,
                       fontWeight: FontWeight.bold,
                       color: isDark ? const Color(0xFFFFF7ED) : const Color(0xFF1C0A00),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  _legendRow(const Color(0xFF2563EB), 'Academic / Labs'),
-                  const SizedBox(height: 8),
-                  _legendRow(const Color(0xFFF97316), 'Offices'),
-                  const SizedBox(height: 8),
-                  _legendRow(const Color(0xFF16A34A), 'Facilities'),
-                  const SizedBox(height: 8),
-                  _legendRow(const Color(0xFF7C3AED), 'Amenities'),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: isDark ? const Color(0xFFFED7AA) : const Color(0xFF78350F),
+                    ),
+                  ),
                 ],
               ),
             ),
-            const SizedBox(height: 24),
+            Icon(Icons.chevron_right, color: iconColor),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildLegend(bool isDark) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF2C1F0E) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? const Color(0xFF3D2A10) : const Color(0xFFFED7AA),
+        ),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Room Categories',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: isDark ? const Color(0xFFFFF7ED) : const Color(0xFF1C0A00),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _legendRow(const Color(0xFF2563EB), 'Academic / Labs'),
+          const SizedBox(height: 8),
+          _legendRow(const Color(0xFFF97316), 'Offices'),
+          const SizedBox(height: 8),
+          _legendRow(const Color(0xFF16A34A), 'Facilities'),
+          const SizedBox(height: 8),
+          _legendRow(const Color(0xFF7C3AED), 'Amenities'),
+        ],
       ),
     );
   }

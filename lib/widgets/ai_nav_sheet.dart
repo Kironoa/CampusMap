@@ -72,6 +72,49 @@ class _AINavSheetState extends State<AINavSheet> {
     super.dispose();
   }
 
+  List<Widget> _buildSteps(List steps, bool isDark) {
+    return steps.asMap().entries.map(
+          (entry) => Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 18,
+                  height: 18,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF16A34A),
+                    borderRadius: BorderRadius.circular(9),
+                  ),
+                  child: Center(
+                    child: Text(
+                      '${entry.key + 1}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    entry.value.toString(),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark
+                          ? const Color(0xFFF0FDF4)
+                          : const Color(0xFF1C0A00),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -156,90 +199,11 @@ class _AINavSheetState extends State<AINavSheet> {
                   );
                 }
                 final msg = _messages[index];
-                final isUser = msg['role'] == 'user';
-                return Align(
-                  alignment:
-                      isUser ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(vertical: 4),
-                    padding: const EdgeInsets.all(12),
-                    constraints: BoxConstraints(
-                        maxWidth: MediaQuery.of(context).size.width * 0.75),
-                    decoration: BoxDecoration(
-                      color: isUser
-                          ? const Color(0xFFF97316)
-                          : (isDark
-                              ? const Color(0xFF14532D)
-                              : const Color(0xFFF0FDF4)),
-                      borderRadius: BorderRadius.only(
-                        topLeft: const Radius.circular(16),
-                        topRight: const Radius.circular(16),
-                        bottomLeft: Radius.circular(isUser ? 16 : 4),
-                        bottomRight: Radius.circular(isUser ? 4 : 16),
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          msg['text'] as String,
-                          style: TextStyle(
-                            color: isUser
-                                ? Colors.white
-                                : (isDark
-                                    ? const Color(0xFFF0FDF4)
-                                    : const Color(0xFF1C0A00)),
-                          ),
-                        ),
-                        if (!isUser &&
-                            (msg['steps'] as List?)?.isNotEmpty == true) ...[
-                          const SizedBox(height: 8),
-                          ...(msg['steps'] as List).asMap().entries.map(
-                                (entry) => Padding(
-                                  padding: const EdgeInsets.only(top: 6),
-                                  child: Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Container(
-                                        width: 18,
-                                        height: 18,
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF16A34A),
-                                          borderRadius:
-                                              BorderRadius.circular(9),
-                                        ),
-                                        child: Center(
-                                          child: Text(
-                                            '${entry.key + 1}',
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          entry.value.toString(),
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: isDark
-                                                ? const Color(0xFFF0FDF4)
-                                                : const Color(0xFF1C0A00),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                        ],
-                      ],
-                    ),
-                  ),
+                return _MessageBubble(
+                  message: msg,
+                  isUser: msg['role'] == 'user',
+                  isDark: isDark,
+                  steps: _buildSteps(msg['steps'] as List? ?? [], isDark),
                 );
               },
             ),
@@ -301,6 +265,65 @@ class _AINavSheetState extends State<AINavSheet> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _MessageBubble extends StatelessWidget {
+  final Map<String, dynamic> message;
+  final bool isUser;
+  final bool isDark;
+  final List<Widget> steps;
+
+  const _MessageBubble({
+    required this.message,
+    required this.isUser,
+    required this.isDark,
+    this.steps = const [],
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.all(12),
+        constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * 0.75),
+        decoration: BoxDecoration(
+          color: isUser
+              ? const Color(0xFFF97316)
+              : (isDark
+                  ? const Color(0xFF14532D)
+                  : const Color(0xFFF0FDF4)),
+          borderRadius: BorderRadius.only(
+            topLeft: const Radius.circular(16),
+            topRight: const Radius.circular(16),
+            bottomLeft: Radius.circular(isUser ? 16 : 4),
+            bottomRight: Radius.circular(isUser ? 4 : 16),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              message['text'] as String,
+              style: TextStyle(
+                color: isUser
+                    ? Colors.white
+                    : (isDark
+                        ? const Color(0xFFF0FDF4)
+                        : const Color(0xFF1C0A00)),
+              ),
+            ),
+            if (!isUser && steps.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              ...steps,
+            ],
+          ],
+        ),
       ),
     );
   }

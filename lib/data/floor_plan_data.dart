@@ -1,3 +1,4 @@
+// ignore_for_file: avoid_classes_with_only_static_members
 import 'package:naviapp/models/room.dart';
 import 'package:naviapp/data/ground_floor.dart';
 import 'package:naviapp/data/second_floor.dart';
@@ -17,51 +18,39 @@ class FloorPlanData {
   // Floor 2: Third Floor
   static List<Room> get thirdFloorRooms => ThirdFloorData.getRooms();
 
+  static final _floorRoomLists = [
+    groundFloorRooms,
+    secondFloorRooms,
+    thirdFloorRooms,
+  ];
+
+  static final _floorImages = [
+    'assets/images/ground_floor.png',
+    'assets/images/second_floor.png',
+    'assets/images/third_floor.png',
+  ];
+
+  static final _floorNames = [
+    'Ground / First Floor',
+    'Second Floor',
+    'Third Floor',
+  ];
+
   /// Returns the correct room list for the given floor index (0, 1, or 2).
-  static List<Room> getRoomsForFloor(int floorIndex) {
-    switch (floorIndex) {
-      case 0:
-        return groundFloorRooms;
-      case 1:
-        return secondFloorRooms;
-      case 2:
-        return thirdFloorRooms;
-      default:
-        return groundFloorRooms;
-    }
-  }
+  static List<Room> getRoomsForFloor(int floorIndex) =>
+      _floorRoomLists[floorIndex.clamp(0, 2)];
 
   /// Returns the asset image path for the given floor index.
-  static String getImageAssetForFloor(int floorIndex) {
-    switch (floorIndex) {
-      case 0:
-        return 'assets/images/ground_floor.png';
-      case 1:
-        return 'assets/images/second_floor.png';
-      case 2:
-        return 'assets/images/third_floor.png';
-      default:
-        return 'assets/images/ground_floor.png';
-    }
-  }
+  static String getImageAssetForFloor(int floorIndex) =>
+      _floorImages[floorIndex.clamp(0, 2)];
 
   /// Returns the display name for the given floor index.
-  static String getFloorName(int floorIndex) {
-    switch (floorIndex) {
-      case 0:
-        return 'Ground / First Floor';
-      case 1:
-        return 'Second Floor';
-      case 2:
-        return 'Third Floor';
-      default:
-        return 'Ground / First Floor';
-    }
-  }
+  static String getFloorName(int floorIndex) =>
+      _floorNames[floorIndex.clamp(0, 2)];
 
   /// Finds a room by its ID across all floors.
   static Room? getRoomById(String roomId) {
-    for (final floor in [groundFloorRooms, secondFloorRooms, thirdFloorRooms]) {
+    for (final floor in _floorRoomLists) {
       for (final room in floor) {
         if (room.id == roomId) return room;
       }

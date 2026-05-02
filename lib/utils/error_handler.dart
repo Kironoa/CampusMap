@@ -1,3 +1,4 @@
+// ignore_for_file: avoid_classes_with_only_static_members
 import 'dart:io';
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -33,9 +34,5 @@ class AppErrorHandler {
         duration: const Duration(seconds: 4),
       ),
     );
-  }
-
-  static void handleError(BuildContext context, dynamic error) {
-    showErrorSnackBar(context, error);
   }
 }

@@ -40,16 +40,13 @@ class Room {
   String get rowName => row != null ? row!.name[0].toUpperCase() + row!.name.substring(1) : '';
 
   static Wing wingFromString(String wing) {
-    switch (wing.toLowerCase()) {
-      case 'left':
-      case 'west':
-        return Wing.left;
-      case 'right':
-      case 'east':
-        return Wing.right;
-      default:
-        return Wing.center;
-    }
+    const map = {
+      'left': Wing.left,
+      'west': Wing.left,
+      'right': Wing.right,
+      'east': Wing.right,
+    };
+    return map[wing.toLowerCase()] ?? Wing.center;
   }
 
   static RoomCategory categoryFromString(String category) {
@@ -80,27 +77,18 @@ class Room {
   }
 
   static Color categoryColor(RoomCategory category) {
-    switch (category) {
-      case RoomCategory.academic:
-        return const Color(0xFF2563EB);
-      case RoomCategory.office:
-        return const Color(0xFFEA580C);
-      case RoomCategory.facility:
-        return const Color(0xFF16A34A);
-      case RoomCategory.amenity:
-        return const Color(0xFF7C3AED);
-      case RoomCategory.lab:
-        return const Color(0xFFDC2626);
-      case RoomCategory.classroom:
-        return const Color(0xFF0891B2);
-      case RoomCategory.institute:
-        return const Color(0xFF7C3AED);
-      case RoomCategory.utility:
-        return const Color(0xFF6B7280);
-      case RoomCategory.general:
-        return const Color(0xFFF97316);
-      case RoomCategory.specialized:
-        return const Color(0xFFDB2777);
-    }
+    const map = {
+      RoomCategory.academic: Color(0xFF2563EB),
+      RoomCategory.office: Color(0xFFEA580C),
+      RoomCategory.facility: Color(0xFF16A34A),
+      RoomCategory.amenity: Color(0xFF7C3AED),
+      RoomCategory.lab: Color(0xFFDC2626),
+      RoomCategory.classroom: Color(0xFF0891B2),
+      RoomCategory.institute: Color(0xFF7C3AED),
+      RoomCategory.utility: Color(0xFF6B7280),
+      RoomCategory.general: Color(0xFFF97316),
+      RoomCategory.specialized: Color(0xFFDB2777),
+    };
+    return map[category]!;
   }
 }
