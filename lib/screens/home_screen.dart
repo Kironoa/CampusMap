@@ -10,101 +10,387 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
-    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('TCGC Guide'),
-        centerTitle: false,
+        title: const Text(
+          'TCGC Guide',
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: const Color(0xFFF97316),
+        foregroundColor: Colors.white,
+        elevation: 0,
         actions: [
           IconButton(
             icon: Icon(
               themeProvider.isDarkMode ? Icons.light_mode : Icons.dark_mode,
+              color: Colors.white,
             ),
             onPressed: () => themeProvider.toggleTheme(),
             tooltip: 'Toggle dark mode',
           ),
         ],
       ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 120,
-                height: 120,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF2C1F0E) : Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isDark ? const Color(0xFF3D2A10) : const Color(0xFFFED7AA),
+                ),
+              ),
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.school,
+                    size: 48,
+                    color: const Color(0xFFF97316),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Tangub City Global College',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? const Color(0xFFFFF7ED) : const Color(0xFF1C0A00),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'AI-Powered Campus Navigation',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: isDark ? const Color(0xFFFED7AA) : const Color(0xFF78350F),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'NAVIGATE',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: isDark ? const Color(0xFFFED7AA) : const Color(0xFF78350F),
+                letterSpacing: 1.2,
+              ),
+            ),
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const FloorPlanScreen(),
+                  ),
+                );
+              },
+              child: Container(
                 decoration: BoxDecoration(
-                  color: colorScheme.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(30),
+                  color: isDark ? const Color(0xFF2C1F0E) : Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: const Color(0xFFF97316).withValues(alpha: 0.2),
+                  ),
                 ),
-                child: Icon(
-                  Icons.school,
-                  size: 64,
-                  color: colorScheme.primary,
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF7ED),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.map_outlined,
+                        size: 28,
+                        color: Color(0xFFF97316),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Floor Plan',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? const Color(0xFFFFF7ED) : const Color(0xFF1C0A00),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Tap rooms • Zoom • Explore floors',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: isDark ? const Color(0xFFFED7AA) : const Color(0xFF78350F),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right,
+                      color: Color(0xFFF97316),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 32),
-              Text(
-                'TCGC Guide',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+            ),
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: () {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (_) => const AINavSheet(),
+                );
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF2C1F0E) : Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: const Color(0xFF16A34A).withValues(alpha: 0.2),
+                  ),
+                ),
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0FDF4),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.psychology_outlined,
+                        size: 28,
+                        color: Color(0xFF16A34A),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'AI Navigator',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? const Color(0xFFFFF7ED) : const Color(0xFF1C0A00),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Ask in English or Filipino',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: isDark ? const Color(0xFFFED7AA) : const Color(0xFF78350F),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right,
+                      color: Color(0xFF16A34A),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'FLOORS',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: isDark ? const Color(0xFFFED7AA) : const Color(0xFF78350F),
+                letterSpacing: 1.2,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const FloorPlanScreen(initialFloor: false),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF3D2A10) : const Color(0xFFFFF7ED),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: const Color(0xFFFED7AA),
+                        ),
+                      ),
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          const Icon(
+                            Icons.stairs,
+                            size: 28,
+                            color: Color(0xFFF97316),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Ground Floor',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? const Color(0xFFFFF7ED) : const Color(0xFF1C0A00),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '12 rooms',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isDark ? const Color(0xFFFED7AA) : const Color(0xFF78350F),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const FloorPlanScreen(),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF14532D) : const Color(0xFFF0FDF4),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: const Color(0xFFBBF7D0),
+                        ),
+                      ),
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          const Icon(
+                            Icons.business,
+                            size: 28,
+                            color: Color(0xFF16A34A),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '2nd Floor',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? const Color(0xFFFFF7ED) : const Color(0xFF1C0A00),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '34 rooms',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isDark ? const Color(0xFFFED7AA) : const Color(0xFF78350F),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Container(
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF2C1F0E) : Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isDark ? const Color(0xFF3D2A10) : const Color(0xFFFED7AA),
+                ),
+              ),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Room Categories',
+                    style: TextStyle(
+                      fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      fontFamily: 'Poppins',
+                      color: isDark ? const Color(0xFFFFF7ED) : const Color(0xFF1C0A00),
                     ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Campus Navigation Assistant',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: colorScheme.onSurface.withValues(alpha: 0.6),
-                    ),
-              ),
-              const SizedBox(height: 48),
-              FilledButton.icon(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const FloorPlanScreen(),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.map),
-                label: const Text('Open Floor Plan'),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 56),
-                  textStyle: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    fontFamily: 'Poppins',
                   ),
-                ),
+                  const SizedBox(height: 12),
+                  _legendRow(const Color(0xFF2563EB), 'Academic / Labs'),
+                  const SizedBox(height: 8),
+                  _legendRow(const Color(0xFFF97316), 'Offices'),
+                  const SizedBox(height: 8),
+                  _legendRow(const Color(0xFF16A34A), 'Facilities'),
+                  const SizedBox(height: 8),
+                  _legendRow(const Color(0xFF7C3AED), 'Amenities'),
+                ],
               ),
-              const SizedBox(height: 16),
-              FilledButton.icon(
-                onPressed: () {
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    builder: (_) => const AINavSheet(),
-                  );
-                },
-                icon: const Icon(Icons.smart_toy),
-                label: const Text('Ask AI Navigator'),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 56),
-                  textStyle: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    fontFamily: 'Poppins',
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 24),
+          ],
         ),
       ),
+    );
+  }
+
+  Widget _legendRow(Color color, String label) {
+    return Row(
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(5),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 13),
+        ),
+      ],
     );
   }
 }

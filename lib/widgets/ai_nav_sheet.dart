@@ -74,12 +74,13 @@ class _AINavSheetState extends State<AINavSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
-      height: MediaQuery.of(context).size.height * 0.5,
+      height: MediaQuery.of(context).size.height * 0.7,
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        color: isDark ? const Color(0xFF2C1F0E) : Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         children: [
@@ -88,7 +89,7 @@ class _AINavSheetState extends State<AINavSheet> {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: theme.dividerColor,
+              color: isDark ? const Color(0xFF4B3621) : const Color(0xFFD1D5DB),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -96,31 +97,61 @@ class _AINavSheetState extends State<AINavSheet> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
-                Icon(Icons.psychology_outlined, color: theme.colorScheme.primary),
+                const Icon(Icons.psychology_outlined,
+                    color: Color(0xFF16A34A), size: 24),
                 const SizedBox(width: 8),
                 Text('AI Navigator',
-                    style: theme.textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.bold)),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? const Color(0xFFFFF7ED) : const Color(0xFF1C0A00),
+                    )),
+                if (widget.currentRoomId != null) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF7ED),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFFED7AA)),
+                    ),
+                    child: Text(
+                      widget.currentRoomId!,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFFF97316),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
-          const Divider(height: 16),
+          Divider(
+            height: 16,
+            color: isDark ? const Color(0xFF3D2A10) : const Color(0xFFFED7AA),
+          ),
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: _messages.length + (_isLoading ? 1 : 0),
               itemBuilder: (context, index) {
                 if (index == _messages.length) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Row(children: [
-                      SizedBox(width: 8),
                       SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2)),
-                      SizedBox(width: 8),
-                      Text('Thinking...', style: TextStyle(color: Colors.grey)),
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: const Color(0xFF16A34A),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text('Thinking...',
+                          style: TextStyle(color: Color(0xFF16A34A))),
                     ]),
                   );
                 }
@@ -136,9 +167,16 @@ class _AINavSheetState extends State<AINavSheet> {
                         maxWidth: MediaQuery.of(context).size.width * 0.75),
                     decoration: BoxDecoration(
                       color: isUser
-                          ? theme.colorScheme.primary
-                          : theme.colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(16),
+                          ? const Color(0xFFF97316)
+                          : (isDark
+                              ? const Color(0xFF14532D)
+                              : const Color(0xFFF0FDF4)),
+                      borderRadius: BorderRadius.only(
+                        topLeft: const Radius.circular(16),
+                        topRight: const Radius.circular(16),
+                        bottomLeft: Radius.circular(isUser ? 16 : 4),
+                        bottomRight: Radius.circular(isUser ? 4 : 16),
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -148,23 +186,56 @@ class _AINavSheetState extends State<AINavSheet> {
                           style: TextStyle(
                             color: isUser
                                 ? Colors.white
-                                : theme.colorScheme.onSurface,
+                                : (isDark
+                                    ? const Color(0xFFF0FDF4)
+                                    : const Color(0xFF1C0A00)),
                           ),
                         ),
                         if (!isUser &&
                             (msg['steps'] as List?)?.isNotEmpty == true) ...[
                           const SizedBox(height: 8),
-                          ...(msg['steps'] as List).map((step) => Padding(
-                                padding: const EdgeInsets.only(top: 4),
-                                child: Text(
-                                  step.toString(),
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: theme.colorScheme.onSurface
-                                        .withValues(alpha: 0.8),
+                          ...(msg['steps'] as List).asMap().entries.map(
+                                (entry) => Padding(
+                                  padding: const EdgeInsets.only(top: 6),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Container(
+                                        width: 18,
+                                        height: 18,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF16A34A),
+                                          borderRadius:
+                                              BorderRadius.circular(9),
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            '${entry.key + 1}',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          entry.value.toString(),
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: isDark
+                                                ? const Color(0xFFF0FDF4)
+                                                : const Color(0xFF1C0A00),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              )),
+                              ),
                         ],
                       ],
                     ),
@@ -183,8 +254,34 @@ class _AINavSheetState extends State<AINavSheet> {
                     controller: _controller,
                     decoration: InputDecoration(
                       hintText: 'Where do you want to go?',
+                      hintStyle: TextStyle(
+                        color: isDark
+                            ? const Color(0xFFFED7AA)
+                            : const Color(0xFF78350F),
+                      ),
                       border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24)),
+                        borderRadius: BorderRadius.circular(24),
+                        borderSide: BorderSide(
+                          color: isDark
+                              ? const Color(0xFFFED7AA)
+                              : const Color(0xFFD1D5DB),
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(24),
+                        borderSide: BorderSide(
+                          color: isDark
+                              ? const Color(0xFFFED7AA)
+                              : const Color(0xFFD1D5DB),
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(24),
+                        borderSide: const BorderSide(
+                          color: Color(0xFFF97316),
+                          width: 1.5,
+                        ),
+                      ),
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 10),
                     ),
@@ -194,7 +291,11 @@ class _AINavSheetState extends State<AINavSheet> {
                 const SizedBox(width: 8),
                 FloatingActionButton.small(
                   onPressed: _isLoading ? null : _send,
-                  child: const Icon(Icons.send),
+                  backgroundColor: _isLoading
+                      ? const Color(0xFFD1D5DB)
+                      : const Color(0xFFF97316),
+                  foregroundColor: Colors.white,
+                  child: const Icon(Icons.send_rounded),
                 ),
               ],
             ),

@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:naviapp/data/floor_plan_data.dart';
+import 'package:naviapp/widgets/ai_nav_sheet.dart';
 
 class FloorPlanScreen extends StatefulWidget {
-  const FloorPlanScreen({super.key});
+  final bool initialFloor;
+  const FloorPlanScreen({super.key, this.initialFloor = true});
 
   @override
   State<FloorPlanScreen> createState() => _FloorPlanScreenState();
@@ -22,6 +24,7 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
   @override
   void initState() {
     super.initState();
+    _isSecondFloor = widget.initialFloor;
   }
 
   @override
@@ -34,9 +37,9 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
     final baseColor = switch (category) {
       'academic' => const Color(0xFF2563EB),
       'office' => const Color(0xFFEA580C),
-      'facility' => const Color(0xFF059669),
+      'facility' => const Color(0xFF16A34A),
       'amenity' => const Color(0xFF7C3AED),
-      _ => const Color(0xFF0891B2),
+      _ => const Color(0xFFF97316),
     };
     return baseColor.withValues(alpha: opacity);
   }
@@ -45,9 +48,9 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
     return switch (category) {
       'academic' => const Color(0xFF2563EB),
       'office' => const Color(0xFFEA580C),
-      'facility' => const Color(0xFF059669),
+      'facility' => const Color(0xFF16A34A),
       'amenity' => const Color(0xFF7C3AED),
-      _ => const Color(0xFF0891B2),
+      _ => const Color(0xFFF97316),
     };
   }
 
@@ -93,11 +96,16 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
   void _showRoomDetails(FloorRoom room) {
     if (!mounted) return;
 
-    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     showModalBottomSheet(
       context: context,
+      backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF2C1F0E) : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
         padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -133,31 +141,60 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
             const SizedBox(height: 12),
             Text(
               room.name,
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: isDark ? const Color(0xFFFFF7ED) : const Color(0xFF1C0A00),
+              ),
             ),
             if (room.description != null) ...[
               const SizedBox(height: 8),
               Text(
                 room.description!,
                 style: TextStyle(
-                  color: colorScheme.onSurface.withValues(alpha: 0.7),
+                  fontSize: 14,
+                  color: isDark ? const Color(0xFFFED7AA) : const Color(0xFF78350F),
                 ),
               ),
             ],
             const SizedBox(height: 16),
             Row(
               children: [
-                const Icon(Icons.location_on, size: 16),
+                Icon(Icons.location_on, size: 16, color: const Color(0xFFF97316)),
                 const SizedBox(width: 4),
                 Text(
                   'Floor: ${_isSecondFloor ? '2nd Floor' : 'Ground Floor'}',
                   style: TextStyle(
-                    color: colorScheme.onSurface.withValues(alpha: 0.6),
+                    color: isDark ? const Color(0xFFFED7AA) : const Color(0xFF78350F),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
+            FilledButton.icon(
+              icon: const Icon(Icons.psychology_outlined),
+              label: const Text('Navigate with AI'),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF16A34A),
+                minimumSize: const Size(double.infinity, 48),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+              ),
+              onPressed: () {
+                Navigator.pop(ctx);
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (_) => AINavSheet(
+                    currentFloor: _isSecondFloor ? 'second' : 'ground',
+                    currentRoomId: room.id,
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 8),
           ],
         ),
       ),
@@ -184,23 +221,40 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          _isSecondFloor
-              ? 'Floor Plan - 2nd Floor'
-              : 'Floor Plan - Ground Floor',
+          _isSecondFloor ? '2nd Floor' : 'Ground Floor',
+          style: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold),
         ),
+        backgroundColor: const Color(0xFFF97316),
+        foregroundColor: Colors.white,
+        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
-          TextButton(
-            onPressed: () {
+          GestureDetector(
+            onTap: () {
               setState(() {
                 _isSecondFloor = !_isSecondFloor;
                 _selectedRoom = null;
               });
             },
-            child: Text(_isSecondFloor ? 'Ground' : '2nd Floor'),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              margin: const EdgeInsets.only(right: 12),
+              child: Text(
+                _isSecondFloor ? 'Ground ↓' : '2nd Floor ↑',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -251,11 +305,36 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
           },
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          _transformationController.value = Matrix4.identity();
-        },
-        child: const Icon(Icons.center_focus_strong),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          FloatingActionButton.small(
+            onPressed: () {
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (_) => AINavSheet(
+                  currentFloor: _isSecondFloor ? 'second' : 'ground',
+                  currentRoomId: _selectedRoom?.id,
+                ),
+              );
+            },
+            backgroundColor: const Color(0xFF16A34A),
+            foregroundColor: Colors.white,
+            child: const Icon(Icons.psychology_outlined),
+          ),
+          const SizedBox(height: 12),
+          FloatingActionButton(
+            onPressed: () {
+              _transformationController.value = Matrix4.identity();
+            },
+            backgroundColor: const Color(0xFFF97316),
+            foregroundColor: Colors.white,
+            child: const Icon(Icons.center_focus_strong),
+          ),
+        ],
       ),
     );
   }
@@ -329,7 +408,7 @@ class FloorPlanPainter extends CustomPainter {
         ..color = isSelected
             ? getCategoryBorderColor(room.category)
             : isHighlighted
-                ? const Color(0xFF2563EB)
+                ? const Color(0xFFF97316)
                 : borderColor
         ..style = PaintingStyle.stroke
         ..strokeWidth = borderWidth;
@@ -337,7 +416,7 @@ class FloorPlanPainter extends CustomPainter {
 
       if (isHighlighted) {
         final highlightPaint = Paint()
-          ..color = const Color(0xFF2563EB).withValues(alpha: 0.4)
+          ..color = const Color(0xFFF97316).withValues(alpha: 0.35)
           ..style = PaintingStyle.stroke
           ..strokeWidth = 6.0 / scaleFactor;
         canvas.drawRect(rect, highlightPaint);

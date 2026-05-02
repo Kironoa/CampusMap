@@ -58,32 +58,29 @@ class NaviApp extends StatelessWidget {
       useMaterial3: true,
       brightness: brightness,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFF2563EB),
+        seedColor: const Color(0xFFF97316),
         brightness: brightness,
       ),
       fontFamily: 'Poppins',
-      scaffoldBackgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      scaffoldBackgroundColor: isDark ? const Color(0xFF1A1208) : const Color(0xFFFFFBF5),
       cardTheme: CardThemeData(
         elevation: 0,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF2C1F0E) : Colors.white,
       ),
-      appBarTheme: AppBarTheme(
+      appBarTheme: const AppBarTheme(
         centerTitle: false,
         elevation: 0,
         scrolledUnderElevation: 0,
         backgroundColor: Colors.transparent,
-        foregroundColor: isDark ? Colors.white : const Color(0xFF1E293B),
-        systemOverlayStyle: isDark
-            ? SystemUiOverlayStyle.light
-            : SystemUiOverlayStyle.dark,
+        foregroundColor: Colors.white,
       ),
       navigationBarTheme: NavigationBarThemeData(
         elevation: 0,
         height: 64,
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-        indicatorColor: const Color(0xFF2563EB).withValues(alpha: isDark ? 0.25 : 0.12),
+        backgroundColor: isDark ? const Color(0xFF2C1F0E) : Colors.white,
+        indicatorColor: const Color(0xFFF97316).withValues(alpha: isDark ? 0.25 : 0.12),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return TextStyle(
@@ -91,8 +88,8 @@ class NaviApp extends StatelessWidget {
             fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
             fontFamily: 'Poppins',
             color: selected
-                ? (isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB))
-                : (isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+                ? const Color(0xFFF97316)
+                : (isDark ? const Color(0xFFFED7AA) : const Color(0xFF78350F)),
           );
         }),
         iconTheme: WidgetStateProperty.resolveWith((states) {
@@ -100,8 +97,8 @@ class NaviApp extends StatelessWidget {
           return IconThemeData(
             size: 22,
             color: selected
-                ? (isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB))
-                : (isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+                ? const Color(0xFFF97316)
+                : (isDark ? const Color(0xFFFED7AA) : const Color(0xFF78350F)),
           );
         }),
       ),
@@ -156,9 +153,8 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: colorScheme.primary,
+      backgroundColor: const Color(0xFFF97316),
       body: Center(
         child: FadeTransition(
           opacity: _fadeAnim,
@@ -171,7 +167,7 @@ class _SplashScreenState extends State<SplashScreen>
                   width: 96,
                   height: 96,
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.15),
+                    color: Colors.white.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(24),
                   ),
                   child: const Icon(Icons.school, color: Colors.white, size: 52),
@@ -184,14 +180,13 @@ class _SplashScreenState extends State<SplashScreen>
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
                     fontFamily: 'Poppins',
-                    letterSpacing: 0.5,
                   ),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   'Tangub City Global College',
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.8),
+                    color: Colors.white.withValues(alpha: 0.7),
                     fontSize: 14,
                     fontFamily: 'Poppins',
                   ),
