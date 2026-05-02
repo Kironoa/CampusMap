@@ -7,6 +7,12 @@ import 'package:naviapp/widgets/ai_nav_sheet.dart';
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
+  static const _floorData = [
+    (index: 0, label: 'Ground / First Floor', rooms: '25 rooms', icon: Icons.stairs, color: Color(0xFFF97316), bgDark: Color(0xFF3D2A10), bgLight: Color(0xFFFFF7ED), border: Color(0xFFFED7AA)),
+    (index: 1, label: 'Second Floor', rooms: '27 rooms', icon: Icons.business, color: Color(0xFF16A34A), bgDark: Color(0xFF14532D), bgLight: Color(0xFFF0FDF4), border: Color(0xFFBBF7D0)),
+    (index: 2, label: 'Third Floor', rooms: '16 rooms', icon: Icons.apartment, color: Color(0xFF2563EB), bgDark: Color(0xFF1E3A5F), bgLight: Color(0xFFEFF6FF), border: Color(0xFF93C5FD)),
+  ];
+
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
@@ -52,10 +58,10 @@ class HomeScreen extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.school,
                     size: 48,
-                    color: const Color(0xFFF97316),
+                    color: Color(0xFFF97316),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -237,172 +243,24 @@ class HomeScreen extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Column(
-              children: [
-                GestureDetector(
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const FloorPlanScreen(initialFloor: 0),
-                      ),
-                    );
-                  },
-                  child: Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF3D2A10) : const Color(0xFFFFF7ED),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: const Color(0xFFFED7AA),
-                      ),
+              children: _floorData.map((data) {
+                return Column(
+                  children: [
+                    FloorCard(
+                      floorIndex: data.index,
+                      label: data.label,
+                      rooms: data.rooms,
+                      icon: data.icon,
+                      color: data.color,
+                      bgDark: data.bgDark,
+                      bgLight: data.bgLight,
+                      borderColor: data.border,
                     ),
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.stairs,
-                          size: 28,
-                          color: Color(0xFFF97316),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Ground Floor',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: isDark ? const Color(0xFFFFF7ED) : const Color(0xFF1C0A00),
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                '12 rooms',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: isDark ? const Color(0xFFFED7AA) : const Color(0xFF78350F),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const Icon(Icons.chevron_right, color: Color(0xFFF97316)),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const FloorPlanScreen(initialFloor: 1),
-                      ),
-                    );
-                  },
-                  child: Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF3E2000) : const Color(0xFFFFF3E0),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: const Color(0xFFFFCC80),
-                      ),
-                    ),
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.school_outlined,
-                          size: 28,
-                          color: Color(0xFFFF8C00),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '1st Floor',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: isDark ? const Color(0xFFFFF7ED) : const Color(0xFF1C0A00),
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                '22 rooms',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: isDark ? const Color(0xFFFED7AA) : const Color(0xFF78350F),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const Icon(Icons.chevron_right, color: Color(0xFFFF8C00)),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const FloorPlanScreen(initialFloor: 2),
-                      ),
-                    );
-                  },
-                  child: Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF14532D) : const Color(0xFFF0FDF4),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: const Color(0xFFBBF7D0),
-                      ),
-                    ),
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.business,
-                          size: 28,
-                          color: Color(0xFF16A34A),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '2nd Floor',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: isDark ? const Color(0xFFFFF7ED) : const Color(0xFF1C0A00),
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                '34 rooms',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: isDark ? const Color(0xFFFED7AA) : const Color(0xFF78350F),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const Icon(Icons.chevron_right, color: Color(0xFF16A34A)),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+                    const SizedBox(height: 12),
+                  ],
+                );
+              }).toList()
+                ..removeLast(),
             ),
             const SizedBox(height: 24),
             Container(
@@ -460,6 +318,85 @@ class HomeScreen extends StatelessWidget {
           style: const TextStyle(fontSize: 13),
         ),
       ],
+    );
+  }
+}
+
+class FloorCard extends StatelessWidget {
+  final int floorIndex;
+  final String label;
+  final String rooms;
+  final IconData icon;
+  final Color color;
+  final Color bgDark;
+  final Color bgLight;
+  final Color borderColor;
+
+  const FloorCard({
+    required this.floorIndex,
+    required this.label,
+    required this.rooms,
+    required this.icon,
+    required this.color,
+    required this.bgDark,
+    required this.bgLight,
+    required this.borderColor,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => FloorPlanScreen(initialFloor: floorIndex),
+          ),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: Theme.of(context).brightness == Brightness.dark ? bgDark : bgLight,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: borderColor),
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Icon(icon, size: 28, color: color),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFFFFF7ED)
+                          : const Color(0xFF1C0A00),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    rooms,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFFFED7AA)
+                          : const Color(0xFF78350F),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right, color: color),
+          ],
+        ),
+      ),
     );
   }
 }

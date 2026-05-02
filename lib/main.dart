@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
-import 'package:naviapp/providers/theme_provider.dart';
 import 'package:naviapp/providers/navigation_provider.dart';
+import 'package:naviapp/providers/theme_provider.dart';
 import 'package:naviapp/screens/home_screen.dart';
 
 void main() async {
@@ -27,8 +27,8 @@ class NaviApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider.value(value: themeProvider),
         ChangeNotifierProvider(create: (_) => NavigationProvider()),
+        ChangeNotifierProvider.value(value: themeProvider),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:naviapp/data/floor_plan_data.dart';
+import 'package:naviapp/models/room.dart';
 import 'package:naviapp/config/env.dart';
 
 class AINavigationResult {
@@ -23,54 +24,56 @@ class AINavigationService {
 
   static String _buildSystemPrompt() {
     final groundRooms = FloorPlanData.groundFloorRooms
-        .map((r) => '  • [${r.id}] ${r.name} (${r.category})'
-            '${r.description != null ? ' — ${r.description}' : ''}')
+        .map(
+          (r) =>
+              '  • [${r.id}] ${r.name} (${r.category.name})'
+              '${r.description != null ? ' — ${r.description}' : ''}',
+        )
         .join('\n');
 
     final secondRooms = FloorPlanData.secondFloorRooms
-        .map((r) => '  • [${r.id}] ${r.name} (${r.category})'
-            '${r.description != null ? ' — ${r.description}' : ''}')
+        .map(
+          (r) =>
+              '  • [${r.id}] ${r.name} (${r.category.name})'
+              '${r.description != null ? ' — ${r.description}' : ''}',
+        )
         .join('\n');
 
-    final firstRooms = FloorPlanData.firstFloorRooms
-        .map((r) => '  • [${r.id}] ${r.name} (${r.wingName} wing, ${r.rowName} row)'
-            '${r.description != null ? ' — ${r.description}' : ''}')
+    final thirdRooms = FloorPlanData.thirdFloorRooms
+        .map(
+          (r) =>
+              '  • [${r.id}] ${r.name} (${r.category.name})'
+              '${r.description != null ? ' — ${r.description}' : ''}',
+        )
         .join('\n');
 
     return '''
 You are the AI Navigation Assistant for Tangub City Global College (TCGC) campus.
 You have complete knowledge of every room, office, lab, and facility in the campus.
 
-═══════════════════════════════════════════
-GROUND FLOOR (Main Entrance Level) — rooms/areas:
+═════════════════════════════════════════
+FLOOR 0 (Ground / First Floor — physically the same level) — rooms/areas:
 $groundRooms
 
-1ST FLOOR — rooms/areas:
-$firstRooms
-
-2ND FLOOR — rooms/areas:
+FLOOR 1 (Second Floor) — rooms/areas:
 $secondRooms
 
-3RD FLOOR — coming soon, tell user data not yet available
-═══════════════════════════════════════════
+FLOOR 2 (Third Floor) — rooms/areas:
+$thirdRooms
+═════════════════════════════════════════
+
+NOTE: "Ground Floor" and "First Floor" are the SAME physical level (Floor 0).
+If the user says "Ground" or "First" floor, map to floor_index: "0".
 
 NAVIGATION CONTEXT:
-- Main entrance is on the Ground Floor at the MAIN LOBBY (center of building)
+- Main entrance is on Floor 0 (Ground/First) at the Main Lobby (center of building)
 - Elevator is located at the center of all floors
-- West stairs and East stairs connect Ground to 1st and 2nd Floor
-- 1st Floor is accessible via stairs or elevator from the Ground Floor
-- 3rd Floor data is not yet available; if asked about 3rd floor tell the user
-- First Floor Left Wing has academic departments and admin offices
-- First Floor Right Wing has clinic, AVR, music, dance, barracks, multipurpose hall
-- First Floor Left Wing Top: Arts & Sciences, Teacher Ed, Business, Health Sciences, TCGC Training, Computer Studies
-- First Floor Left Wing Bottom: Registrar, VP Admin, Criminology Lab, Criminal Justice Ed, Student Life
-- First Floor Right Wing Top: Clinic, MB 105, MB 103, Multi-purpose, Midwifery, PFOM
-- First Floor Right Wing Bottom: CISO, AVR, Music, Dance, Barracks
-- Ground Floor west side: Library, ICJE, Criminology Lab
-- Ground Floor east side: ICS, TCGC Training Center, Health Sciences
-- 2nd Floor west side: Guidance, Computer Labs, Moot Court, Business Center
-- 2nd Floor east side: Faculty Lounge, Speech Lab, BSEED Simulation Rooms
-- 2nd Floor center: President's Office, VP offices, Board Room, HR Office
+- West stairs and East stairs connect all floors
+- Floor 0 contains: Registrar, VP Admin, Library, ICJE, ICS, TCGC Training, Health Sciences
+- Floor 0 also contains: Arts & Sciences, Teacher Ed, Business, Clinic, AVR, Music, Dance
+- Floor 1 (Second Floor) has: Computer Labs, Moot Court, Business Center, President's Office
+- Floor 1 (Second Floor) center: VP offices, Board Room, HR Office, Faculty Lounge
+- Floor 2 (Third Floor) has: Library extension, Classrooms, Science Lab
 - Always mention which floor the destination is on
 - If user needs to change floors, mention taking the stairs or elevator
 
@@ -84,13 +87,19 @@ JSON format:
 {
   "answer": "Friendly 1-2 sentence response with directions summary",
   "target_room_id": "the exact id from the floor plan data (or null)",
-  "floor": "ground | first | second | third",
+  "floor": "0 | 1 | 2",
   "steps": [
     "Step 1: ...",
     "Step 2: ...",
     "Step 3: ..."
   ]
 }
+
+IMPORTANT:
+- Use "floor": "0" for Ground OR First floor requests
+- Use "floor": "1" for Second floor requests
+- Use "floor": "2" for Third floor requests
+- If asked about floors other than 0, 1, or 2, politely say data not yet available
 
 If the user asks something that isn't navigation-related, still return the JSON with a helpful answer and null for room ID.
 ''';
@@ -108,9 +117,9 @@ If the user asks something that isn't navigation-related, still return the JSON 
     }
 
     final contextPrefix = currentRoomId != null
-        ? 'User is currently at: $currentRoomId on $currentFloor floor. '
+        ? 'User is currently at: $currentRoomId on floor $currentFloor. '
         : currentFloor != null
-            ? 'User is on the $currentFloor floor. '
+            ? 'User is on floor $currentFloor. '
             : '';
 
     final messages = [
@@ -180,5 +189,31 @@ If the user asks something that isn't navigation-related, still return the JSON 
     } catch (e) {
       throw Exception('Failed to get AI navigation: $e');
     }
+  }
+
+  static String? getRoomDirections(String roomName) {
+    final query = roomName.toLowerCase().trim();
+
+    for (final floor in [
+      FloorPlanData.groundFloorRooms,
+      FloorPlanData.secondFloorRooms,
+      FloorPlanData.thirdFloorRooms,
+    ]) {
+      for (final room in floor) {
+        if (room.name.toLowerCase().contains(query) ||
+            query.contains(room.name.toLowerCase())) {
+          return "The ${room.name} is located on Floor ${_floorIndexOf(floor)}.";
+        }
+      }
+    }
+
+    return null;
+  }
+
+  static String _floorIndexOf(List<Room> floor) {
+    if (floor == FloorPlanData.groundFloorRooms) return '0 (Ground/First)';
+    if (floor == FloorPlanData.secondFloorRooms) return '1 (Second)';
+    if (floor == FloorPlanData.thirdFloorRooms) return '2 (Third)';
+    return '0';
   }
 }
