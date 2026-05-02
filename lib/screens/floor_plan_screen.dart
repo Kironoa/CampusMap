@@ -1,30 +1,28 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:naviapp/data/floor_plan_data.dart';
 import 'package:naviapp/widgets/ai_nav_sheet.dart';
 
 class FloorPlanScreen extends StatefulWidget {
-  final bool initialFloor;
-  const FloorPlanScreen({super.key, this.initialFloor = true});
+  final int initialFloor;
+  const FloorPlanScreen({super.key, this.initialFloor = 2});
 
   @override
   State<FloorPlanScreen> createState() => _FloorPlanScreenState();
 }
 
-class _FloorPlanScreenState extends State<FloorPlanScreen>
-    with SingleTickerProviderStateMixin {
+class _FloorPlanScreenState extends State<FloorPlanScreen> {
   final TransformationController _transformationController =
       TransformationController();
   FloorRoom? _selectedRoom;
   double _scale = 1.0;
-  bool _isSecondFloor = true;
+  int _currentFloor = 2;
 
   String? _highlightedRoomId;
 
   @override
   void initState() {
     super.initState();
-    _isSecondFloor = widget.initialFloor;
+    _currentFloor = widget.initialFloor;
   }
 
   @override
@@ -57,6 +55,16 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
   void _handleTap(TapUpDetails details, Size viewportSize) {
     if (!mounted) return;
 
+    if (_currentFloor == 1) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Tap to select rooms coming soon for 1st Floor. Use AI Navigator instead.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
     final localPos = details.localPosition;
 
     final scale = _scale;
@@ -81,7 +89,7 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
     );
     final room = FloorPlanData.getRoomAtPosition(
       normalizedPos,
-      secondFloor: _isSecondFloor,
+      secondFloor: _currentFloor == 2,
     );
 
     setState(() {
@@ -157,43 +165,43 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
                 ),
               ),
             ],
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Icon(Icons.location_on, size: 16, color: const Color(0xFFF97316)),
-                const SizedBox(width: 4),
-                Text(
-                  'Floor: ${_isSecondFloor ? '2nd Floor' : 'Ground Floor'}',
-                  style: TextStyle(
-                    color: isDark ? const Color(0xFFFED7AA) : const Color(0xFF78350F),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            FilledButton.icon(
-              icon: const Icon(Icons.psychology_outlined),
-              label: const Text('Navigate with AI'),
-              style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF16A34A),
-                minimumSize: const Size(double.infinity, 48),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
-                ),
-              ),
-              onPressed: () {
-                Navigator.pop(ctx);
-                showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  backgroundColor: Colors.transparent,
-                  builder: (_) => AINavSheet(
-                    currentFloor: _isSecondFloor ? 'second' : 'ground',
-                    currentRoomId: room.id,
-                  ),
-                );
-              },
-            ),
+             const SizedBox(height: 16),
+             Row(
+               children: [
+                 Icon(Icons.location_on, size: 16, color: const Color(0xFFF97316)),
+                 const SizedBox(width: 4),
+                 Text(
+                   'Floor: ${_currentFloor == 0 ? 'Ground Floor' : _currentFloor == 1 ? '1st Floor' : '2nd Floor'}',
+                   style: TextStyle(
+                     color: isDark ? const Color(0xFFFED7AA) : const Color(0xFF78350F),
+                   ),
+                 ),
+               ],
+             ),
+             const SizedBox(height: 20),
+             FilledButton.icon(
+               icon: const Icon(Icons.psychology_outlined),
+               label: const Text('Navigate with AI'),
+               style: FilledButton.styleFrom(
+                 backgroundColor: const Color(0xFF16A34A),
+                 minimumSize: const Size(double.infinity, 48),
+                 shape: RoundedRectangleBorder(
+                   borderRadius: BorderRadius.circular(24),
+                 ),
+               ),
+               onPressed: () {
+                 Navigator.pop(ctx);
+                 showModalBottomSheet(
+                   context: context,
+                   isScrollControlled: true,
+                   backgroundColor: Colors.transparent,
+                   builder: (_) => AINavSheet(
+                     currentFloor: _currentFloor == 0 ? 'ground' : _currentFloor == 1 ? 'first' : 'second',
+                     currentRoomId: room.id,
+                   ),
+                 );
+               },
+             ),
             const SizedBox(height: 8),
           ],
         ),
@@ -221,7 +229,7 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          _isSecondFloor ? '2nd Floor' : 'Ground Floor',
+          _currentFloor == 0 ? 'Ground Floor' : _currentFloor == 1 ? '1st Floor' : '2nd Floor',
           style: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold),
         ),
         backgroundColor: const Color(0xFFF97316),
@@ -235,7 +243,7 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
           GestureDetector(
             onTap: () {
               setState(() {
-                _isSecondFloor = !_isSecondFloor;
+                _currentFloor = (_currentFloor + 1) % 3;
                 _selectedRoom = null;
               });
             },
@@ -247,7 +255,7 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               margin: const EdgeInsets.only(right: 12),
               child: Text(
-                _isSecondFloor ? 'Ground ↓' : '2nd Floor ↑',
+                _currentFloor == 0 ? '1st Floor ↑' : _currentFloor == 1 ? '2nd Floor ↑' : 'Ground ↓',
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
@@ -281,24 +289,26 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
                 height: scaledSize.height,
                 child: GestureDetector(
                   onTapUp: (details) => _handleTap(details, viewportSize),
-                  child: Stack(
-                    children: [
-                      CustomPaint(
-                        size: scaledSize,
-                        painter: FloorPlanPainter(
-                          rooms: _isSecondFloor
-                              ? FloorPlanData.secondFloorRooms
-                              : FloorPlanData.groundFloorRooms,
-                          selectedRoom: _selectedRoom,
-                          highlightedRoomId: _highlightedRoomId,
-                          isDark: isDark,
-                          scale: _scale,
-                          getCategoryColor: _getCategoryColor,
-                          getCategoryBorderColor: _getCategoryBorderColor,
+                    child: Stack(
+                      children: [
+                        CustomPaint(
+                          size: scaledSize,
+                          painter: FloorPlanPainter(
+                            rooms: _currentFloor == 2
+                                ? FloorPlanData.secondFloorRooms
+                                : _currentFloor == 0
+                                    ? FloorPlanData.groundFloorRooms
+                                    : [],
+                            selectedRoom: _selectedRoom,
+                            highlightedRoomId: _highlightedRoomId,
+                            isDark: isDark,
+                            scale: _scale,
+                            getCategoryColor: _getCategoryColor,
+                            getCategoryBorderColor: _getCategoryBorderColor,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
                 ),
               ),
             );
@@ -316,7 +326,7 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
                 isScrollControlled: true,
                 backgroundColor: Colors.transparent,
                 builder: (_) => AINavSheet(
-                  currentFloor: _isSecondFloor ? 'second' : 'ground',
+                  currentFloor: _currentFloor == 0 ? 'ground' : _currentFloor == 1 ? 'first' : 'second',
                   currentRoomId: _selectedRoom?.id,
                 ),
               );

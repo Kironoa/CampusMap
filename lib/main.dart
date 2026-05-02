@@ -2,16 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:naviapp/providers/theme_provider.dart';
 import 'package:naviapp/providers/navigation_provider.dart';
 import 'package:naviapp/screens/home_screen.dart';
-import 'package:naviapp/screens/floor_plan_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
-  await SharedPreferences.getInstance();
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.dark,
@@ -44,7 +41,6 @@ class NaviApp extends StatelessWidget {
             home: const SplashScreen(),
             routes: {
               '/home': (context) => const HomeScreen(),
-              '/floor_plan': (context) => const FloorPlanScreen(),
             },
           );
         },

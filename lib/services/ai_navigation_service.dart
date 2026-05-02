@@ -23,27 +23,18 @@ class AINavigationService {
 
   static String _buildSystemPrompt() {
     final groundRooms = FloorPlanData.groundFloorRooms
-        .map(
-          (r) =>
-              '  • [${r.id}] ${r.name} (${r.category})'
-              '${r.description != null ? ' — ${r.description}' : ''}',
-        )
+        .map((r) => '  • [${r.id}] ${r.name} (${r.category})'
+            '${r.description != null ? ' — ${r.description}' : ''}')
         .join('\n');
 
     final secondRooms = FloorPlanData.secondFloorRooms
-        .map(
-          (r) =>
-              '  • [${r.id}] ${r.name} (${r.category})'
-              '${r.description != null ? ' — ${r.description}' : ''}',
-        )
+        .map((r) => '  • [${r.id}] ${r.name} (${r.category})'
+            '${r.description != null ? ' — ${r.description}' : ''}')
         .join('\n');
 
     final firstRooms = FloorPlanData.firstFloorRooms
-        .map(
-          (r) =>
-              '  • [${r.id}] ${r.name} (${r.wingName} wing, ${r.rowName} row)'
-              '${r.description != null ? ' — ${r.description}' : ''}',
-        )
+        .map((r) => '  • [${r.id}] ${r.name} (${r.wingName} wing, ${r.rowName} row)'
+            '${r.description != null ? ' — ${r.description}' : ''}')
         .join('\n');
 
     return '''
@@ -51,20 +42,26 @@ You are the AI Navigation Assistant for Tangub City Global College (TCGC) campus
 You have complete knowledge of every room, office, lab, and facility in the campus.
 
 ═══════════════════════════════════════════
-FIRST FLOOR — rooms/areas:
-$firstRooms
-
-GROUND FLOOR — rooms/areas:
+GROUND FLOOR (Main Entrance Level) — rooms/areas:
 $groundRooms
 
-SECOND FLOOR — rooms/areas:
+1ST FLOOR — rooms/areas:
+$firstRooms
+
+2ND FLOOR — rooms/areas:
 $secondRooms
+
+3RD FLOOR — coming soon, tell user data not yet available
 ═══════════════════════════════════════════
 
 NAVIGATION CONTEXT:
 - Main entrance is on the Ground Floor at the MAIN LOBBY (center of building)
 - Elevator is located at the center of all floors
 - West stairs and East stairs connect Ground to 1st and 2nd Floor
+- 1st Floor is accessible via stairs or elevator from the Ground Floor
+- 3rd Floor data is not yet available; if asked about 3rd floor tell the user
+- First Floor Left Wing has academic departments and admin offices
+- First Floor Right Wing has clinic, AVR, music, dance, barracks, multipurpose hall
 - First Floor Left Wing Top: Arts & Sciences, Teacher Ed, Business, Health Sciences, TCGC Training, Computer Studies
 - First Floor Left Wing Bottom: Registrar, VP Admin, Criminology Lab, Criminal Justice Ed, Student Life
 - First Floor Right Wing Top: Clinic, MB 105, MB 103, Multi-purpose, Midwifery, PFOM
@@ -87,7 +84,7 @@ JSON format:
 {
   "answer": "Friendly 1-2 sentence response with directions summary",
   "target_room_id": "the exact id from the floor plan data (or null)",
-  "floor": "first | ground | second",
+  "floor": "ground | first | second | third",
   "steps": [
     "Step 1: ...",
     "Step 2: ...",
@@ -113,12 +110,15 @@ If the user asks something that isn't navigation-related, still return the JSON 
     final contextPrefix = currentRoomId != null
         ? 'User is currently at: $currentRoomId on $currentFloor floor. '
         : currentFloor != null
-        ? 'User is on the $currentFloor floor. '
-        : '';
+            ? 'User is on the $currentFloor floor. '
+            : '';
 
     final messages = [
       ...conversationHistory,
-      {'role': 'user', 'content': '$contextPrefix$userQuery'},
+      {
+        'role': 'user',
+        'content': '$contextPrefix$userQuery',
+      }
     ];
 
     try {
@@ -180,18 +180,5 @@ If the user asks something that isn't navigation-related, still return the JSON 
     } catch (e) {
       throw Exception('Failed to get AI navigation: $e');
     }
-  }
-
-  static String? getRoomDirections(String roomName) {
-    final query = roomName.toLowerCase().trim();
-
-    for (final room in FloorPlanData.firstFloorRooms) {
-      final roomNameLower = room.name.toLowerCase();
-      if (roomNameLower.contains(query) || query.contains(roomNameLower)) {
-        return "The ${room.name} is located in the ${room.wingName} wing on the ${room.rowName} row.";
-      }
-    }
-
-    return null;
   }
 }

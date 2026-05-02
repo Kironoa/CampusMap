@@ -236,100 +236,169 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            Row(
+            Column(
               children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const FloorPlanScreen(initialFloor: false),
-                        ),
-                      );
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF3D2A10) : const Color(0xFFFFF7ED),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: const Color(0xFFFED7AA),
-                        ),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const FloorPlanScreen(initialFloor: 0),
                       ),
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        children: [
-                          const Icon(
-                            Icons.stairs,
-                            size: 28,
-                            color: Color(0xFFF97316),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Ground Floor',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: isDark ? const Color(0xFFFFF7ED) : const Color(0xFF1C0A00),
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '12 rooms',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: isDark ? const Color(0xFFFED7AA) : const Color(0xFF78350F),
-                            ),
-                          ),
-                        ],
+                    );
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF3D2A10) : const Color(0xFFFFF7ED),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFFFED7AA),
                       ),
+                    ),
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.stairs,
+                          size: 28,
+                          color: Color(0xFFF97316),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Ground Floor',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? const Color(0xFFFFF7ED) : const Color(0xFF1C0A00),
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '12 rooms',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isDark ? const Color(0xFFFED7AA) : const Color(0xFF78350F),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right, color: Color(0xFFF97316)),
+                      ],
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const FloorPlanScreen(),
-                        ),
-                      );
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF14532D) : const Color(0xFFF0FDF4),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: const Color(0xFFBBF7D0),
-                        ),
+                const SizedBox(height: 12),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const FloorPlanScreen(initialFloor: 1),
                       ),
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        children: [
-                          const Icon(
-                            Icons.business,
-                            size: 28,
-                            color: Color(0xFF16A34A),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            '2nd Floor',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: isDark ? const Color(0xFFFFF7ED) : const Color(0xFF1C0A00),
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '34 rooms',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: isDark ? const Color(0xFFFED7AA) : const Color(0xFF78350F),
-                            ),
-                          ),
-                        ],
+                    );
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF3E2000) : const Color(0xFFFFF3E0),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFFFFCC80),
                       ),
+                    ),
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.school_outlined,
+                          size: 28,
+                          color: Color(0xFFFF8C00),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '1st Floor',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? const Color(0xFFFFF7ED) : const Color(0xFF1C0A00),
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '22 rooms',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isDark ? const Color(0xFFFED7AA) : const Color(0xFF78350F),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right, color: Color(0xFFFF8C00)),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const FloorPlanScreen(initialFloor: 2),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF14532D) : const Color(0xFFF0FDF4),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFFBBF7D0),
+                      ),
+                    ),
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.business,
+                          size: 28,
+                          color: Color(0xFF16A34A),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '2nd Floor',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? const Color(0xFFFFF7ED) : const Color(0xFF1C0A00),
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '34 rooms',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isDark ? const Color(0xFFFED7AA) : const Color(0xFF78350F),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right, color: Color(0xFF16A34A)),
+                      ],
                     ),
                   ),
                 ),
