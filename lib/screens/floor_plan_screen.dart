@@ -349,19 +349,18 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => AINavSheet(
-        onNavigationResult: (result) {
-          final targetFloor = int.tryParse(result.floor) ?? _currentFloor;
+        currentFloorIndex: _currentFloor,
+        onNavigationResult: (pathOffsets, floorIndex, roomId) {
           setState(() {
-            _currentFloor = targetFloor;
-            if (result.pathPoints.isNotEmpty) {
-              _navigationPath = result.pathPoints;
-              _pathFloorIndices = List.filled(result.pathPoints.length, targetFloor);
+            _currentFloor = floorIndex;
+            if (pathOffsets.isNotEmpty) {
+              _navigationPath = pathOffsets;
+              _pathFloorIndices = List.filled(pathOffsets.length, floorIndex);
               _isNavigating = true;
               _pathAnimationController.forward(from: 0);
             }
           });
         },
-        initialFloor: _floorNames[_currentFloor],
       ),
     );
   }

@@ -88,7 +88,8 @@ class HomeScreen extends StatelessWidget {
                 isScrollControlled: true,
                 backgroundColor: Colors.transparent,
                 builder: (_) => AINavSheet(
-                  onNavigationResult: (result) {},
+                  currentFloorIndex: 0,
+                  onNavigationResult: (pathOffsets, floorIndex, roomId) {},
                 ),
               ),
             ),
