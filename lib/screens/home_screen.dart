@@ -1,3 +1,4 @@
+// lib/screens/home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:naviapp/providers/theme_provider.dart';
@@ -86,7 +87,9 @@ class HomeScreen extends StatelessWidget {
                 context: context,
                 isScrollControlled: true,
                 backgroundColor: Colors.transparent,
-                builder: (_) => const AINavSheet(),
+                builder: (_) => AINavSheet(
+                  onNavigationResult: (result) {},
+                ),
               ),
             ),
             const SizedBox(height: 24),
@@ -136,10 +139,10 @@ class HomeScreen extends StatelessWidget {
         ),
       ),
       padding: const EdgeInsets.all(16),
-      child: Row(
+      child: const Row(
         children: [
-          const Icon(Icons.school, size: 48, color: Color(0xFFF97316)),
-          const SizedBox(width: 16),
+          Icon(Icons.school, size: 48, color: Color(0xFFF97316)),
+          SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -149,15 +152,15 @@ class HomeScreen extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: isDark ? const Color(0xFFFFF7ED) : const Color(0xFF1C0A00),
+                    color: Color(0xFF1C0A00),
                   ),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: 4),
                 Text(
                   'AI-Powered Campus Navigation',
                   style: TextStyle(
                     fontSize: 13,
-                    color: isDark ? const Color(0xFFFED7AA) : const Color(0xFF78350F),
+                    color: Color(0xFF78350F),
                   ),
                 ),
               ],
@@ -309,6 +312,7 @@ class FloorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: () {
         Navigator.of(context).push(
@@ -320,7 +324,7 @@ class FloorCard extends StatelessWidget {
       child: Container(
         width: double.infinity,
         decoration: BoxDecoration(
-          color: Theme.of(context).brightness == Brightness.dark ? bgDark : bgLight,
+          color: isDark ? bgDark : bgLight,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: borderColor),
         ),
@@ -338,7 +342,7 @@ class FloorCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: Theme.of(context).brightness == Brightness.dark
+                      color: isDark
                           ? const Color(0xFFFFF7ED)
                           : const Color(0xFF1C0A00),
                     ),
@@ -348,7 +352,7 @@ class FloorCard extends StatelessWidget {
                     rooms,
                     style: TextStyle(
                       fontSize: 12,
-                      color: Theme.of(context).brightness == Brightness.dark
+                      color: isDark
                           ? const Color(0xFFFED7AA)
                           : const Color(0xFF78350F),
                     ),

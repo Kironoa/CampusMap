@@ -1,9 +1,8 @@
-import 'dart:async';
+// lib/screens/floor_plan_screen.dart
 import 'dart:math';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:naviapp/models/room.dart';
-import 'package:naviapp/data/floor_plan_data.dart';
 import 'package:naviapp/widgets/ai_nav_sheet.dart';
 
 class FloorPlanScreen extends StatefulWidget {
@@ -18,19 +17,147 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
     with TickerProviderStateMixin {
   final TransformationController _transformationController =
       TransformationController();
-  Room? _selectedRoom;
-  double _scale = 1.0;
   late int _currentFloor;
   late AnimationController _pathAnimationController;
   late Animation<double> _pathAnimation;
-
-  String? _highlightedRoomId;
   List<Offset> _navigationPath = [];
   bool _isNavigating = false;
   List<int> _pathFloorIndices = [];
+  ui.Image? _pawImage;
+  bool _pawImageLoaded = false;
 
-  static const double _originalImageWidth = 1120.0;
-  static const double _originalImageHeight = 400.0;
+  static const List<String> _floorNames = ['Ground', '2nd Floor', '3rd Floor'];
+  static const List<String> _floorImagePaths = [
+    'assets/images/ground_floor.png',
+    'assets/images/second_floor.png',
+    'assets/images/third_floor.png',
+  ];
+
+  static const Map<String, Offset> _groundFloorPositions = {
+    'gf_main_lobby': Offset(0.72, 0.72),
+    'gf_drive_way': Offset(0.44, 0.92),
+    'gf_scholarship_welfare': Offset(0.44, 0.55),
+    'gf_ojt_placement': Offset(0.44, 0.65),
+    'gf_accreditation': Offset(0.60, 0.72),
+    'gf_record_registrar': Offset(0.44, 0.42),
+    'gf_registrar': Offset(0.38, 0.42),
+    'gf_vp_admin': Offset(0.30, 0.42),
+    'gf_crim_lab': Offset(0.17, 0.42),
+    'gf_icje': Offset(0.10, 0.42),
+    'gf_sldo': Offset(0.03, 0.32),
+    'gf_ciso': Offset(0.60, 0.42),
+    'gf_avr': Offset(0.68, 0.42),
+    'gf_dressing': Offset(0.76, 0.42),
+    'gf_music': Offset(0.82, 0.42),
+    'gf_dance': Offset(0.89, 0.42),
+    'gf_barracks': Offset(0.96, 0.42),
+    'gf_medical': Offset(0.64, 0.20),
+    'gf_restroom_left': Offset(0.09, 0.20),
+    'gf_restroom_center': Offset(0.40, 0.20),
+    'gf_restroom_right': Offset(0.86, 0.20),
+    'gf_mb105': Offset(0.72, 0.20),
+    'gf_mb103': Offset(0.78, 0.20),
+    'gf_mpr': Offset(0.84, 0.20),
+    'gf_midwifery': Offset(0.90, 0.20),
+    'gf_pfom': Offset(0.96, 0.20),
+    'gf_ias': Offset(0.48, 0.20),
+    'gf_ite': Offset(0.36, 0.20),
+    'gf_ibfs': Offset(0.29, 0.20),
+    'gf_ihs': Offset(0.24, 0.20),
+    'gf_training': Offset(0.18, 0.20),
+    'gf_ics': Offset(0.13, 0.20),
+    'gf_cr_left1': Offset(0.17, 0.07),
+    'gf_cr_left2': Offset(0.19, 0.07),
+    'gf_cr_right1': Offset(0.89, 0.07),
+    'gf_cr_right2': Offset(0.91, 0.07),
+    'gf_elevator': Offset(0.50, 0.42),
+  };
+
+  static const Map<String, Offset> _secondFloorPositions = {
+    'sf_main_stage': Offset(0.50, 0.12),
+    'sf_guidance_testing': Offset(0.04, 0.32),
+    'sf_sub_lobby': Offset(0.08, 0.32),
+    'sf_computer_lab': Offset(0.18, 0.32),
+    'sf_computer_room_1': Offset(0.30, 0.32),
+    'sf_computer_room_2': Offset(0.37, 0.32),
+    'sf_computer_room_3': Offset(0.43, 0.32),
+    'sf_restroom_left': Offset(0.47, 0.32),
+    'sf_restroom_center_left': Offset(0.50, 0.32),
+    'sf_restroom_center_right': Offset(0.53, 0.32),
+    'sf_restroom_right': Offset(0.56, 0.32),
+    'sf_vip_lounge': Offset(0.60, 0.32),
+    'sf_faculty_lounge': Offset(0.75, 0.32),
+    'sf_speech_lab': Offset(0.87, 0.32),
+    'sf_bseed_left': Offset(0.97, 0.32),
+    'sf_bseed_right': Offset(0.97, 0.55),
+    'sf_guidance_counseling': Offset(0.04, 0.55),
+    'sf_moot_court': Offset(0.17, 0.55),
+    'sf_business_center': Offset(0.30, 0.55),
+    'sf_classroom_left': Offset(0.40, 0.55),
+    'sf_classroom_center': Offset(0.45, 0.55),
+    'sf_classroom_right': Offset(0.50, 0.55),
+    'sf_board_room': Offset(0.60, 0.55),
+    'sf_hrmo': Offset(0.67, 0.55),
+    'sf_faculty_room': Offset(0.75, 0.55),
+    'sf_supply': Offset(0.82, 0.55),
+    'sf_vp_planning': Offset(0.87, 0.55),
+    'sf_evp': Offset(0.92, 0.55),
+    'sf_deans': Offset(0.44, 0.70),
+    'sf_vpaa': Offset(0.44, 0.80),
+    'sf_president': Offset(0.60, 0.75),
+    'sf_deck_canopy': Offset(0.50, 0.95),
+    'sf_bleacher_left': Offset(0.25, 0.18),
+    'sf_bleacher_right': Offset(0.75, 0.18),
+  };
+
+  static const Map<String, Offset> _thirdFloorPositions = {
+    'tf_prayer': Offset(0.37, 0.15),
+    'tf_activity': Offset(0.50, 0.12),
+    'tf_research': Offset(0.60, 0.15),
+    'tf_library': Offset(0.25, 0.35),
+    'tf_lrc1': Offset(0.07, 0.35),
+    'tf_lrc2': Offset(0.43, 0.35),
+    'tf_elevator': Offset(0.50, 0.35),
+    'tf_restroom_left': Offset(0.54, 0.35),
+    'tf_restroom_right': Offset(0.57, 0.35),
+    'tf_classroom_1': Offset(0.63, 0.35),
+    'tf_classroom_2': Offset(0.70, 0.35),
+    'tf_classroom_3': Offset(0.76, 0.35),
+    'tf_classroom_4': Offset(0.82, 0.35),
+    'tf_classroom_5': Offset(0.88, 0.35),
+    'tf_science_lab': Offset(0.93, 0.35),
+    'tf_classroom_6': Offset(0.98, 0.35),
+    'tf_bleacher_left': Offset(0.25, 0.65),
+    'tf_bleacher_right': Offset(0.75, 0.65),
+    'tf_main_stage': Offset(0.50, 0.75),
+  };
+
+  Map<String, Offset> _getFloorPositionMap(int floor) {
+    switch (floor) {
+      case 0:
+        return _groundFloorPositions;
+      case 1:
+        return _secondFloorPositions;
+      case 2:
+        return _thirdFloorPositions;
+      default:
+        return _groundFloorPositions;
+    }
+  }
+
+  Size _getFloorImageSize(int floor) {
+    switch (floor) {
+      case 0:
+        return const Size(1485, 704);
+      case 1:
+        return const Size(1464, 720);
+      default:
+        return const Size(1600, 671);
+    }
+  }
+
+  String get _currentFloorName => _floorNames[_currentFloor];
+  String get _currentFloorImage => _floorImagePaths[_currentFloor];
 
   @override
   void initState() {
@@ -46,14 +173,67 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
       duration: const Duration(seconds: 5),
     );
     _pathAnimation = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _pathAnimationController, curve: Curves.linear),
+      CurvedAnimation(parent: _pathAnimationController, curve: Curves.easeOutCubic),
     );
     _pathAnimationController.addListener(() {
       setState(() {});
     });
+    _loadPawImage();
   }
 
-  void updateNavigationPath(List<Offset> path, List<int> floorIndices) {
+  Future<void> _loadPawImage() async {
+    try {
+      final byteData = await rootBundle.load('assets/images/dog_paw.png');
+      final bytes = byteData.buffer.asUint8List();
+      final codec = await ui.instantiateImageCodec(bytes);
+      final frameInfo = await codec.getNextFrame();
+      if (mounted) {
+        setState(() {
+          _pawImage = frameInfo.image;
+          _pawImageLoaded = true;
+        });
+      }
+    } catch (e) {
+      debugPrint('Failed to load paw image: $e');
+    }
+  }
+
+  void navigateTo(String roomId) {
+    final positions = _getFloorPositionMap(_currentFloor);
+    final targetPos = positions[roomId];
+
+    if (targetPos == null) {
+      for (int floor = 0; floor < 3; floor++) {
+        final floorPositions = _getFloorPositionMap(floor);
+        if (floorPositions.containsKey(roomId)) {
+          _currentFloor = floor;
+          _navigationPath.clear();
+          _generatePathFromEntrance(floorPositions[roomId]!);
+          return;
+        }
+      }
+      return;
+    }
+
+    _generatePathFromEntrance(targetPos);
+  }
+
+  void _generatePathFromEntrance(Offset targetPos) {
+    const entrance = Offset(0.50, 0.95);
+    final path = <Offset>[entrance];
+
+    if (targetPos.dx < 0.30) {
+      path.add(const Offset(0.30, 0.95));
+      path.add(const Offset(0.30, 0.45));
+    } else if (targetPos.dx > 0.70) {
+      path.add(const Offset(0.70, 0.95));
+      path.add(const Offset(0.70, 0.45));
+    }
+
+    path.add(Offset(targetPos.dx, 0.45));
+    path.add(targetPos);
+
+    final floorIndices = List<int>.filled(path.length, _currentFloor);
     setState(() {
       _navigationPath = path;
       _pathFloorIndices = floorIndices;
@@ -62,103 +242,6 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
     if (path.isNotEmpty) {
       _pathAnimationController.forward(from: 0);
     }
-  }
-
-  void clearNavigationPath() {
-    setState(() {
-      _navigationPath = [];
-      _pathFloorIndices = [];
-      _isNavigating = false;
-    });
-    _pathAnimationController.reset();
-  }
-
-  void navigateTo(String destination) {
-    final normalizedDestination = destination.toLowerCase().trim();
-
-    final Room? targetRoom = _findRoomByKeyword(normalizedDestination);
-    if (targetRoom == null) return;
-
-    final targetFloor = _getRoomFloor(targetRoom.id);
-    final pathPoints = _generatePathFromEntrance(targetRoom);
-
-    final List<int> floorIndices = List.filled(pathPoints.length, targetFloor);
-
-    setState(() {
-      _currentFloor = targetFloor;
-      _selectedRoom = targetRoom;
-      _highlightedRoomId = targetRoom.id;
-      _navigationPath = pathPoints;
-      _pathFloorIndices = floorIndices;
-      _isNavigating = pathPoints.isNotEmpty;
-    });
-
-    if (pathPoints.isNotEmpty) {
-      _pathAnimationController.forward(from: 0);
-    }
-
-    Future.delayed(const Duration(seconds: 5), () {
-      if (mounted) {
-        setState(() {
-          _highlightedRoomId = null;
-        });
-      }
-    });
-  }
-
-  Room? _findRoomByKeyword(String keyword) {
-    final allRooms = [
-      ...FloorPlanData.groundFloorRooms,
-      ...FloorPlanData.secondFloorRooms,
-      ...FloorPlanData.thirdFloorRooms,
-    ];
-
-    for (final room in allRooms) {
-      if (room.id.toLowerCase().contains(keyword) ||
-          room.name.toLowerCase().contains(keyword)) {
-        return room;
-      }
-    }
-    return null;
-  }
-
-  int _getRoomFloor(String roomId) {
-    if (roomId.startsWith('gf_')) return 0;
-    if (roomId.startsWith('sf_')) return 1;
-    if (roomId.startsWith('tf_')) return 2;
-    return _currentFloor;
-  }
-
-  List<Offset> _generatePathFromEntrance(Room targetRoom) {
-    const entrance = Offset(0.5, 0.9);
-
-    if (targetRoom.bounds == null) {
-      return [entrance];
-    }
-
-    final bounds = targetRoom.bounds!;
-    final centerX = (bounds.left + bounds.right) / 2;
-    final centerY = bounds.top;
-    final targetPos = Offset(centerX, centerY);
-
-    final List<Offset> path = [];
-    path.add(entrance);
-
-    final corridors = [
-      const Offset(0.5, 0.7),
-      const Offset(0.5, 0.5),
-      Offset(centerX, 0.5),
-    ];
-
-    for (final corridor in corridors) {
-      if ((corridor - targetPos).distance > 0.05) {
-        path.add(corridor);
-      }
-    }
-
-    path.add(targetPos);
-
-    return path;
   }
 
   @override
@@ -170,220 +253,12 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
     super.dispose();
   }
 
-  Color _getCategoryColor(RoomCategory category, double opacity) {
-    return Room.categoryColor(category).withValues(alpha: opacity);
-  }
-
-  Color _getCategoryBorderColor(RoomCategory category) {
-    return Room.categoryColor(category);
-  }
-
-  void _handleTap(TapUpDetails details, Size viewportSize) {
-    if (!mounted) return;
-
-    final localPos = details.localPosition;
-
-    final scale = _scale;
-    final scaledWidth = viewportSize.width * scale;
-    final scaledHeight = viewportSize.height * scale;
-    final offsetX = (viewportSize.width - scaledWidth) / 2;
-    final offsetY = (viewportSize.height - scaledHeight) / 2;
-
-    final normalizedX = (localPos.dx - offsetX) / scaledWidth;
-    final normalizedY = (localPos.dy - offsetY) / scaledHeight;
-
-    if (normalizedX < 0 ||
-        normalizedX > 1 ||
-        normalizedY < 0 ||
-        normalizedY > 1) {
-      return;
-    }
-
-    final normalizedPos = Offset(
-      normalizedX.clamp(0.0, 1.0),
-      normalizedY.clamp(0.0, 1.0),
-    );
-    final room = FloorPlanData.getRoomAtPosition(
-      _currentFloor,
-      normalizedPos.dx,
-      normalizedPos.dy,
-    );
-
-    setState(() {
-      _selectedRoom = room;
-    });
-
-    if (room != null) {
-      _showRoomDetails(room);
-    }
-  }
-
-  void _showRoomDetails(Room room) {
-    if (!mounted) return;
-
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF2C1F0E) : Colors.white,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _getCategoryColor(room.category, 0.2),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    room.category.name.toUpperCase(),
-                    style: TextStyle(
-                      color: _getCategoryBorderColor(room.category),
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const Spacer(),
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.pop(ctx),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              room.name,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: isDark
-                    ? const Color(0xFFFFF7ED)
-                    : const Color(0xFF1C0A00),
-              ),
-            ),
-            if (room.description != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                room.description!,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: isDark
-                      ? const Color(0xFFFED7AA)
-                      : const Color(0xFF78350F),
-                ),
-              ),
-            ],
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Icon(
-                  Icons.location_on,
-                  size: 16,
-                  color: const Color(0xFFF97316),
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  'Floor: ${FloorPlanData.getFloorName(_currentFloor)}',
-                  style: TextStyle(
-                    color: isDark
-                        ? const Color(0xFFFED7AA)
-                        : const Color(0xFF78350F),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            FilledButton.icon(
-              icon: const Icon(Icons.psychology_outlined),
-              label: const Text('Navigate with AI'),
-              style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF16A34A),
-                minimumSize: const Size(double.infinity, 48),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
-                ),
-              ),
-              onPressed: () {
-                Navigator.pop(ctx);
-                showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  backgroundColor: Colors.transparent,
-                  builder: (_) => AINavSheet(
-                    currentFloor: FloorPlanData.getFloorName(_currentFloor).toLowerCase(),
-                    currentRoomId: room.id,
-                    onNavigationResult: (pathPoints, targetFloor, targetRoomId) {
-                      if (pathPoints.isNotEmpty || targetRoomId != null) {
-                        setState(() {
-                          if (targetFloor != null && targetFloor != _currentFloor) {
-                            _currentFloor = targetFloor;
-                          }
-                          if (targetRoomId != null) {
-                            final room = FloorPlanData.getRoomById(targetRoomId);
-                            if (room != null) {
-                              _selectedRoom = room;
-                              _highlightedRoomId = targetRoomId;
-                            }
-                          }
-                          if (pathPoints.isNotEmpty) {
-                            _navigationPath = pathPoints;
-                            _pathFloorIndices = List.filled(pathPoints.length, targetFloor ?? _currentFloor);
-                            _isNavigating = true;
-                            _pathAnimationController.forward(from: 0);
-                          }
-                        });
-                      }
-                    },
-                    onNavigateRequest: (destination) => navigateTo(destination),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void highlightRoom(String roomId) {
-    setState(() {
-      _highlightedRoomId = roomId;
-    });
-    Future.delayed(const Duration(seconds: 5), () {
-      if (mounted) {
-        setState(() {
-          _highlightedRoomId = null;
-        });
-      }
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    final floorNames = ['Ground', '2nd Floor', '3rd Floor'];
-    final nextFloor = (_currentFloor + 1) % 3;
-    final toggleLabel = '${floorNames[nextFloor]} ${nextFloor > _currentFloor ? '↑' : '↓'}';
-
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          FloorPlanData.getFloorName(_currentFloor),
+          _currentFloorName,
           style: const TextStyle(
             fontFamily: 'Poppins',
             fontWeight: FontWeight.bold,
@@ -396,134 +271,130 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        actions: [
-          GestureDetector(
-            onTap: () {
-              int targetFloor = (_currentFloor + 1) % 3;
-              setState(() {
-                _currentFloor = targetFloor;
-                _selectedRoom = null;
-              });
-            },
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              margin: const EdgeInsets.only(right: 12),
-              child: Text(
-                toggleLabel,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
+      ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final imageSize = _getFloorImageSize(_currentFloor);
+          final scaleX = constraints.maxWidth / imageSize.width;
+          final scaleY = constraints.maxHeight / imageSize.height;
+          final scaleFactor = scaleX < scaleY ? scaleX : scaleY;
+          final scaledWidth = imageSize.width * scaleFactor;
+          final scaledHeight = imageSize.height * scaleFactor;
+          
+          return InteractiveViewer(
+            transformationController: _transformationController,
+            minScale: 0.5,
+            maxScale: 4.0,
+            child: Center(
+              child: SizedBox(
+                width: scaledWidth,
+                height: scaledHeight,
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: Image.asset(
+                        _currentFloorImage,
+                        fit: BoxFit.fill,
+                      ),
+                    ),
+                    CustomPaint(
+                      size: Size(scaledWidth, scaledHeight),
+                      painter: FloorPlanPainter(
+                        isDark: Theme.of(context).brightness == Brightness.dark,
+                        navigationPath: _navigationPath,
+                        pathFloorIndices: _pathFloorIndices,
+                        currentFloor: _currentFloor,
+                        pathProgress: _pathAnimation.value,
+                        isNavigating: _isNavigating,
+                        imageOriginalSize: imageSize,
+                        pawImage: _pawImage,
+                        pawImageLoaded: _pawImageLoaded,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
+          );
+        },
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _currentFloor,
+        onDestinationSelected: (index) {
+          setState(() {
+            _currentFloor = index;
+          });
+        },
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.stairs),
+            label: 'Ground',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.business),
+            label: '2nd',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.apartment),
+            label: '3rd',
           ),
         ],
       ),
-      body: InteractiveViewer(
-        transformationController: _transformationController,
-        minScale: 0.5,
-        maxScale: 4.0,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final viewportSize = Size(
-              constraints.maxWidth,
-              constraints.maxHeight,
-            );
-            final minDimension = constraints.maxWidth < constraints.maxHeight
-                ? constraints.maxWidth
-                : constraints.maxHeight;
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _openNavigation,
+        icon: const Icon(Icons.navigation_outlined),
+        label: const Text('Navigate', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w600)),
+        backgroundColor: const Color(0xFF16A34A),
+        foregroundColor: Colors.white,
+      ),
+    );
+  }
 
-            _scale = minDimension / _originalImageHeight;
-            final scaledSize = Size(
-              _originalImageWidth * _scale,
-              _originalImageHeight * _scale,
-            );
-
-            return Center(
-              child: SizedBox(
-                width: scaledSize.width,
-                height: scaledSize.height,
-                child: GestureDetector(
-                  onTapUp: (details) => _handleTap(details, viewportSize),
-                  child: Stack(
-                    children: [
-                      Positioned.fill(
-                        child: Image.asset(
-                          _currentFloor == 0
-                              ? 'assets/images/ground_floor.png'
-                              : _currentFloor == 1
-                                  ? 'assets/images/second_floor.png'
-                                  : 'assets/images/third_floor.png',
-                          fit: BoxFit.contain,
-                        ),
-                      ),
-                      CustomPaint(
-                        size: scaledSize,
-                        painter: FloorPlanPainter(
-                          rooms: FloorPlanData.getRoomsForFloor(_currentFloor),
-                          selectedRoom: _selectedRoom,
-                          highlightedRoomId: _highlightedRoomId,
-                          isDark: isDark,
-                          scale: _scale,
-                          getCategoryColor: _getCategoryColor,
-                          getCategoryBorderColor: _getCategoryBorderColor,
-                          navigationPath: _navigationPath,
-                          pathFloorIndices: _pathFloorIndices,
-                          currentFloor: _currentFloor,
-                          pathProgress: _pathAnimation.value,
-                          isNavigating: _isNavigating,
-                          imageOriginalSize: const Size(
-                            _originalImageWidth,
-                            _originalImageHeight,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
+  void _openNavigation() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => AINavSheet(
+        onNavigationResult: (result) {
+          final targetFloor = int.tryParse(result.floor) ?? _currentFloor;
+          setState(() {
+            _currentFloor = targetFloor;
+            if (result.pathPoints.isNotEmpty) {
+              _navigationPath = result.pathPoints;
+              _pathFloorIndices = List.filled(result.pathPoints.length, targetFloor);
+              _isNavigating = true;
+              _pathAnimationController.forward(from: 0);
+            }
+          });
+        },
+        initialFloor: _floorNames[_currentFloor],
       ),
     );
   }
 }
 
 class FloorPlanPainter extends CustomPainter {
-  final List<Room> rooms;
-  final Room? selectedRoom;
-  final String? highlightedRoomId;
   final bool isDark;
-  final double scale;
-  final Color Function(RoomCategory, double) getCategoryColor;
-  final Color Function(RoomCategory) getCategoryBorderColor;
   final List<Offset> navigationPath;
   final List<int> pathFloorIndices;
   final int currentFloor;
   final double pathProgress;
   final bool isNavigating;
   final Size imageOriginalSize;
+  final ui.Image? pawImage;
+  final bool pawImageLoaded;
 
   FloorPlanPainter({
-    required this.rooms,
-    required this.selectedRoom,
-    this.highlightedRoomId,
     required this.isDark,
-    required this.scale,
-    required this.getCategoryColor,
-    required this.getCategoryBorderColor,
     this.navigationPath = const [],
     this.pathFloorIndices = const [],
     this.currentFloor = 0,
     this.pathProgress = 0,
     this.isNavigating = false,
-    this.imageOriginalSize = const Size(1120, 400),
+    this.imageOriginalSize = const Size(1464, 720),
+    this.pawImage,
+    this.pawImageLoaded = false,
   });
 
   @override
@@ -542,203 +413,76 @@ class FloorPlanPainter extends CustomPainter {
     canvas.translate(offsetX, offsetY);
     canvas.scale(scaleFactor);
 
-    final borderColor = isDark ? Colors.grey.shade500 : Colors.grey.shade400;
-    final textColor = isDark ? Colors.white : Colors.black87;
-
-    for (final room in rooms) {
-      if (room.bounds == null) continue;
-      final bounds = room.bounds!;
-      final rect = Rect.fromLTRB(
-        bounds.left * baseSize,
-        bounds.top * height,
-        bounds.right * baseSize,
-        bounds.bottom * height,
-      );
-
-      final isSelected = selectedRoom?.id == room.id;
-      final isHighlighted = highlightedRoomId == room.id;
-      final fillOpacity = isSelected
-          ? 0.35
-          : isHighlighted
-          ? 0.3
-          : (isDark ? 0.25 : 0.15);
-      final borderWidth = isSelected
-          ? 2.5 / scaleFactor
-          : isHighlighted
-          ? 3.0 / scaleFactor
-          : 1.0 / scaleFactor;
-
-      final fillPaint = Paint()
-        ..color = getCategoryColor(room.category, fillOpacity)
-        ..style = PaintingStyle.fill;
-      canvas.drawRect(rect, fillPaint);
-
-      final outlinePaint = Paint()
-        ..color = isSelected
-            ? getCategoryBorderColor(room.category)
-            : isHighlighted
-            ? const Color(0xFFF97316)
-            : borderColor
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = borderWidth;
-      canvas.drawRect(rect, outlinePaint);
-
-      if (isHighlighted) {
-        final highlightPaint = Paint()
-          ..color = const Color(0xFFF97316).withValues(alpha: 0.35)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 6.0 / scaleFactor;
-        canvas.drawRect(rect, highlightPaint);
-      }
-
-      if (room.category == RoomCategory.utility && room.id == 'sf_safe_area') {
-        final safeCenter = Offset(
-          (bounds.left + bounds.width / 2) * baseSize,
-          (bounds.top + bounds.height / 2) * height,
-        );
-
-        const safeRadius = 18.0;
-        final safeFillPaint = Paint()
-          ..color = const Color(0xFFDC2626)
-          ..style = PaintingStyle.fill;
-        canvas.drawCircle(safeCenter, safeRadius, safeFillPaint);
-
-        final safeOutlinePaint = Paint()
-          ..color = Colors.white
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2 / scaleFactor;
-        canvas.drawCircle(safeCenter, safeRadius, safeOutlinePaint);
-
-        final textStyle = TextStyle(
-          color: Colors.white,
-          fontSize: 9 / scaleFactor,
-          fontWeight: FontWeight.bold,
-        );
-
-        final shieldPainter = TextPainter(
-          text: TextSpan(text: 'SAFE', style: textStyle),
-          textDirection: TextDirection.ltr,
-        );
-        shieldPainter.layout();
-        shieldPainter.paint(
-          canvas,
-          Offset(
-            safeCenter.dx - shieldPainter.width / 2,
-            safeCenter.dy - shieldPainter.height / 2,
-          ),
-        );
-        continue;
-      }
-
-      if (room.category == RoomCategory.utility && room.id.contains('restroom')) {
-        final center = Offset(
-          (bounds.left + bounds.width / 2) * baseSize,
-          (bounds.top + bounds.height / 2) * height,
-        );
-
-        final iconPaint = Paint()
-          ..color = isDark ? Colors.grey.shade400 : Colors.grey.shade600
-          ..style = PaintingStyle.fill;
-        canvas.drawCircle(center, 6, iconPaint);
-        continue;
-      }
-
-      final fontSize = (rect.width * 0.12 / scaleFactor).clamp(7.0, 11.0);
-      if (rect.width > 35 && rect.height > 18) {
-        final textPainter = TextPainter(
-          text: TextSpan(
-            text: room.name,
-            style: TextStyle(
-              color: textColor,
-              fontSize: fontSize,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          textDirection: TextDirection.ltr,
-          textAlign: TextAlign.center,
-        );
-        textPainter.layout(maxWidth: rect.width - 4);
-
-        if (textPainter.width <= rect.width - 4 &&
-            textPainter.height <= rect.height - 4) {
-          textPainter.paint(
-            canvas,
-            Offset(
-              rect.left + (rect.width - textPainter.width) / 2,
-              rect.top + (rect.height - textPainter.height) / 2,
-            ),
-          );
-        }
-      }
-    }
-
     if (isNavigating && navigationPath.isNotEmpty) {
-      _drawNavigationPath(canvas, baseSize, height, offsetX, offsetY, scaleFactor);
+      _drawNavigationPath(canvas, baseSize, height, scaleFactor);
     }
 
     canvas.restore();
   }
 
-  void _drawNavigationPath(Canvas canvas, double baseSize, double height, double offsetX, double offsetY, double scaleFactor) {
+  void _drawNavigationPath(Canvas canvas, double baseSize, double height, double scaleFactor) {
     if (navigationPath.isEmpty) return;
 
-    final totalPathLength = _calculatePathLength(navigationPath);
+    final totalPathLength = _calculatePixelPathLength(navigationPath, baseSize, height);
     final progressDistance = totalPathLength * pathProgress;
     if (progressDistance <= 0) return;
 
-    final pawRadius = 5.0 / scaleFactor;
-    final pawSpacing = 11.0 / scaleFactor;
-
-    final pawFillPaint = Paint()
-      ..color = const Color(0xFFF97316)
-      ..style = PaintingStyle.fill;
-
-    final pawBorderPaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5 / scaleFactor;
-
     double traveledDistance = 0;
+    final useImage = pawImageLoaded && pawImage != null;
+    final pawSize = 12.0 / scaleFactor;
+    final pixelSpacing = (totalPathLength / 50.0).clamp(3.0, 20.0);
 
     for (int i = 0; i < navigationPath.length - 1; i++) {
       final pathFloor = pathFloorIndices.length > i ? pathFloorIndices[i] : currentFloor;
-      if (pathFloor != currentFloor) continue;
+      if (pathFloor != currentFloor) {
+        final p1 = navigationPath[i];
+        final p2 = navigationPath[i + 1];
+        final x1 = p1.dx * baseSize;
+        final y1 = p1.dy * height;
+        final x2 = p2.dx * baseSize;
+        final y2 = p2.dy * height;
+        traveledDistance += (Offset(x2 - x1, y2 - y1)).distance;
+        continue;
+      }
 
       final p1 = navigationPath[i];
       final p2 = navigationPath[i + 1];
-
-      if (i + 1 < navigationPath.length) {
-        final nextFloor = pathFloorIndices.length > i + 1 ? pathFloorIndices[i + 1] : currentFloor;
-        if (nextFloor != currentFloor) continue;
-      }
-
-      final x1 = offsetX + p1.dx * baseSize;
-      final y1 = offsetY + p1.dy * height;
-      final x2 = offsetX + p2.dx * baseSize;
-      final y2 = offsetY + p2.dy * height;
-
+      final x1 = p1.dx * baseSize;
+      final y1 = p1.dy * height;
+      final x2 = p2.dx * baseSize;
+      final y2 = p2.dy * height;
       final segmentLength = (Offset(x2 - x1, y2 - y1)).distance;
       if (segmentLength <= 0) continue;
 
-      final stepsInSegment = (segmentLength / pawSpacing).ceil().clamp(1, 30);
-
+      final stepsInSegment = (segmentLength / pixelSpacing).ceil().clamp(1, 500);
       for (int step = 0; step <= stepsInSegment; step++) {
         final t = step / stepsInSegment;
         final x = x1 + (x2 - x1) * t;
         final y = y1 + (y2 - y1) * t;
+        final currentPixel = traveledDistance + t * segmentLength;
+        if (currentPixel > progressDistance) break;
 
-        if (step > 0) {
-          traveledDistance += pawSpacing;
+        if (useImage && pawImage != null) {
+          canvas.drawImageRect(
+            pawImage!,
+            Rect.fromLTWH(0, 0, pawImage!.width.toDouble(), pawImage!.height.toDouble()),
+            Rect.fromCenter(center: Offset(x, y), width: pawSize, height: pawSize),
+            Paint(),
+          );
+        } else {
+          final pawFillPaint = Paint()
+            ..color = const Color(0xFFF97316)
+            ..style = PaintingStyle.fill;
+          final pawBorderPaint = Paint()
+            ..color = Colors.white
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.5 / scaleFactor;
+          canvas.drawCircle(Offset(x, y), pawSize / 2, pawFillPaint);
+          canvas.drawCircle(Offset(x, y), pawSize / 2, pawBorderPaint);
         }
-
-        if (traveledDistance <= progressDistance) {
-          canvas.drawCircle(Offset(x, y), pawRadius, pawFillPaint);
-          canvas.drawCircle(Offset(x, y), pawRadius, pawBorderPaint);
-        }
-
-        if (traveledDistance >= progressDistance) break;
       }
 
+      traveledDistance += segmentLength;
       if (traveledDistance >= progressDistance) break;
     }
 
@@ -746,8 +490,8 @@ class FloorPlanPainter extends CustomPainter {
       final startPoint = navigationPath[0];
       final pathFloor0 = pathFloorIndices.isNotEmpty ? pathFloorIndices[0] : currentFloor;
       if (pathFloor0 == currentFloor) {
-        final sx = offsetX + startPoint.dx * baseSize;
-        final sy = offsetY + startPoint.dy * height;
+        final sx = startPoint.dx * baseSize;
+        final sy = startPoint.dy * height;
 
         final startMarker = Paint()
           ..color = const Color(0xFF16A34A)
@@ -777,8 +521,8 @@ class FloorPlanPainter extends CustomPainter {
       final lastPoint = navigationPath.last;
       final lastFloor = pathFloorIndices.isNotEmpty ? pathFloorIndices.last : currentFloor;
       if (lastFloor == currentFloor) {
-        final ex = offsetX + lastPoint.dx * baseSize;
-        final ey = offsetY + lastPoint.dy * height;
+        final ex = lastPoint.dx * baseSize;
+        final ey = lastPoint.dy * height;
 
         final endMarker = Paint()
           ..color = const Color(0xFFDC2626)
@@ -805,28 +549,25 @@ class FloorPlanPainter extends CustomPainter {
     }
   }
 
-  double _calculatePathLength(List<Offset> path) {
+  double _calculatePixelPathLength(List<Offset> path, double baseSize, double height) {
     if (path.length < 2) return 0;
     double length = 0;
     for (int i = 0; i < path.length - 1; i++) {
-      final dx = path[i + 1].dx - path[i].dx;
-      final dy = path[i + 1].dy - path[i].dy;
+      final dx = (path[i + 1].dx - path[i].dx) * baseSize;
+      final dy = (path[i + 1].dy - path[i].dy) * height;
       length += sqrt(dx * dx + dy * dy);
     }
     return length > 0 ? length : 1;
   }
 
   @override
-  bool shouldRepaint(CustomPainter oldDelegate) {
-    final old = oldDelegate as FloorPlanPainter;
-    return old.selectedRoom != selectedRoom ||
-        old.highlightedRoomId != highlightedRoomId ||
-        old.isDark != isDark ||
-        old.scale != scale ||
-        old.navigationPath != navigationPath ||
-        old.pathFloorIndices != pathFloorIndices ||
-        old.currentFloor != currentFloor ||
-        old.pathProgress != pathProgress ||
-        old.isNavigating != isNavigating;
+  bool shouldRepaint(FloorPlanPainter oldDelegate) {
+    return oldDelegate.isDark != isDark ||
+        oldDelegate.navigationPath != navigationPath ||
+        oldDelegate.pathFloorIndices != pathFloorIndices ||
+        oldDelegate.currentFloor != currentFloor ||
+        oldDelegate.pathProgress != pathProgress ||
+        oldDelegate.isNavigating != isNavigating ||
+        oldDelegate.pawImageLoaded != pawImageLoaded;
   }
 }
