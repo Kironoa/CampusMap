@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:ui' as ui;
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:naviapp/models/room.dart';
@@ -14,7 +14,8 @@ class FloorPlanScreen extends StatefulWidget {
   State<FloorPlanScreen> createState() => _FloorPlanScreenState();
 }
 
-class _FloorPlanScreenState extends State<FloorPlanScreen> with TickerProviderStateMixin {
+class _FloorPlanScreenState extends State<FloorPlanScreen>
+    with TickerProviderStateMixin {
   final TransformationController _transformationController =
       TransformationController();
   Room? _selectedRoom;
@@ -28,19 +29,24 @@ class _FloorPlanScreenState extends State<FloorPlanScreen> with TickerProviderSt
   bool _isNavigating = false;
   List<int> _pathFloorIndices = [];
 
+  static const double _originalImageWidth = 1120.0;
+  static const double _originalImageHeight = 400.0;
+
   @override
   void initState() {
     super.initState();
     _currentFloor = widget.initialFloor;
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
     ]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     _pathAnimationController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 2),
+      duration: const Duration(seconds: 5),
     );
     _pathAnimation = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _pathAnimationController, curve: Curves.easeOut),
+      CurvedAnimation(parent: _pathAnimationController, curve: Curves.linear),
     );
     _pathAnimationController.addListener(() {
       setState(() {});
@@ -69,7 +75,7 @@ class _FloorPlanScreenState extends State<FloorPlanScreen> with TickerProviderSt
 
   void navigateTo(String destination) {
     final normalizedDestination = destination.toLowerCase().trim();
-    
+
     final Room? targetRoom = _findRoomByKeyword(normalizedDestination);
     if (targetRoom == null) return;
 
@@ -125,7 +131,7 @@ class _FloorPlanScreenState extends State<FloorPlanScreen> with TickerProviderSt
 
   List<Offset> _generatePathFromEntrance(Room targetRoom) {
     const entrance = Offset(0.5, 0.9);
-    
+
     if (targetRoom.bounds == null) {
       return [entrance];
     }
@@ -137,7 +143,7 @@ class _FloorPlanScreenState extends State<FloorPlanScreen> with TickerProviderSt
 
     final List<Offset> path = [];
     path.add(entrance);
-    
+
     final corridors = [
       const Offset(0.5, 0.7),
       const Offset(0.5, 0.5),
@@ -149,7 +155,7 @@ class _FloorPlanScreenState extends State<FloorPlanScreen> with TickerProviderSt
         path.add(corridor);
       }
     }
-    
+
     path.add(targetPos);
 
     return path;
@@ -157,9 +163,8 @@ class _FloorPlanScreenState extends State<FloorPlanScreen> with TickerProviderSt
 
   @override
   void dispose() {
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-    ]);
+    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     _transformationController.dispose();
     _pathAnimationController.dispose();
     super.dispose();
@@ -317,7 +322,7 @@ class _FloorPlanScreenState extends State<FloorPlanScreen> with TickerProviderSt
                   context: context,
                   isScrollControlled: true,
                   backgroundColor: Colors.transparent,
-builder: (_) => AINavSheet(
+                  builder: (_) => AINavSheet(
                     currentFloor: FloorPlanData.getFloorName(_currentFloor).toLowerCase(),
                     currentRoomId: room.id,
                     onNavigationResult: (pathPoints, targetFloor, targetRoomId) {
@@ -433,8 +438,11 @@ builder: (_) => AINavSheet(
                 ? constraints.maxWidth
                 : constraints.maxHeight;
 
-            _scale = minDimension / 400;
-            final scaledSize = Size(400 * _scale * 2.8, 400 * _scale);
+            _scale = minDimension / _originalImageHeight;
+            final scaledSize = Size(
+              _originalImageWidth * _scale,
+              _originalImageHeight * _scale,
+            );
 
             return Center(
               child: SizedBox(
@@ -469,7 +477,10 @@ builder: (_) => AINavSheet(
                           currentFloor: _currentFloor,
                           pathProgress: _pathAnimation.value,
                           isNavigating: _isNavigating,
-                          imageOriginalSize: const Size(1120, 400),
+                          imageOriginalSize: const Size(
+                            _originalImageWidth,
+                            _originalImageHeight,
+                          ),
                         ),
                       ),
                     ],
@@ -479,62 +490,6 @@ builder: (_) => AINavSheet(
             );
           },
         ),
-      ),
-      floatingActionButton: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          FloatingActionButton.small(
-            heroTag: 'fab_ai',
-            onPressed: () {
-              showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                backgroundColor: Colors.transparent,
-                builder: (_) => AINavSheet(
-                  currentFloor: FloorPlanData.getFloorName(_currentFloor).toLowerCase(),
-                  currentRoomId: _selectedRoom?.id,
-                  onNavigationResult: (pathPoints, targetFloor, targetRoomId) {
-                    if (pathPoints.isNotEmpty || targetRoomId != null) {
-                      setState(() {
-                        if (targetFloor != null && targetFloor != _currentFloor) {
-                          _currentFloor = targetFloor;
-                        }
-                        if (targetRoomId != null) {
-                          final room = FloorPlanData.getRoomById(targetRoomId);
-                          if (room != null) {
-                            _selectedRoom = room;
-                            _highlightedRoomId = targetRoomId;
-                          }
-                        }
-                        if (pathPoints.isNotEmpty) {
-                          _navigationPath = pathPoints;
-                          _pathFloorIndices = List.filled(pathPoints.length, targetFloor ?? _currentFloor);
-                          _isNavigating = true;
-                          _pathAnimationController.forward(from: 0);
-                        }
-                      });
-                    }
-                  },
-                  onNavigateRequest: (destination) => navigateTo(destination),
-                ),
-              );
-            },
-            backgroundColor: const Color(0xFF16A34A),
-            foregroundColor: Colors.white,
-            child: const Icon(Icons.psychology_outlined),
-          ),
-          const SizedBox(height: 12),
-          FloatingActionButton(
-            heroTag: 'fab_floor_switch',
-            onPressed: () {
-              _transformationController.value = Matrix4.identity();
-            },
-            backgroundColor: const Color(0xFFF97316),
-            foregroundColor: Colors.white,
-            child: const Icon(Icons.center_focus_strong),
-          ),
-        ],
       ),
     );
   }
@@ -554,7 +509,6 @@ class FloorPlanPainter extends CustomPainter {
   final double pathProgress;
   final bool isNavigating;
   final Size imageOriginalSize;
-  ui.Image? _dogPawImage;
 
   FloorPlanPainter({
     required this.rooms,
@@ -574,8 +528,6 @@ class FloorPlanPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    _loadDogPawImage();
-    
     final baseSize = imageOriginalSize.width;
     final height = imageOriginalSize.height;
     final scaleX = size.width / baseSize;
@@ -727,83 +679,81 @@ class FloorPlanPainter extends CustomPainter {
     canvas.restore();
   }
 
-  void _loadDogPawImage() async {
-    if (_dogPawImage == null) {
-      try {
-        final byteData = await rootBundle.load('assets/images/dog_paw.png');
-        final codec = await ui.instantiateImageCodec(byteData.buffer.asUint8List());
-        final frameInfo = await codec.getNextFrame();
-        _dogPawImage = frameInfo.image;
-      } catch (e) {
-        _dogPawImage = null;
-      }
-    }
-  }
-
   void _drawNavigationPath(Canvas canvas, double baseSize, double height, double offsetX, double offsetY, double scaleFactor) {
     if (navigationPath.isEmpty) return;
 
-    final maxVisibleIndex = (navigationPath.length * pathProgress).floor();
-    if (maxVisibleIndex <= 0) return;
+    final totalPathLength = _calculatePathLength(navigationPath);
+    final progressDistance = totalPathLength * pathProgress;
+    if (progressDistance <= 0) return;
 
-    final visiblePath = navigationPath.sublist(0, maxVisibleIndex.clamp(0, navigationPath.length));
+    final pawRadius = 5.0 / scaleFactor;
+    final pawSpacing = 11.0 / scaleFactor;
 
-    final pathPaint = Paint()
-      ..color = const Color(0xFFF97316).withValues(alpha: 0.85)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 4.0 / scaleFactor
-      ..strokeCap = StrokeCap.round;
-
-    final path = Path();
-    for (int i = 0; i < visiblePath.length; i++) {
-      final point = visiblePath[i];
-      final pathFloor = pathFloorIndices.length > i ? pathFloorIndices[i] : currentFloor;
-      if (pathFloor != currentFloor) continue;
-      
-      final x = offsetX + point.dx * baseSize;
-      final y = offsetY + point.dy * height;
-      if (i == 0) {
-        path.moveTo(x, y);
-      } else {
-        path.lineTo(x, y);
-      }
-    }
-    canvas.drawPath(path, pathPaint);
-
-    final pawSize = 18.0 / scaleFactor;
-    final dotPaint = Paint()
+    final pawFillPaint = Paint()
       ..color = const Color(0xFFF97316)
       ..style = PaintingStyle.fill;
 
-    final dotBorderPaint = Paint()
+    final pawBorderPaint = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.0 / scaleFactor;
+      ..strokeWidth = 1.5 / scaleFactor;
 
-    for (int i = 0; i < maxVisibleIndex; i++) {
-      final point = navigationPath[i];
+    double traveledDistance = 0;
+
+    for (int i = 0; i < navigationPath.length - 1; i++) {
       final pathFloor = pathFloorIndices.length > i ? pathFloorIndices[i] : currentFloor;
       if (pathFloor != currentFloor) continue;
-      
-      final x = offsetX + point.dx * baseSize;
-      final y = offsetY + point.dy * height;
 
-      if (_dogPawImage != null) {
-        final srcRect = Rect.fromLTWH(0, 0, _dogPawImage!.width.toDouble(), _dogPawImage!.height.toDouble());
-        final dstRect = Rect.fromCenter(center: Offset(x, y), width: pawSize, height: pawSize);
-        canvas.drawImageRect(_dogPawImage!, srcRect, dstRect, dotPaint);
-        canvas.drawRect(dstRect, dotBorderPaint);
-      } else {
-        canvas.drawCircle(Offset(x, y), pawSize / 2, dotPaint);
-        canvas.drawCircle(Offset(x, y), pawSize / 2, dotBorderPaint);
+      final p1 = navigationPath[i];
+      final p2 = navigationPath[i + 1];
+
+      if (i + 1 < navigationPath.length) {
+        final nextFloor = pathFloorIndices.length > i + 1 ? pathFloorIndices[i + 1] : currentFloor;
+        if (nextFloor != currentFloor) continue;
       }
 
-      if (i == 0) {
+      final x1 = offsetX + p1.dx * baseSize;
+      final y1 = offsetY + p1.dy * height;
+      final x2 = offsetX + p2.dx * baseSize;
+      final y2 = offsetY + p2.dy * height;
+
+      final segmentLength = (Offset(x2 - x1, y2 - y1)).distance;
+      if (segmentLength <= 0) continue;
+
+      final stepsInSegment = (segmentLength / pawSpacing).ceil().clamp(1, 30);
+
+      for (int step = 0; step <= stepsInSegment; step++) {
+        final t = step / stepsInSegment;
+        final x = x1 + (x2 - x1) * t;
+        final y = y1 + (y2 - y1) * t;
+
+        if (step > 0) {
+          traveledDistance += pawSpacing;
+        }
+
+        if (traveledDistance <= progressDistance) {
+          canvas.drawCircle(Offset(x, y), pawRadius, pawFillPaint);
+          canvas.drawCircle(Offset(x, y), pawRadius, pawBorderPaint);
+        }
+
+        if (traveledDistance >= progressDistance) break;
+      }
+
+      if (traveledDistance >= progressDistance) break;
+    }
+
+    if (navigationPath.isNotEmpty) {
+      final startPoint = navigationPath[0];
+      final pathFloor0 = pathFloorIndices.isNotEmpty ? pathFloorIndices[0] : currentFloor;
+      if (pathFloor0 == currentFloor) {
+        final sx = offsetX + startPoint.dx * baseSize;
+        final sy = offsetY + startPoint.dy * height;
+
         final startMarker = Paint()
           ..color = const Color(0xFF16A34A)
           ..style = PaintingStyle.fill;
-        canvas.drawCircle(Offset(x, y), 8.0 / scaleFactor, startMarker);
-        
+        canvas.drawCircle(Offset(sx, sy), 8.0 / scaleFactor, startMarker);
+
         final startTextPainter = TextPainter(
           text: TextSpan(
             text: 'S',
@@ -818,43 +768,52 @@ class FloorPlanPainter extends CustomPainter {
         startTextPainter.layout();
         startTextPainter.paint(
           canvas,
-          Offset(x - startTextPainter.width / 2, y - startTextPainter.height / 2),
+          Offset(sx - startTextPainter.width / 2, sy - startTextPainter.height / 2),
         );
       }
     }
 
-    final lastVisibleOnCurrentFloor = visiblePath.lastWhere(
-      (p) => pathFloorIndices.isEmpty || pathFloorIndices.length != navigationPath.length || pathFloorIndices[visiblePath.indexOf(p)] == currentFloor,
-      orElse: () => visiblePath.last,
-    );
-    final lastIndex = navigationPath.indexOf(lastVisibleOnCurrentFloor);
-    if (lastIndex >= 0 && lastIndex == navigationPath.length - 1 && (pathFloorIndices.length <= lastIndex || pathFloorIndices[lastIndex] == currentFloor)) {
-      final point = navigationPath[lastIndex];
-      final x = offsetX + point.dx * baseSize;
-      final y = offsetY + point.dy * height;
+    if (pathProgress >= 0.95) {
+      final lastPoint = navigationPath.last;
+      final lastFloor = pathFloorIndices.isNotEmpty ? pathFloorIndices.last : currentFloor;
+      if (lastFloor == currentFloor) {
+        final ex = offsetX + lastPoint.dx * baseSize;
+        final ey = offsetY + lastPoint.dy * height;
 
-      final endMarker = Paint()
-        ..color = const Color(0xFFDC2626)
-        ..style = PaintingStyle.fill;
-      canvas.drawCircle(Offset(x, y), 8.0 / scaleFactor, endMarker);
+        final endMarker = Paint()
+          ..color = const Color(0xFFDC2626)
+          ..style = PaintingStyle.fill;
+        canvas.drawCircle(Offset(ex, ey), 8.0 / scaleFactor, endMarker);
 
-      final endTextPainter = TextPainter(
-        text: TextSpan(
-          text: 'E',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 9 / scaleFactor,
-            fontWeight: FontWeight.bold,
+        final endTextPainter = TextPainter(
+          text: TextSpan(
+            text: 'E',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 9 / scaleFactor,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        ),
-        textDirection: TextDirection.ltr,
-      );
-      endTextPainter.layout();
-      endTextPainter.paint(
-        canvas,
-        Offset(x - endTextPainter.width / 2, y - endTextPainter.height / 2),
-      );
+          textDirection: TextDirection.ltr,
+        );
+        endTextPainter.layout();
+        endTextPainter.paint(
+          canvas,
+          Offset(ex - endTextPainter.width / 2, ey - endTextPainter.height / 2),
+        );
+      }
     }
+  }
+
+  double _calculatePathLength(List<Offset> path) {
+    if (path.length < 2) return 0;
+    double length = 0;
+    for (int i = 0; i < path.length - 1; i++) {
+      final dx = path[i + 1].dx - path[i].dx;
+      final dy = path[i + 1].dy - path[i].dy;
+      length += sqrt(dx * dx + dy * dy);
+    }
+    return length > 0 ? length : 1;
   }
 
   @override
