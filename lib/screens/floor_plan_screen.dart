@@ -4,6 +4,8 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:naviapp/widgets/ai_nav_sheet.dart';
+import 'package:naviapp/services/navigation_graph.dart';
+import 'package:naviapp/services/pathfinder.dart';
 
 class FloorPlanScreen extends StatefulWidget {
   final int initialFloor;
@@ -132,19 +134,6 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
     'tf_main_stage': Offset(0.50, 0.75),
   };
 
-  Map<String, Offset> _getFloorPositionMap(int floor) {
-    switch (floor) {
-      case 0:
-        return _groundFloorPositions;
-      case 1:
-        return _secondFloorPositions;
-      case 2:
-        return _thirdFloorPositions;
-      default:
-        return _groundFloorPositions;
-    }
-  }
-
   Size _getFloorImageSize(int floor) {
     switch (floor) {
       case 0:
@@ -199,47 +188,51 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
   }
 
   void navigateTo(String roomId) {
-    final positions = _getFloorPositionMap(_currentFloor);
-    final targetPos = positions[roomId];
+    final floorIndex = _currentFloor;
+    final nodes = NavigationGraph.getNodes(floorIndex);
+    final edges = NavigationGraph.getEdges(floorIndex);
 
-    if (targetPos == null) {
+    final startNodeId = NavigationGraph.getDefaultStartNode(floorIndex) ?? nodes.first.id;
+    final endNodeId = Pathfinder.findNearestNodeToRoom(roomId, floorIndex);
+
+    final pathPoints = Pathfinder.findPath(
+      startNodeId: startNodeId,
+      endNodeId: endNodeId,
+      nodes: nodes,
+      edges: edges,
+    );
+
+    if (pathPoints.isEmpty) {
       for (int floor = 0; floor < 3; floor++) {
-        final floorPositions = _getFloorPositionMap(floor);
-        if (floorPositions.containsKey(roomId)) {
-          _currentFloor = floor;
-          _navigationPath.clear();
-          _generatePathFromEntrance(floorPositions[roomId]!);
+        final altNodes = NavigationGraph.getNodes(floor);
+        final altEdges = NavigationGraph.getEdges(floor);
+        final altEndNodeId = Pathfinder.findNearestNodeToRoom(roomId, floor);
+        final altPath = Pathfinder.findPath(
+          startNodeId: NavigationGraph.getDefaultStartNode(floor) ?? altNodes.first.id,
+          endNodeId: altEndNodeId,
+          nodes: altNodes,
+          edges: altEdges,
+        );
+        if (altPath.isNotEmpty) {
+          setState(() {
+            _currentFloor = floor;
+            _navigationPath = altPath;
+            _pathFloorIndices = List.filled(altPath.length, floor);
+            _isNavigating = true;
+          });
+          _pathAnimationController.forward(from: 0);
           return;
         }
       }
       return;
     }
 
-    _generatePathFromEntrance(targetPos);
-  }
-
-  void _generatePathFromEntrance(Offset targetPos) {
-    const entrance = Offset(0.50, 0.95);
-    final path = <Offset>[entrance];
-
-    if (targetPos.dx < 0.30) {
-      path.add(const Offset(0.30, 0.95));
-      path.add(const Offset(0.30, 0.45));
-    } else if (targetPos.dx > 0.70) {
-      path.add(const Offset(0.70, 0.95));
-      path.add(const Offset(0.70, 0.45));
-    }
-
-    path.add(Offset(targetPos.dx, 0.45));
-    path.add(targetPos);
-
-    final floorIndices = List<int>.filled(path.length, _currentFloor);
     setState(() {
-      _navigationPath = path;
-      _pathFloorIndices = floorIndices;
-      _isNavigating = path.isNotEmpty;
+      _navigationPath = pathPoints;
+      _pathFloorIndices = List.filled(pathPoints.length, floorIndex);
+      _isNavigating = pathPoints.isNotEmpty;
     });
-    if (path.isNotEmpty) {
+    if (pathPoints.isNotEmpty) {
       _pathAnimationController.forward(from: 0);
     }
   }

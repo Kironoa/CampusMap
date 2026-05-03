@@ -1,6 +1,11 @@
 // lib/widgets/ai_nav_sheet.dart
 import 'package:flutter/material.dart';
 import '../services/ai_navigation_service.dart';
+import '../services/navigation_graph.dart';
+import '../services/pathfinder.dart';
+
+typedef RoomEntry = Map<String, String>;
+typedef RoomList = List<RoomEntry>;
 
 class AINavSheet extends StatefulWidget {
   final Function(AINavigationResult) onNavigationResult;
@@ -17,7 +22,27 @@ class AINavSheet extends StatefulWidget {
 }
 
 class _AINavSheetState extends State<AINavSheet> with SingleTickerProviderStateMixin {
-  static const Map<String, List<Map<String, dynamic>>> allRooms = {
+  static const Map<String, List<Map<String, String>>> startingPoints = {
+    'Ground Floor': [
+      {'label': 'Main Entrance / Driveway', 'nodeId': 'gf_entry_driveway'},
+      {'label': 'Top Center Door', 'nodeId': 'gf_entry_top'},
+      {'label': 'Left Staircase', 'nodeId': 'gf_entry_stairs_left'},
+      {'label': 'Right Staircase', 'nodeId': 'gf_entry_stairs_right'},
+    ],
+    '2nd Floor': [
+      {'label': 'Left Staircase', 'nodeId': 'sf_entry_stairs_left'},
+      {'label': 'Right Staircase', 'nodeId': 'sf_entry_stairs_right'},
+      {'label': 'Center Staircase', 'nodeId': 'sf_h_spine'},
+      {'label': 'Deck Canopy Entrance', 'nodeId': 'sf_entry_deck'},
+    ],
+    '3rd Floor': [
+      {'label': 'Left Staircase', 'nodeId': 'tf_entry_stairs_left'},
+      {'label': 'Right Staircase', 'nodeId': 'tf_entry_stairs_right'},
+      {'label': 'Elevator', 'nodeId': 'tf_entry_elevator'},
+    ],
+  };
+
+  static const Map<String, RoomList> allRooms = {
     'Ground Floor': [
       {'name': 'Main Lobby', 'id': 'gf_main_lobby'},
       {'name': 'Drive Way', 'id': 'gf_drive_way'},
@@ -25,7 +50,7 @@ class _AINavSheetState extends State<AINavSheet> with SingleTickerProviderStateM
       {'name': 'OJT & Placement / Alumni Affairs Office', 'id': 'gf_ojt_placement'},
       {'name': 'Accreditation Room', 'id': 'gf_accreditation'},
       {'name': 'Record Section Registrar', 'id': 'gf_record_registrar'},
-      {'name': "Registrar's Office", 'id': 'gf_registrar'},
+      {"name": "Registrar's Office", 'id': 'gf_registrar'},
       {'name': 'VP Admin and Finance', 'id': 'gf_vp_admin'},
       {'name': 'Criminology Laboratory', 'id': 'gf_crim_lab'},
       {'name': 'Institute of Criminal Justice Education', 'id': 'gf_icje'},
@@ -49,7 +74,7 @@ class _AINavSheetState extends State<AINavSheet> with SingleTickerProviderStateM
       {'name': 'Institute of Teacher Education', 'id': 'gf_ite'},
       {'name': 'Institute of Business & Financial Services', 'id': 'gf_ibfs'},
       {'name': 'Institute of Health Sciences', 'id': 'gf_ihs'},
-      {'name': "TCGC Dev't Training Center", 'id': 'gf_training'},
+      {"name": "TCGC Dev't Training Center", 'id': 'gf_training'},
       {'name': 'Institute of Computer Studies', 'id': 'gf_ics'},
       {'name': 'CR (Left 1)', 'id': 'gf_cr_left1'},
       {'name': 'CR (Left 2)', 'id': 'gf_cr_left2'},
@@ -122,12 +147,13 @@ class _AINavSheetState extends State<AINavSheet> with SingleTickerProviderStateM
   bool _isLoading = false;
   String? _loadingRoomName;
 
+  int _step = 1;
+  String? _selectedStartFloor;
+  String? _selectedStartNodeId;
+  String? _selectedStartLabel;
+
   final List<String> _floorKeys = ['Ground Floor', '2nd Floor', '3rd Floor'];
-  final Map<String, String> _floorImagePaths = {
-    'Ground Floor': 'assets/images/ground_floor.png',
-    '2nd Floor': 'assets/images/second_floor.png',
-    '3rd Floor': 'assets/images/third_floor.png',
-  };
+
   final Map<String, int> _floorIndices = {
     'Ground Floor': 0,
     '2nd Floor': 1,
@@ -138,6 +164,7 @@ class _AINavSheetState extends State<AINavSheet> with SingleTickerProviderStateM
   void initState() {
     super.initState();
     final initialIndex = _floorKeys.indexOf(widget.initialFloor);
+    _selectedStartFloor = widget.initialFloor;
     _tabController = TabController(length: 3, vsync: this, initialIndex: initialIndex >= 0 ? initialIndex : 0);
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
@@ -153,15 +180,15 @@ class _AINavSheetState extends State<AINavSheet> with SingleTickerProviderStateM
     super.dispose();
   }
 
-  Map<String, List<Map<String, dynamic>>> _filterRooms() {
+  Map<String, RoomList> _filterRooms() {
     if (_searchQuery.isEmpty) {
       return allRooms;
-}
+    }
     final query = _searchQuery.toLowerCase();
-    final Map<String, List<Map<String, dynamic>>> filtered = {};
+    final Map<String, RoomList> filtered = {};
     for (final floor in _floorKeys) {
       final rooms = allRooms[floor]!.where((room) =>
-        room['name'].toString().toLowerCase().contains(query)).toList();
+        room['name']!.toLowerCase().contains(query)).toList();
       if (rooms.isNotEmpty) {
         filtered[floor] = rooms;
       }
@@ -173,19 +200,11 @@ class _AINavSheetState extends State<AINavSheet> with SingleTickerProviderStateM
     return _floorIndices[floorKey] ?? 0;
   }
 
-  String _getFloorImagePath(String floorKey) {
-    return _floorImagePaths[floorKey] ?? _floorImagePaths['Ground Floor']!;
-  }
-
-  Future<void> _onRoomTap(Map<String, dynamic> room) async {
-    final roomName = room['name'] as String;
-    final roomId = room['id'] as String;
+  Future<void> _onRoomTap(RoomEntry room) async {
+    final roomName = room['name']!;
+    final roomId = room['id']!;
     final currentFloor = _floorKeys[_tabController.index];
     final floorIndex = _getFloorIndex(currentFloor);
-    final floorImagePath = _getFloorImagePath(currentFloor);
-
-    final roomFloorIndex = int.tryParse(roomId.substring(1, 2)) ?? floorIndex;
-    final roomFloorImagePath = _floorImagePaths[_floorKeys[roomFloorIndex]] ?? floorImagePath;
 
     setState(() {
       _isLoading = true;
@@ -193,26 +212,55 @@ class _AINavSheetState extends State<AINavSheet> with SingleTickerProviderStateM
     });
 
     try {
+      final nodes = NavigationGraph.getNodes(floorIndex);
+      final edges = NavigationGraph.getEdges(floorIndex);
+
+      final startNodeId = _selectedStartNodeId ?? NavigationGraph.getDefaultStartNode(floorIndex) ?? nodes.first.id;
+      final endNodeId = Pathfinder.findNearestNodeToRoom(roomId, floorIndex);
+
+      final pathPoints = Pathfinder.findPath(
+        startNodeId: startNodeId,
+        endNodeId: endNodeId,
+        nodes: nodes,
+        edges: edges,
+      );
+
+      if (pathPoints.isEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('No accessible path found'),
+            backgroundColor: Colors.red.shade700,
+          ),
+        );
+        setState(() {
+          _isLoading = false;
+          _loadingRoomName = null;
+        });
+        return;
+      }
+
+      final fromLabel = _selectedStartLabel ?? 'your location';
       final result = await AINavigationService.instance.navigate(
         roomName: roomName,
         roomId: roomId,
-        floorImagePath: roomFloorImagePath,
-        floorIndex: roomFloorIndex,
+        floorIndex: floorIndex,
+        startNodeId: startNodeId,
+        endNodeId: endNodeId,
+        fromLabel: fromLabel,
       );
 
       if (!mounted) return;
 
-      if (result.pathPoints.isNotEmpty) {
-        widget.onNavigationResult(result);
-        Navigator.of(context).pop();
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result.answer),
-            backgroundColor: Colors.green.shade700,
-          ),
-        );
-      }
+      final fullResult = AINavigationResult(
+        answer: result.answer,
+        floor: floorIndex.toString(),
+        pathPoints: pathPoints,
+        steps: result.steps,
+      );
+
+      widget.onNavigationResult(fullResult);
+      Navigator.of(context).pop();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -231,12 +279,22 @@ class _AINavSheetState extends State<AINavSheet> with SingleTickerProviderStateM
     }
   }
 
+  void _onStartPointSelected(String floor, Map<String, String> start) {
+    setState(() {
+      _selectedStartFloor = floor;
+      _selectedStartNodeId = start['nodeId'];
+      _selectedStartLabel = start['label'];
+      _step = 2;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final filteredRooms = _filterRooms();
     final currentFloor = _floorKeys[_tabController.index];
+    final currentStartPoints = startingPoints[_selectedStartFloor ?? widget.initialFloor] ?? [];
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
@@ -258,58 +316,62 @@ class _AINavSheetState extends State<AINavSheet> with SingleTickerProviderStateM
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
-              'Where do you want to go?',
+              _step == 1 ? 'Where are you now?' : 'Where do you want to go?',
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
           const SizedBox(height: 12),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search rooms...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() {
-                            _searchQuery = '';
-                          });
-                        },
-                      )
-                    : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+          if (_step == 1)
+            _buildStartPointSelector(currentStartPoints, _selectedStartFloor ?? widget.initialFloor)
+          else ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'Search rooms...',
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() {
+                              _searchQuery = '';
+                            });
+                          },
+                        )
+                      : null,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  filled: true,
+                  fillColor: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
                 ),
-                filled: true,
-                fillColor: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value;
+                  });
+                },
               ),
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
-                });
-              },
             ),
-          ),
-          const SizedBox(height: 12),
-          TabBar(
-            controller: _tabController,
-            labelColor: Colors.orange,
-            unselectedLabelColor: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-            indicatorColor: Colors.orange,
-            indicatorWeight: 3,
-            tabs: const [
-              Tab(text: 'Ground'),
-              Tab(text: '2nd Floor'),
-              Tab(text: '3rd Floor'),
-            ],
-          ),
-          const SizedBox(height: 8),
+            const SizedBox(height: 12),
+            TabBar(
+              controller: _tabController,
+              labelColor: Colors.orange,
+              unselectedLabelColor: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+              indicatorColor: Colors.orange,
+              indicatorWeight: 3,
+              tabs: const [
+                Tab(text: 'Ground'),
+                Tab(text: '2nd Floor'),
+                Tab(text: '3rd Floor'),
+              ],
+            ),
+            const SizedBox(height: 8),
+          ],
           Expanded(
             child: _isLoading
                 ? Center(
@@ -327,9 +389,47 @@ class _AINavSheetState extends State<AINavSheet> with SingleTickerProviderStateM
                       ],
                     ),
                   )
-                : _searchQuery.isNotEmpty
-                    ? _buildSearchResults(filteredRooms)
-                    : _buildFloorRooms(currentFloor),
+                : _step == 1
+                    ? const SizedBox.shrink()
+                    : _searchQuery.isNotEmpty
+                        ? _buildSearchResults(filteredRooms)
+                        : _buildFloorRooms(currentFloor),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStartPointSelector(List<Map<String, String>> points, String floor) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Select your current location:',
+            style: TextStyle(
+              color: Colors.grey.shade600,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: points.map((start) {
+              final isSelected = _selectedStartNodeId == start['nodeId'];
+              return ChoiceChip(
+                label: Text(start['label']!),
+                selected: isSelected,
+                selectedColor: Colors.orange,
+                onSelected: (selected) {
+                  if (selected) {
+                    _onStartPointSelected(floor, start);
+                  }
+                },
+              );
+            }).toList(),
           ),
         ],
       ),
@@ -349,7 +449,7 @@ class _AINavSheetState extends State<AINavSheet> with SingleTickerProviderStateM
     );
   }
 
-  Widget _buildSearchResults(Map<String, List<Map<String, dynamic>>> filteredRooms) {
+  Widget _buildSearchResults(Map<String, RoomList> filteredRooms) {
     final floors = filteredRooms.keys.toList();
 
     return ListView.builder(
@@ -358,7 +458,6 @@ class _AINavSheetState extends State<AINavSheet> with SingleTickerProviderStateM
       itemBuilder: (context, floorIndex) {
         final floor = floors[floorIndex];
         final rooms = filteredRooms[floor]!;
-        final displayFloor = floor == 'Ground Floor' ? 'Ground Floor' : floor;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -366,8 +465,8 @@ class _AINavSheetState extends State<AINavSheet> with SingleTickerProviderStateM
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               child: Text(
-                displayFloor,
-                style: TextStyle(
+                floor == 'Ground Floor' ? 'Ground Floor' : floor,
+                style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   color: Colors.orange,
                   fontSize: 14,
@@ -381,7 +480,7 @@ class _AINavSheetState extends State<AINavSheet> with SingleTickerProviderStateM
     );
   }
 
-  Widget _buildRoomTile(Map<String, dynamic> room) {
+  Widget _buildRoomTile(RoomEntry room) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -390,7 +489,7 @@ class _AINavSheetState extends State<AINavSheet> with SingleTickerProviderStateM
       elevation: 0,
       color: isDark ? Colors.grey.shade800 : Colors.grey.shade50,
       child: ListTile(
-        title: Text(room['name'] as String),
+        title: Text(room['name']!),
         trailing: const Icon(Icons.chevron_right),
         onTap: () => _onRoomTap(room),
       ),
