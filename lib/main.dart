@@ -5,9 +5,6 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 import 'package:naviapp/providers/theme_provider.dart';
 import 'package:naviapp/screens/home_screen.dart';
-import 'package:naviapp/screens/auth/login_screen.dart';
-import 'package:naviapp/screens/auth/signup_screen.dart';
-import 'package:naviapp/services/auth_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,11 +37,9 @@ class NaviApp extends StatelessWidget {
             themeMode: themeProvider.themeMode,
             theme: _buildTheme(Brightness.light),
             darkTheme: _buildTheme(Brightness.dark),
-            home: const SplashScreen(),
+            home: const HomeScreen(),
             routes: {
   '/home': (context) => const HomeScreen(),
-  '/login': (context) => const LoginScreen(),
-  '/signup': (context) => const SignUpScreen(),
 },
           );
         },
@@ -138,12 +133,9 @@ class _SplashScreenState extends State<SplashScreen>
     _controller.forward();
     Future.delayed(const Duration(milliseconds: 2000), () async {
       if (!mounted) return;
-      final loggedIn = await AuthService.isLoggedIn();
-      if (!mounted) return;
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
-          pageBuilder: (_, __, ___) =>
-              loggedIn ? const HomeScreen() : const LoginScreen(),
+          pageBuilder: (_, __, ___) => const HomeScreen(),
           transitionsBuilder: (_, anim, __, child) =>
               FadeTransition(opacity: anim, child: child),
           transitionDuration: const Duration(milliseconds: 400),

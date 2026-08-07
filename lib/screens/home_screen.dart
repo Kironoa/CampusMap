@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'package:naviapp/providers/theme_provider.dart';
 import 'package:naviapp/screens/floor_plan_screen.dart';
 import 'package:naviapp/widgets/ai_nav_sheet.dart';
-import 'package:naviapp/services/auth_service.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -41,16 +40,6 @@ class HomeScreen extends StatelessWidget {
             ),
             onPressed: () => themeProvider.toggleTheme(),
             tooltip: 'Toggle dark mode',
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout_rounded, color: Colors.white),
-            tooltip: 'Logout',
-            onPressed: () async {
-              await AuthService.logout();
-              if (context.mounted) {
-                Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
-              }
-            },
           ),
         ],
       ),

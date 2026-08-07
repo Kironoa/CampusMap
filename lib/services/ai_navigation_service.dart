@@ -1,9 +1,10 @@
 // lib/services/ai_navigation_service.dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../config/env.dart';
 
 class AINavigationService {
-  static const String _baseUrl = 'https://generativelanguage.googleapis.com/v1beta';
+  static const String _baseUrl = 'https://openrouter.ai/api/v1';
   static String? _apiKey;
 
   static void setApiKey(String key) {
@@ -16,7 +17,7 @@ class AINavigationService {
     required String floorName,
   }) async {
     if (_apiKey == null) {
-      _apiKey = const String.fromEnvironment('GEMINI_API_KEY', defaultValue: '');
+      _apiKey = Env.openrouterApiKey;
       if (_apiKey!.isEmpty) {
         return 'From $fromLabel, follow the paw trail to $toRoomName on the $floorName.';
       }
@@ -26,20 +27,21 @@ class AINavigationService {
 
     try {
       final response = await http.post(
-        Uri.parse('$_baseUrl/models/gemini-2.0-flash:generateContent?key=$_apiKey'),
-        headers: {'Content-Type': 'application/json'},
+        Uri.parse('$_baseUrl/chat/completions'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_apiKey',
+        },
         body: jsonEncode({
-          'contents': [
+          'model': 'google/gemini-2.0-flash-001',
+          'messages': [
             {
-              'parts': [
-                {'text': prompt}
-              ]
+              'role': 'user',
+              'content': prompt,
             }
           ],
-          'generationConfig': {
-            'temperature': 0.2,
-            'maxOutputTokens': 150,
-          },
+          'temperature': 0.2,
+          'max_tokens': 150,
         }),
       ).timeout(const Duration(seconds: 10));
 
@@ -48,8 +50,8 @@ class AINavigationService {
       }
 
       final data = jsonDecode(response.body);
-      final content = data['candidates']?[0]['content']?['parts']?[0]['text'];
-      if (content == null || content.isEmpty) {
+      final content = data['choices']?[0]?['message']?['content'];
+      if (content == null || content.toString().isEmpty) {
         return 'From $fromLabel, follow the paw trail to $toRoomName on the $floorName.';
       }
 
