@@ -402,7 +402,7 @@ class ArView(
             handlePans = call.argument<Boolean>("handlePans") ?: false
             handleRotation = call.argument<Boolean>("handleRotation") ?: false
 
-            configureSession(argPlaneDetectionConfig, attempts = 0, result = result)
+            configureSession(argPlaneDetectionConfig, attempts = 0)
 
             handleShowWorldOrigin(showWorldOrigin)
             
@@ -591,7 +591,6 @@ class ArView(
     private fun configureSession(
         argPlaneDetectionConfig: Int?,
         attempts: Int,
-        result: MethodChannel.Result?,
     ) {
         val session = sceneView.session
         if (session != null) {
@@ -607,11 +606,10 @@ class ArView(
                     else -> Config.PlaneFindingMode.DISABLED
                 }
             })
-            result?.success(null)
         } else if (attempts < 6) {
             mainScope.launch {
                 delay(250)
-                configureSession(argPlaneDetectionConfig, attempts + 1, result)
+                configureSession(argPlaneDetectionConfig, attempts + 1)
             }
         } else {
             Log.e(TAG, "ARCore session failed to start (camera not opened)")
@@ -619,11 +617,6 @@ class ArView(
                 "onError",
                 "AR is not available on this device: Google Play Services for AR is missing or outdated. " +
                     "Install or update it (Play Store), grant the camera permission, then try again."
-            )
-            result?.error(
-                "AR_SESSION_UNAVAILABLE",
-                "ARCore session could not be started: camera is not available.",
-                null
             )
         }
     }
