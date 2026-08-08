@@ -13,6 +13,7 @@ import android.view.ScaleGestureDetector
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import androidx.activity.ComponentActivity
 import androidx.lifecycle.Lifecycle
 import com.google.ar.core.Anchor.CloudAnchorState
 import com.google.ar.core.Config
@@ -91,6 +92,10 @@ class ArView(
     private var handlePans = false  
     private var handleRotation = false
     private var isSessionPaused = false
+
+    companion object {
+        private const val MAX_SESSION_START_ATTEMPTS = 12
+    }
 
     private class PointCloudNode(
         modelInstance: ModelInstance,
@@ -171,16 +176,28 @@ class ArView(
         sceneView = ARSceneView(
             context = viewContext,
             sharedLifecycle = lifecycle,
-            sessionConfiguration = { session, config ->
-                config.apply {
-                    depthMode = Config.DepthMode.DISABLED
-                    instantPlacementMode = Config.InstantPlacementMode.DISABLED
-                    lightEstimationMode = Config.LightEstimationMode.ENVIRONMENTAL_HDR
-                    focusMode = Config.FocusMode.AUTO
-                    planeFindingMode = Config.PlaneFindingMode.DISABLED
+                sessionConfiguration = { session, config ->
+                    config.apply {
+                        depthMode = Config.DepthMode.DISABLED
+                        instantPlacementMode = Config.InstantPlacementMode.DISABLED
+                        lightEstimationMode = Config.LightEstimationMode.ENVIRONMENTAL_HDR
+                        focusMode = Config.FocusMode.AUTO
+                        planeFindingMode = Config.PlaneFindingMode.DISABLED
+                    }
                 }
+            )
+
+            sceneView.onSessionFailed = { exception ->
+                Log.e(TAG, "AR session creation failed", exception)
+                sessionChannel.invokeMethod(
+                    "onError",
+                    listOf(
+                        "AR session could not start: ${exception.message ?: exception.javaClass.simpleName}. " +
+                            "Check that the camera permission is granted and Google Play Services for AR is installed, " +
+                            "then tap Retry."
+                    )
+                )
             }
-        )
         
         rootLayout.addView(sceneView)
 
@@ -606,19 +623,37 @@ class ArView(
                     else -> Config.PlaneFindingMode.DISABLED
                 }
             })
-        } else if (attempts < 6) {
+        } else if (attempts < MAX_SESSION_START_ATTEMPTS) {
             mainScope.launch {
                 delay(250)
                 configureSession(argPlaneDetectionConfig, attempts + 1)
             }
         } else {
-            Log.e(TAG, "ARCore session failed to start (camera not opened)")
-            sessionChannel.invokeMethod(
-                "onError",
-                "AR is not available on this device: Google Play Services for AR is missing or outdated. " +
-                    "Install or update it (Play Store), grant the camera permission, then try again."
-            )
+            reportSessionUnavailable()
         }
+    }
+
+    private fun reportSessionUnavailable() {
+        val arCore = sceneView.arCore
+        val message = when {
+            arCore.isInstalled(viewContext) ->
+                "The AR camera session could not start. Grant the camera permission in app settings, " +
+                    "make sure Google Play Services for AR is installed, then tap Retry."
+            arCore.canBeInstalled(viewContext) -> {
+                try {
+                    arCore.install(activity as ComponentActivity, false)
+                    "Google Play Services for AR (ARCore) must be installed for the camera. " +
+                        "Follow the installation prompt, then tap Retry."
+                } catch (e: Exception) {
+                    "ARCore is not available on this device and cannot be installed. " +
+                        "AR navigation requires an ARCore-supported device."
+                }
+            }
+            else ->
+                "This device does not support ARCore. AR navigation requires an ARCore-supported device."
+        }
+        Log.e(TAG, "ARCore session unavailable: $message")
+        sessionChannel.invokeMethod("onError", listOf(message))
     }
 
     private fun handleAddNode(

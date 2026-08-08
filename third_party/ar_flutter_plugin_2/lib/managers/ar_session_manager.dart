@@ -136,12 +136,12 @@ class ARSessionManager {
       switch (call.method) {
         case 'onError':
           if (onError != null) {
-            onError!(call.arguments[0]);
+            onError!(_errorMessage(call));
             print(call.arguments);
           }
           else{
             ScaffoldMessenger.of(buildContext).showSnackBar(SnackBar(
-                content: Text(call.arguments[0]),
+                content: Text(_errorMessage(call)),
                 action: SnackBarAction(
                     label: 'HIDE',
                     onPressed:
@@ -222,5 +222,13 @@ class ARSessionManager {
   Future<ImageProvider> snapshot() async {
     final result = await _channel.invokeMethod<Uint8List>('snapshot');
     return MemoryImage(result!);
+  }
+
+  String _errorMessage(MethodCall call) {
+    final args = call.arguments;
+    if (args is List && args.isNotEmpty) {
+      return args[0].toString();
+    }
+    return args?.toString() ?? 'Unknown AR error';
   }
 }
