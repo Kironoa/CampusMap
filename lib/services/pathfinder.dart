@@ -123,11 +123,11 @@ class Pathfinder {
     }
 
     final nodes = NavigationGraph.nodesForFloor(floor);
-    final nodePos = _getRoomApproxPos(roomId, floor);
+    final nodePos = getRoomApproxPos(roomId, floor);
     return nearestNode(nodePos, nodes);
   }
 
-  static Offset _getRoomApproxPos(String roomId, int floor) {
+  static Offset getRoomApproxPos(String roomId, int floor) {
     const positions = {
       'gf_main_lobby': Offset(0.595, 0.530),
       'gf_drive_way': Offset(0.468, 0.950),

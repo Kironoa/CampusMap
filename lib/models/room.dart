@@ -78,16 +78,16 @@ class Room {
 
   static Color categoryColor(RoomCategory category) {
     const map = {
-      RoomCategory.academic: Color(0xFF2563EB),
-      RoomCategory.office: Color(0xFFEA580C),
+      RoomCategory.academic: Color(0xFF0F766E),
+      RoomCategory.office: Color(0xFF0A7040),
       RoomCategory.facility: Color(0xFF16A34A),
-      RoomCategory.amenity: Color(0xFF7C3AED),
+      RoomCategory.amenity: Color(0xFF65A30D),
       RoomCategory.lab: Color(0xFFDC2626),
-      RoomCategory.classroom: Color(0xFF0891B2),
-      RoomCategory.institute: Color(0xFF7C3AED),
+      RoomCategory.classroom: Color(0xFF0D9488),
+      RoomCategory.institute: Color(0xFF2F855A),
       RoomCategory.utility: Color(0xFF6B7280),
-      RoomCategory.general: Color(0xFFF97316),
-      RoomCategory.specialized: Color(0xFFDB2777),
+      RoomCategory.general: Color(0xFF0A5C40),
+      RoomCategory.specialized: Color(0xFF0E8A5F),
     };
     return map[category]!;
   }

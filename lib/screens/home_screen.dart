@@ -4,14 +4,15 @@ import 'package:provider/provider.dart';
 import 'package:naviapp/providers/theme_provider.dart';
 import 'package:naviapp/screens/floor_plan_screen.dart';
 import 'package:naviapp/widgets/ai_nav_sheet.dart';
+import 'package:naviapp/ar/ar_mode_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   static const _floorData = [
-    (index: 0, label: 'Ground / First Floor', rooms: '25 rooms', icon: Icons.stairs, color: Color(0xFFF97316), bgDark: Color(0xFF3D2A10), bgLight: Color(0xFFFFF7ED), border: Color(0xFFFED7AA)),
+    (index: 0, label: 'Ground / First Floor', rooms: '25 rooms', icon: Icons.stairs, color: Color(0xFF0A7040), bgDark: Color(0xFF0F3A22), bgLight: Color(0xFFE7F4EA), border: Color(0xFFB8DCC8)),
     (index: 1, label: 'Second Floor', rooms: '27 rooms', icon: Icons.business, color: Color(0xFF16A34A), bgDark: Color(0xFF14532D), bgLight: Color(0xFFF0FDF4), border: Color(0xFFBBF7D0)),
-    (index: 2, label: 'Third Floor', rooms: '16 rooms', icon: Icons.apartment, color: Color(0xFF2563EB), bgDark: Color(0xFF1E3A5F), bgLight: Color(0xFFEFF6FF), border: Color(0xFF93C5FD)),
+    (index: 2, label: 'Third Floor', rooms: '16 rooms', icon: Icons.apartment, color: Color(0xFF0E9F6E), bgDark: Color(0xFF0E4A36), bgLight: Color(0xFFE4F4EC), border: Color(0xFFB3DCC9)),
   ];
 
   @override
@@ -29,7 +30,7 @@ class HomeScreen extends StatelessWidget {
             color: Colors.white,
           ),
         ),
-        backgroundColor: const Color(0xFFF97316),
+        backgroundColor: const Color(0xFF0A7040),
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
@@ -55,7 +56,7 @@ class HomeScreen extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: isDark ? const Color(0xFFFED7AA) : const Color(0xFF78350F),
+                color: isDark ? const Color(0xFFA8C8B0) : const Color(0xFF1E4934),
                 letterSpacing: 1.2,
               ),
             ),
@@ -64,11 +65,11 @@ class HomeScreen extends StatelessWidget {
               context: context,
               isDark: isDark,
               icon: Icons.map_outlined,
-              iconBgColor: const Color(0xFFFFF7ED),
-              iconColor: const Color(0xFFF97316),
+              iconBgColor: const Color(0xFFE7F4EA),
+              iconColor: const Color(0xFF0A7040),
               title: 'Floor Plan',
               subtitle: 'Tap rooms • Zoom • Explore floors',
-              borderColor: const Color(0xFFF97316).withValues(alpha: 0.2),
+              borderColor: const Color(0xFF0A7040).withValues(alpha: 0.2),
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const FloorPlanScreen()),
               ),
@@ -93,13 +94,29 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
             ),
+            const SizedBox(height: 12),
+            _buildNavCard(
+              context: context,
+              isDark: isDark,
+              icon: Icons.view_in_ar_outlined,
+              iconBgColor: const Color(0xFFE4F4EC),
+              iconColor: const Color(0xFF0E9F6E),
+              title: 'AR Navigation',
+              subtitle: '3D arrows • Camera view',
+              borderColor: const Color(0xFF0E9F6E).withValues(alpha: 0.2),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const ArModeScreen(),
+                ),
+              ),
+            ),
             const SizedBox(height: 24),
             Text(
               'FLOORS',
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: isDark ? const Color(0xFFFED7AA) : const Color(0xFF78350F),
+                color: isDark ? const Color(0xFFA8C8B0) : const Color(0xFF1E4934),
                 letterSpacing: 1.2,
               ),
             ),
@@ -133,16 +150,16 @@ class HomeScreen extends StatelessWidget {
   Widget _buildHeader(bool isDark) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF2C1F0E) : Colors.white,
+        color: isDark ? const Color(0xFF1B2E20) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? const Color(0xFF3D2A10) : const Color(0xFFFED7AA),
+          color: isDark ? const Color(0xFF2B4A36) : const Color(0xFFB8DCC8),
         ),
       ),
       padding: const EdgeInsets.all(16),
       child: const Row(
         children: [
-          Icon(Icons.school, size: 48, color: Color(0xFFF97316)),
+          Icon(Icons.school, size: 48, color: Color(0xFF0A7040)),
           SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -153,7 +170,7 @@ class HomeScreen extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1C0A00),
+                    color: Color(0xFF0E2B1C),
                   ),
                 ),
                 SizedBox(height: 4),
@@ -161,7 +178,7 @@ class HomeScreen extends StatelessWidget {
                   'AI-Powered Campus Navigation',
                   style: TextStyle(
                     fontSize: 13,
-                    color: Color(0xFF78350F),
+                    color: Color(0xFF1E4934),
                   ),
                 ),
               ],
@@ -187,7 +204,7 @@ class HomeScreen extends StatelessWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF2C1F0E) : Colors.white,
+          color: isDark ? const Color(0xFF1B2E20) : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: borderColor),
         ),
@@ -213,7 +230,7 @@ class HomeScreen extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: isDark ? const Color(0xFFFFF7ED) : const Color(0xFF1C0A00),
+                      color: isDark ? const Color(0xFFE7F4EA) : const Color(0xFF0E2B1C),
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -221,7 +238,7 @@ class HomeScreen extends StatelessWidget {
                     subtitle,
                     style: TextStyle(
                       fontSize: 13,
-                      color: isDark ? const Color(0xFFFED7AA) : const Color(0xFF78350F),
+                      color: isDark ? const Color(0xFFA8C8B0) : const Color(0xFF1E4934),
                     ),
                   ),
                 ],
@@ -237,10 +254,10 @@ class HomeScreen extends StatelessWidget {
   Widget _buildLegend(bool isDark) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF2C1F0E) : Colors.white,
+        color: isDark ? const Color(0xFF1B2E20) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? const Color(0xFF3D2A10) : const Color(0xFFFED7AA),
+          color: isDark ? const Color(0xFF2B4A36) : const Color(0xFFB8DCC8),
         ),
       ),
       padding: const EdgeInsets.all(16),
@@ -252,17 +269,17 @@ class HomeScreen extends StatelessWidget {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
-              color: isDark ? const Color(0xFFFFF7ED) : const Color(0xFF1C0A00),
+              color: isDark ? const Color(0xFFE7F4EA) : const Color(0xFF0E2B1C),
             ),
           ),
           const SizedBox(height: 12),
-          _legendRow(const Color(0xFF2563EB), 'Academic / Labs'),
+          _legendRow(const Color(0xFF0F766E), 'Academic / Labs'),
           const SizedBox(height: 8),
-          _legendRow(const Color(0xFFF97316), 'Offices'),
+          _legendRow(const Color(0xFF0A7040), 'Offices'),
           const SizedBox(height: 8),
           _legendRow(const Color(0xFF16A34A), 'Facilities'),
           const SizedBox(height: 8),
-          _legendRow(const Color(0xFF7C3AED), 'Amenities'),
+          _legendRow(const Color(0xFF65A30D), 'Amenities'),
         ],
       ),
     );
@@ -344,8 +361,8 @@ class FloorCard extends StatelessWidget {
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                       color: isDark
-                          ? const Color(0xFFFFF7ED)
-                          : const Color(0xFF1C0A00),
+                          ? const Color(0xFFE7F4EA)
+                          : const Color(0xFF0E2B1C),
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -354,8 +371,8 @@ class FloorCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 12,
                       color: isDark
-                          ? const Color(0xFFFED7AA)
-                          : const Color(0xFF78350F),
+                          ? const Color(0xFFA8C8B0)
+                          : const Color(0xFF1E4934),
                     ),
                   ),
                 ],

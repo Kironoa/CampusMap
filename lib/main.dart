@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 import 'package:naviapp/providers/theme_provider.dart';
+import 'package:naviapp/screens/get_started_screen.dart';
 import 'package:naviapp/screens/home_screen.dart';
 
 void main() async {
@@ -37,7 +38,7 @@ class NaviApp extends StatelessWidget {
             themeMode: themeProvider.themeMode,
             theme: _buildTheme(Brightness.light),
             darkTheme: _buildTheme(Brightness.dark),
-            home: const HomeScreen(),
+            home: const GetStartedScreen(),
             routes: {
   '/home': (context) => const HomeScreen(),
 },
@@ -53,18 +54,18 @@ class NaviApp extends StatelessWidget {
       useMaterial3: true,
       brightness: brightness,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFFF97316),
+        seedColor: const Color(0xFF0A7040),
         brightness: brightness,
       ),
       fontFamily: 'Poppins',
       scaffoldBackgroundColor: isDark
-          ? const Color(0xFF1A1208)
-          : const Color(0xFFFFFBF5),
+          ? const Color(0xFF0D1711)
+          : const Color(0xFFF0F6EF),
       cardTheme: CardThemeData(
         elevation: 0,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        color: isDark ? const Color(0xFF2C1F0E) : Colors.white,
+        color: isDark ? const Color(0xFF1B2E20) : Colors.white,
       ),
       appBarTheme: const AppBarTheme(
         centerTitle: false,
@@ -76,9 +77,9 @@ class NaviApp extends StatelessWidget {
       navigationBarTheme: NavigationBarThemeData(
         elevation: 0,
         height: 64,
-        backgroundColor: isDark ? const Color(0xFF2C1F0E) : Colors.white,
+        backgroundColor: isDark ? const Color(0xFF1B2E20) : Colors.white,
         indicatorColor: const Color(
-          0xFFF97316,
+          0xFF0A7040,
         ).withValues(alpha: isDark ? 0.25 : 0.12),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
@@ -87,8 +88,8 @@ class NaviApp extends StatelessWidget {
             fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
             fontFamily: 'Poppins',
             color: selected
-                ? const Color(0xFFF97316)
-                : (isDark ? const Color(0xFFFED7AA) : const Color(0xFF78350F)),
+                ? const Color(0xFF0A7040)
+                : (isDark ? const Color(0xFFA8C8B0) : const Color(0xFF1E4934)),
           );
         }),
         iconTheme: WidgetStateProperty.resolveWith((states) {
@@ -96,8 +97,8 @@ class NaviApp extends StatelessWidget {
           return IconThemeData(
             size: 22,
             color: selected
-                ? const Color(0xFFF97316)
-                : (isDark ? const Color(0xFFFED7AA) : const Color(0xFF78350F)),
+                ? const Color(0xFF0A7040)
+                : (isDark ? const Color(0xFFA8C8B0) : const Color(0xFF1E4934)),
           );
         }),
       ),
@@ -153,7 +154,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF97316),
+      backgroundColor: const Color(0xFF0A7040),
       body: Center(
         child: FadeTransition(
           opacity: _fadeAnim,

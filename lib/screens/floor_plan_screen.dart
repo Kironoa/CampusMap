@@ -158,7 +158,7 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
             fontWeight: FontWeight.bold,
           ),
         ),
-        backgroundColor: const Color(0xFFF97316),
+        backgroundColor: const Color(0xFF0A7040),
         foregroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
@@ -364,7 +364,7 @@ class FloorPlanPainter extends CustomPainter {
           );
         } else {
           final pawFillPaint = Paint()
-            ..color = const Color(0xFFF97316)
+            ..color = const Color(0xFF0A7040)
             ..style = PaintingStyle.fill;
           final pawBorderPaint = Paint()
             ..color = Colors.white

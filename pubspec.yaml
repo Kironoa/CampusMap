@@ -21,6 +21,12 @@ dependencies:
   # AI API
   http: ^1.2.1
 
+  # AR (vendored copy with position/rotation/scale transform fix)
+  ar_flutter_plugin_2:
+    path: third_party/ar_flutter_plugin_2
+  permission_handler: ^11.3.1
+  vector_math: ^2.2.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -44,6 +50,7 @@ flutter:
     - assets/images/third_floor.png
     - assets/images/ouch.png
     - assets/images/dog_paw.png
+    - assets/ar_models/
     - .env
 
   fonts:

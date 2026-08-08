@@ -20,7 +20,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.naviapp"
-        minSdk = flutter.minSdkVersion
+        minSdk = 28
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
