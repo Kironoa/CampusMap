@@ -10,6 +10,7 @@ import 'package:ar_flutter_plugin_2/managers/ar_session_manager.dart';
 import 'package:ar_flutter_plugin_2/models/ar_hittest_result.dart';
 import 'package:ar_flutter_plugin_2/models/ar_node.dart';
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:vector_math/vector_math_64.dart' hide Colors;
 
 import '../services/room_catalog.dart';
@@ -41,9 +42,15 @@ class _ArModeScreenState extends State<ArModeScreen> {
   String? _nearbyRoomName;
   double? _nearbyRoomDistance;
 
+  bool _cameraGranted = false;
+  bool _cameraUnknown = true;
+  bool _cameraPermanentlyDenied = false;
+  String? _arSessionError;
+
   @override
   void initState() {
     super.initState();
+    _requestCameraPermission();
     _startCameraPosePolling();
   }
 
@@ -74,12 +81,51 @@ class _ArModeScreenState extends State<ArModeScreen> {
     sessionManager.onPlaneOrPointTap = _onPlaneOrPointTap;
     objectManager.onNodeTap = (nodes) => _onNodeTap(nodes);
     sessionManager.onError = (error) {
-      if (mounted) {
+      if (!mounted) return;
+      final e = error.toLowerCase();
+      final isFatal = e.contains('arcore') ||
+          e.contains('ar core') ||
+          e.contains('session') ||
+          e.contains('unsupported') ||
+          e.contains('camera');
+      if (isFatal) {
+        setState(() => _arSessionError = error);
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('AR error: $error')),
         );
       }
     };
+  }
+
+  Future<void> _requestCameraPermission() async {
+    if (mounted) {
+      setState(() {
+        _cameraUnknown = true;
+        _cameraPermanentlyDenied = false;
+      });
+    }
+    var status = await Permission.camera.status;
+    if (!status.isGranted) {
+      status = await Permission.camera.request();
+    }
+    if (!mounted) return;
+    setState(() {
+      _cameraGranted = status.isGranted;
+      _cameraUnknown = false;
+      _cameraPermanentlyDenied = status.isPermanentlyDenied;
+    });
+  }
+
+  void _retryArSession() {
+    setState(() => _arSessionError = null);
+    _sessionManager?.onInitialize(
+      showAnimatedGuide: false,
+      showFeaturePoints: false,
+      showPlanes: true,
+      showWorldOrigin: false,
+      handleTaps: true,
+    );
   }
 
   Future<void> _onPlaneOrPointTap(List<ARHitTestResult> hits) async {
@@ -256,18 +302,22 @@ class _ArModeScreenState extends State<ArModeScreen> {
       body: Stack(
         children: [
           Positioned.fill(
-            child: ARView(
-              onARViewCreated: _onARViewCreated,
-              planeDetectionConfig: PlaneDetectionConfig.horizontalAndVertical,
-            ),
+            child: _cameraGranted
+                ? ARView(
+                    onARViewCreated: _onARViewCreated,
+                    planeDetectionConfig: PlaneDetectionConfig.horizontalAndVertical,
+                  )
+                : _buildCameraGate(),
           ),
-          if (_route == null || !_route!.hasRoute)
+          if (_cameraGranted && _arSessionError != null) _buildArErrorOverlay(),
+          if (_cameraGranted && (_route == null || !_route!.hasRoute))
             _buildEmptyOverlay()
-          else if (!(_calibration?.isCalibrated ?? false))
+          else if (_cameraGranted &&
+              !(_calibration?.isCalibrated ?? false))
             _buildCalibrationOverlay()
-          else
+          else if (_cameraGranted)
             _buildLiveOverlay(),
-          if (_nearbyRoomName != null) _buildNearbyRoomChip(),
+          if (_cameraGranted && _nearbyRoomName != null) _buildNearbyRoomChip(),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -283,6 +333,141 @@ class _ArModeScreenState extends State<ArModeScreen> {
         backgroundColor: const Color(0xFF16A34A),
         foregroundColor: Colors.white,
       ),
+    );
+  }
+
+  Widget _buildCameraGate() {
+    return Container(
+      color: const Color(0xFF0D1711),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                _cameraUnknown
+                    ? Icons.hourglass_top
+                    : Icons.no_photography,
+                size: 64,
+                color: const Color(0xFFA8C8B0),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Camera access',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Poppins',
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _cameraUnknown
+                    ? 'Requesting camera permission…'
+                    : _cameraPermanentlyDenied
+                        ? 'Camera permission was permanently denied. '
+                            'Enable it in Settings to use AR navigation.'
+                        : 'Camera permission is required for AR navigation. '
+                            'It is only used to show the live camera view.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 14,
+                  fontFamily: 'Poppins',
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (_cameraUnknown)
+                    const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Color(0xFF16A34A),
+                      ),
+                    )
+                  else ...[
+                    if (!_cameraPermanentlyDenied)
+                      TextButton(
+                        onPressed: _requestCameraPermission,
+                        child: const Text('Try Again'),
+                      ),
+                    const TextButton(
+                      onPressed: openAppSettings,
+                      child: Text('Open Settings'),
+                    ),
+                  ],
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildArErrorOverlay() {
+    return Column(
+      children: [
+        const SizedBox(height: 16),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xCC5B1711),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFF7A2B2B)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.error_outline, color: Color(0xFFF87171)),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'AR session could not start',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          fontFamily: 'Poppins',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _arSessionError!,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 13,
+                    fontFamily: 'Poppins',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: _retryArSession,
+                    icon: const Icon(Icons.refresh, size: 18),
+                    label: const Text('Retry'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 

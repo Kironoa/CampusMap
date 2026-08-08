@@ -41,6 +41,7 @@ import io.github.sceneview.node.ModelNode
 import io.github.sceneview.node.Node
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import io.github.sceneview.math.Position as ScenePosition
@@ -401,20 +402,7 @@ class ArView(
             handlePans = call.argument<Boolean>("handlePans") ?: false
             handleRotation = call.argument<Boolean>("handleRotation") ?: false
 
-            sceneView.session?.let { session ->
-                session.configure(session.config.apply {
-                    depthMode = when (session.isDepthModeSupported(Config.DepthMode.AUTOMATIC)) {
-                        true -> Config.DepthMode.AUTOMATIC
-                        else -> Config.DepthMode.DISABLED
-                    }
-                    planeFindingMode = when (argPlaneDetectionConfig) {
-                        1 -> Config.PlaneFindingMode.HORIZONTAL
-                        2 -> Config.PlaneFindingMode.VERTICAL
-                        3 -> Config.PlaneFindingMode.HORIZONTAL_AND_VERTICAL
-                        else -> Config.PlaneFindingMode.DISABLED
-                    }
-                })
-            }
+            configureSession(argPlaneDetectionConfig, attempts = 0, result = result)
 
             handleShowWorldOrigin(showWorldOrigin)
             
@@ -597,6 +585,46 @@ class ArView(
             result.success(null)
         } catch (e: Exception) {
             result.error("AR_VIEW_ERROR", e.message, null)
+        }
+    }
+
+    private fun configureSession(
+        argPlaneDetectionConfig: Int?,
+        attempts: Int,
+        result: MethodChannel.Result?,
+    ) {
+        val session = sceneView.session
+        if (session != null) {
+            session.configure(session.config.apply {
+                depthMode = when (session.isDepthModeSupported(Config.DepthMode.AUTOMATIC)) {
+                    true -> Config.DepthMode.AUTOMATIC
+                    else -> Config.DepthMode.DISABLED
+                }
+                planeFindingMode = when (argPlaneDetectionConfig) {
+                    1 -> Config.PlaneFindingMode.HORIZONTAL
+                    2 -> Config.PlaneFindingMode.VERTICAL
+                    3 -> Config.PlaneFindingMode.HORIZONTAL_AND_VERTICAL
+                    else -> Config.PlaneFindingMode.DISABLED
+                }
+            })
+            result?.success(null)
+        } else if (attempts < 6) {
+            mainScope.launch {
+                delay(250)
+                configureSession(argPlaneDetectionConfig, attempts + 1, result)
+            }
+        } else {
+            Log.e(TAG, "ARCore session failed to start (camera not opened)")
+            sessionChannel.invokeMethod(
+                "onError",
+                "AR is not available on this device: Google Play Services for AR is missing or outdated. " +
+                    "Install or update it (Play Store), grant the camera permission, then try again."
+            )
+            result?.error(
+                "AR_SESSION_UNAVAILABLE",
+                "ARCore session could not be started: camera is not available.",
+                null
+            )
         }
     }
 
