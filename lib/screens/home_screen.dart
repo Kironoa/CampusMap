@@ -1,8 +1,12 @@
 // lib/screens/home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:naviapp/models/starting_location.dart';
 import 'package:naviapp/providers/theme_provider.dart';
+import 'package:naviapp/providers/user_location_provider.dart';
 import 'package:naviapp/screens/floor_plan_screen.dart';
+import 'package:naviapp/screens/qr_admin_screen.dart';
+import 'package:naviapp/screens/qr_scanner_screen.dart';
 import 'package:naviapp/widgets/ai_nav_sheet.dart';
 import 'package:naviapp/ar/ar_mode_screen.dart';
 
@@ -47,6 +51,13 @@ class HomeScreen extends StatelessWidget {
             onPressed: () => themeProvider.toggleTheme(),
             tooltip: 'Toggle dark mode',
           ),
+          IconButton(
+            icon: const Icon(Icons.qr_code_2, color: Colors.white),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const QrAdminScreen()),
+            ),
+            tooltip: 'Starting point QR codes',
+          ),
         ],
       ),
       body: SingleChildScrollView(
@@ -64,6 +75,18 @@ class HomeScreen extends StatelessWidget {
                 color: isDark ? const Color(0xFFA8C8B0) : const Color(0xFF1E4934),
                 letterSpacing: 1.2,
               ),
+            ),
+            const SizedBox(height: 12),
+            _buildNavCard(
+              context: context,
+              isDark: isDark,
+              icon: Icons.qr_code_scanner,
+              iconBgColor: const Color(0xFFEFF6FF),
+              iconColor: const Color(0xFF2563EB),
+              title: 'Scan Starting Point',
+              subtitle: 'Scan a QR code where you are standing',
+              borderColor: const Color(0xFF2563EB).withValues(alpha: 0.2),
+              onTap: () => _scanStartingPoint(context),
             ),
             const SizedBox(height: 12),
             _buildNavCard(
@@ -148,6 +171,23 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 24),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Opens the QR scanner; on a valid Campus Guide code, pins the user's
+  /// location and opens the Ground Floor plan with the marker placed.
+  Future<void> _scanStartingPoint(BuildContext context) async {
+    final location = await Navigator.of(context).push<StartingLocation>(
+      MaterialPageRoute(builder: (_) => const QrScannerScreen()),
+    );
+    if (location == null || !context.mounted) return;
+
+    context.read<UserLocationProvider>().setFromStartingLocation(location);
+    if (!context.mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => FloorPlanScreen(initialFloor: location.floor),
       ),
     );
   }

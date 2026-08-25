@@ -3,6 +3,10 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import 'package:naviapp/models/starting_location.dart';
+import 'package:naviapp/providers/user_location_provider.dart';
+import 'package:naviapp/screens/qr_scanner_screen.dart';
 import 'package:naviapp/services/indoor_positioning/indoor_position.dart';
 import 'package:naviapp/services/indoor_positioning/indoor_position_provider.dart';
 import 'package:naviapp/services/navigation_graph.dart';
@@ -41,6 +45,14 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
   IndoorPositionProvider? _positionProvider;
   StreamSubscription<IndoorPosition>? _positionSubscription;
   IndoorPosition? _currentPosition;
+
+  // Viewport size captured during layout (used to center on a position).
+  Size? _viewportSize;
+
+  // ID of the QR location currently applied to this screen.
+  String? _appliedPinId;
+
+  late final UserLocationProvider _userLocation;
 
   static const List<String> _floorNames = ['Ground', '2nd Floor', '3rd Floor'];
   static const List<String> _floorImagePaths = [
@@ -83,6 +95,25 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
       setState(() {});
     });
     _initPositioning();
+    _userLocation = context.read<UserLocationProvider>();
+    _userLocation.addListener(_onUserLocationChanged);
+  }
+
+  /// Reacts to a newly pinned QR starting location: switches to that
+  /// floor, centers the plan on the point and shows it as "You are here".
+  void _onUserLocationChanged() {
+    if (!mounted) return;
+    final pin = _userLocation.startingLocation;
+    if (pin == null || pin.id == _appliedPinId) return;
+    _appliedPinId = pin.id;
+    setState(() {
+      _currentFloor = pin.floor;
+      // The scanned floor is authoritative; keep it selected.
+      _userSelectedFloor = true;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _centerOnPosition(pin.x, pin.y);
+    });
   }
 
   void _initPositioning() {
@@ -97,8 +128,19 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
     _positionProvider!.start();
   }
 
+  /// The position used for the marker and route origin.
+  ///
+  /// A QR-scanned starting location is exact and pinned, so it overrides
+  /// live BLE/mock estimates until cleared or replaced by another scan.
+  IndoorPosition? get _activePosition {
+    if (_userLocation.hasManualPosition) return _userLocation.position;
+    return _currentPosition;
+  }
+
   void _onIndoorPosition(IndoorPosition position) {
     if (!mounted) return;
+    // Ignore live updates while a QR starting point pins the position.
+    if (_userLocation.hasManualPosition) return;
     setState(() {
       _currentPosition = position;
       // Auto-switch floor only if user hasn't manually selected a floor
@@ -110,15 +152,16 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
 
   void navigateTo(String roomId) {
     final destinationFloor = _findFloorForRoom(roomId);
+    final position = _activePosition;
 
-    if (_currentPosition != null && _currentPosition!.floor == destinationFloor) {
-      // Same floor with live position
+    if (position != null && position.floor == destinationFloor) {
+      // Same floor with known position
       _navigateSameFloor(roomId, destinationFloor);
-    } else if (_currentPosition != null) {
-      // Cross-floor with live position
+    } else if (position != null) {
+      // Cross-floor with known position
       _navigateCrossFloor(roomId, destinationFloor);
     } else {
-      // No live position - use default start node
+      // No position - use default start node
       _navigateDefault(roomId);
     }
   }
@@ -140,10 +183,11 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
     final floorIndex = floor;
     final nodes = NavigationGraph.getNodes(floorIndex);
     final edges = NavigationGraph.getEdges(floorIndex);
+    final position = _activePosition;
 
-    final startNodeId = _currentPosition != null
+    final startNodeId = position != null
         ? Pathfinder.findNearestNodeToPosition(
-            Offset(_currentPosition!.x, _currentPosition!.y),
+            Offset(position.x, position.y),
             floorIndex,
           )
         : NavigationGraph.getDefaultStartNode(floorIndex) ?? nodes.first.id;
@@ -168,7 +212,7 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
   }
 
   void _navigateCrossFloor(String roomId, int destinationFloor) {
-    final pos = _currentPosition;
+    final pos = _activePosition;
     if (pos == null) {
       _navigateDefault(roomId);
       return;
@@ -240,8 +284,49 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
     }
   }
 
+  /// Opens the QR scanner and, on a valid Campus Guide starting-point code,
+  /// pins the user's position to that location on the Ground Floor.
+  Future<void> _scanStartingPoint() async {
+    final location = await Navigator.of(context).push<StartingLocation>(
+      MaterialPageRoute(builder: (_) => const QrScannerScreen()),
+    );
+    if (!mounted || location == null) return;
+
+    _userLocation.setFromStartingLocation(location);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('You are here: ${location.name} (Ground Floor)'),
+        backgroundColor: const Color(0xFF0A7040),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  /// Pans/zooms the InteractiveViewer so the normalized point sits at the
+  /// center of the viewport. Works for any viewport size / resolution.
+  void _centerOnPosition(double x, double y) {
+    final vp = _viewportSize;
+    if (vp == null || vp.width <= 0 || vp.height <= 0) return;
+    final imageSize = _getFloorImageSize(_currentFloor);
+    final scaleFactor =
+        min(vp.width / imageSize.width, vp.height / imageSize.height);
+    final scaledWidth = imageSize.width * scaleFactor;
+    final scaledHeight = imageSize.height * scaleFactor;
+    final px = x * scaledWidth;
+    final py = y * scaledHeight;
+    final originX = (vp.width - scaledWidth) / 2;
+    final originY = (vp.height - scaledHeight) / 2;
+    _transformationController.value = Matrix4.translationValues(
+      vp.width / 2 - (originX + px),
+      vp.height / 2 - (originY + py),
+      0,
+    );
+  }
+
   @override
   void dispose() {
+    _userLocation.removeListener(_onUserLocationChanged);
     _positionSubscription?.cancel();
     _positionProvider?.stop();
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
@@ -253,6 +338,9 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
 
   @override
   Widget build(BuildContext context) {
+    final userLocation = context.watch<UserLocationProvider>();
+    final pinnedLocation = userLocation.startingLocation;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -272,46 +360,67 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
+          _viewportSize = Size(constraints.maxWidth, constraints.maxHeight);
           final imageSize = _getFloorImageSize(_currentFloor);
           final scaleX = constraints.maxWidth / imageSize.width;
           final scaleY = constraints.maxHeight / imageSize.height;
           final scaleFactor = scaleX < scaleY ? scaleX : scaleY;
           final scaledWidth = imageSize.width * scaleFactor;
           final scaledHeight = imageSize.height * scaleFactor;
-          
-          return InteractiveViewer(
-            transformationController: _transformationController,
-            minScale: 0.5,
-            maxScale: 4.0,
-            child: Center(
-              child: SizedBox(
-                width: scaledWidth,
-                height: scaledHeight,
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: Image.asset(
-                        _currentFloorImage,
-                        fit: BoxFit.fill,
-                      ),
+
+          return Stack(
+            children: [
+              InteractiveViewer(
+                transformationController: _transformationController,
+                minScale: 0.5,
+                maxScale: 4.0,
+                child: Center(
+                  child: SizedBox(
+                    width: scaledWidth,
+                    height: scaledHeight,
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: Image.asset(
+                            _currentFloorImage,
+                            fit: BoxFit.fill,
+                          ),
+                        ),
+                        CustomPaint(
+                          size: Size(scaledWidth, scaledHeight),
+                          painter: FloorPlanPainter(
+                            isDark:
+                                Theme.of(context).brightness == Brightness.dark,
+                            navigationPath: _navigationPath,
+                            pathFloorIndices: _pathFloorIndices,
+                            currentFloor: _currentFloor,
+                            pathProgress: _pathAnimation.value,
+                            isNavigating: _isNavigating,
+                            imageOriginalSize: imageSize,
+                            livePosition: _activePosition,
+                          ),
+                        ),
+                      ],
                     ),
-                    CustomPaint(
-                      size: Size(scaledWidth, scaledHeight),
-                      painter: FloorPlanPainter(
-                        isDark: Theme.of(context).brightness == Brightness.dark,
-                        navigationPath: _navigationPath,
-                        pathFloorIndices: _pathFloorIndices,
-                        currentFloor: _currentFloor,
-                        pathProgress: _pathAnimation.value,
-                        isNavigating: _isNavigating,
-                        imageOriginalSize: imageSize,
-                        livePosition: _currentPosition,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
-            ),
+              if (pinnedLocation != null)
+                Positioned(
+                  left: 16,
+                  bottom: 16,
+                  width: min(constraints.maxWidth * 0.55, 320),
+                  child: _CurrentLocationCard(
+                    locationName: pinnedLocation.name,
+                    floorName: _floorNames[pinnedLocation.floor],
+                    onStartNavigation: _openNavigation,
+                    onClear: () {
+                      userLocation.clear();
+                      setState(() => _userSelectedFloor = false);
+                    },
+                  ),
+                ),
+            ],
           );
         },
       ),
@@ -338,24 +447,45 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _openNavigation,
-        icon: const Icon(Icons.navigation_outlined),
-        label: const Text('Navigate', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w600)),
-        backgroundColor: const Color(0xFF16A34A),
-        foregroundColor: Colors.white,
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          FloatingActionButton.extended(
+            heroTag: 'scanStartingPoint',
+            onPressed: _scanStartingPoint,
+            icon: const Icon(Icons.qr_code_scanner),
+            label: const Text(
+              'Scan Starting Point',
+              style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: const Color(0xFF2563EB),
+            foregroundColor: Colors.white,
+          ),
+          const SizedBox(height: 12),
+          FloatingActionButton.extended(
+            heroTag: 'openNavigation',
+            onPressed: _openNavigation,
+            icon: const Icon(Icons.navigation_outlined),
+            label: const Text('Navigate', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w600)),
+            backgroundColor: const Color(0xFF16A34A),
+            foregroundColor: Colors.white,
+          ),
+        ],
       ),
     );
   }
 
   void _openNavigation() {
+    final userLocation = context.read<UserLocationProvider>();
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => AINavSheet(
         currentFloorIndex: _currentFloor,
-        livePosition: _currentPosition,
+        livePosition: _activePosition,
+        currentLocationName: userLocation.startingLocation?.name,
         onNavigationResult: (result) {
           setState(() {
             _currentFloor = result.floorIndex;
@@ -367,6 +497,99 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
             }
           });
         },
+      ),
+    );
+  }
+}
+
+/// Card shown after a successful QR scan, confirming the detected starting
+/// location and offering one-tap access to destination selection.
+class _CurrentLocationCard extends StatelessWidget {
+  final String locationName;
+  final String floorName;
+  final VoidCallback onStartNavigation;
+  final VoidCallback onClear;
+
+  const _CurrentLocationCard({
+    required this.locationName,
+    required this.floorName,
+    required this.onStartNavigation,
+    required this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: Colors.white,
+      elevation: 6,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: Color(0xFF2563EB), width: 1.5),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Text('📍', style: TextStyle(fontSize: 18)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Current Location',
+                    style: TextStyle(
+                      fontSize: 11,
+                      letterSpacing: 0.5,
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: onClear,
+                  child: Icon(Icons.close, size: 18, color: Colors.grey.shade500),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              locationName,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Poppins',
+                color: Color(0xFF0E2B1C),
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              floorName,
+              style: TextStyle(
+                fontSize: 12,
+                fontFamily: 'Poppins',
+                color: Colors.grey.shade700,
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: onStartNavigation,
+                icon: const Icon(Icons.navigation_outlined, size: 18),
+                label: const Text(
+                  'Start Navigation',
+                  style: TextStyle(fontFamily: 'Poppins'),
+                ),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF2563EB),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

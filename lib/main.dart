@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 import 'package:naviapp/providers/theme_provider.dart';
+import 'package:naviapp/providers/user_location_provider.dart';
 import 'package:naviapp/screens/get_started_screen.dart';
 import 'package:naviapp/screens/home_screen.dart';
 
@@ -18,18 +19,29 @@ void main() async {
   );
   final themeProvider = ThemeProvider();
   await themeProvider.loadTheme();
-  runApp(NaviApp(themeProvider: themeProvider));
+  runApp(NaviApp(
+    themeProvider: themeProvider,
+    userLocationProvider: UserLocationProvider(),
+  ));
 }
 
 class NaviApp extends StatelessWidget {
   final ThemeProvider themeProvider;
+  final UserLocationProvider userLocationProvider;
 
-  const NaviApp({super.key, required this.themeProvider});
+  const NaviApp({
+    super.key,
+    required this.themeProvider,
+    required this.userLocationProvider,
+  });
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      providers: [ChangeNotifierProvider.value(value: themeProvider)],
+      providers: [
+        ChangeNotifierProvider.value(value: themeProvider),
+        ChangeNotifierProvider.value(value: userLocationProvider),
+      ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {
           return MaterialApp(

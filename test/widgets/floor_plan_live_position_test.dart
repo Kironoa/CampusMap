@@ -2,9 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:naviapp/providers/user_location_provider.dart';
 import 'package:naviapp/screens/floor_plan_screen.dart';
 import 'package:naviapp/services/indoor_positioning/indoor_position.dart';
 import 'package:naviapp/services/indoor_positioning/indoor_position_provider.dart';
+import 'package:provider/provider.dart';
 
 /// Controllable provider used to drive the FloorPlan UI in tests.
 class FakeIndoorPositionProvider extends IndoorPositionProvider {
@@ -67,7 +69,7 @@ void main() {
   testWidgets('no marker before any position is available', (tester) async {
     final fake = FakeIndoorPositionProvider();
     await tester.pumpWidget(
-      MaterialApp(home: FloorPlanScreen(positionProvider: fake)),
+      MaterialApp(home: ChangeNotifierProvider.value(value: UserLocationProvider(), child: FloorPlanScreen(positionProvider: fake))),
     );
     await tester.pump();
 
@@ -78,7 +80,7 @@ void main() {
       (tester) async {
     final fake = FakeIndoorPositionProvider();
     await tester.pumpWidget(
-      MaterialApp(home: FloorPlanScreen(positionProvider: fake)),
+      MaterialApp(home: ChangeNotifierProvider.value(value: UserLocationProvider(), child: FloorPlanScreen(positionProvider: fake))),
     );
     await tester.pump();
 
@@ -95,7 +97,7 @@ void main() {
   testWidgets('marker moves when the IndoorPosition changes', (tester) async {
     final fake = FakeIndoorPositionProvider();
     await tester.pumpWidget(
-      MaterialApp(home: FloorPlanScreen(positionProvider: fake)),
+      MaterialApp(home: ChangeNotifierProvider.value(value: UserLocationProvider(), child: FloorPlanScreen(positionProvider: fake))),
     );
     await tester.pump();
     fake.emit(fakePosition(0.20, 0.40, 1));
@@ -113,7 +115,7 @@ void main() {
       (tester) async {
     final fake = FakeIndoorPositionProvider();
     await tester.pumpWidget(
-      MaterialApp(home: FloorPlanScreen(positionProvider: fake)),
+      MaterialApp(home: ChangeNotifierProvider.value(value: UserLocationProvider(), child: FloorPlanScreen(positionProvider: fake))),
     );
     await tester.pump();
     fake.emit(fakePosition(0.5, 0.5, 0));
@@ -135,7 +137,7 @@ void main() {
       (tester) async {
     final fake = FakeIndoorPositionProvider();
     await tester.pumpWidget(
-      MaterialApp(home: FloorPlanScreen(positionProvider: fake)),
+      MaterialApp(home: ChangeNotifierProvider.value(value: UserLocationProvider(), child: FloorPlanScreen(positionProvider: fake))),
     );
     await tester.pump();
     fake.emit(fakePosition(0.5, 0.5, 2));
@@ -155,7 +157,7 @@ void main() {
       (tester) async {
     final fake = FakeIndoorPositionProvider();
     await tester.pumpWidget(
-      MaterialApp(home: FloorPlanScreen(positionProvider: fake)),
+      MaterialApp(home: ChangeNotifierProvider.value(value: UserLocationProvider(), child: FloorPlanScreen(positionProvider: fake))),
     );
     await tester.pump();
     expect(fake.isRunning, isTrue);

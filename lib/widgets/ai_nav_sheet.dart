@@ -17,6 +17,10 @@ class AINavSheet extends StatefulWidget {
   /// the manual starting-point step and routes from the live position.
   final IndoorPosition? livePosition;
 
+  /// Human-readable name of the pinned starting location (e.g. from a QR
+  /// scan). Shown instead of raw coordinates when available.
+  final String? currentLocationName;
+
   final void Function(NavigationResult result) onNavigationResult;
   final void Function(String fromLabel, String toRoomName, String floorName)? onNavigateRequest;
 
@@ -27,6 +31,7 @@ class AINavSheet extends StatefulWidget {
     this.currentFloorIndex = 0,
     this.currentRoomId,
     this.livePosition,
+    this.currentLocationName,
     required this.onNavigationResult,
     this.onNavigateRequest,
   });
@@ -146,6 +151,7 @@ class _AINavSheetState extends State<AINavSheet> with SingleTickerProviderStateM
       }
 
       final fromLabel = _selectedStartLabel ??
+          widget.currentLocationName ??
           (live != null ? 'your live location' : 'your location');
       final floorName = _floorKeys[floorIndex];
 
@@ -264,10 +270,13 @@ class _AINavSheetState extends State<AINavSheet> with SingleTickerProviderStateM
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      'Starting from your live location '
-                      '(${widget.livePosition!.x.toStringAsFixed(2)}, '
-                      '${widget.livePosition!.y.toStringAsFixed(2)} · '
-                      '${_floorKeys[widget.livePosition!.floor]})',
+                      widget.currentLocationName != null
+                          ? 'Starting from ${widget.currentLocationName} '
+                              '(${_floorKeys[widget.livePosition!.floor]})'
+                          : 'Starting from your live location '
+                              '(${widget.livePosition!.x.toStringAsFixed(2)}, '
+                              '${widget.livePosition!.y.toStringAsFixed(2)} · '
+                              '${_floorKeys[widget.livePosition!.floor]})',
                       style: TextStyle(
                         color: Colors.grey.shade600,
                         fontSize: 12,
