@@ -171,9 +171,10 @@ class _SplashScreenState extends State<SplashScreen>
                     borderRadius: BorderRadius.circular(24),
                   ),
                   child: Image.asset(
-                    'assets/images/ouch.png',
+                    'assets/images/logo and icon.png',
                     width: 52,
                     height: 52,
+                    fit: BoxFit.contain,
                     color: Colors.white,
                   ),
                 ),

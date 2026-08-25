@@ -111,6 +111,12 @@ class Pathfinder {
     return nearestId;
   }
 
+  /// Nearest valid navigation node to a normalized position on a floor.
+  /// This is the bridge between indoor positioning and the A* graph.
+  static String findNearestNodeToPosition(Offset pos, int floor) {
+    return nearestNode(pos, NavigationGraph.nodesForFloor(floor));
+  }
+
   static String findNearestNodeToRoom(String roomId, int floor) {
     final mappedNodeId = NavigationGraph.roomToNode[roomId];
     if (mappedNodeId != null) {
@@ -129,7 +135,7 @@ class Pathfinder {
 
   static Offset getRoomApproxPos(String roomId, int floor) {
     const positions = {
-      'gf_main_lobby': Offset(0.595, 0.530),
+      'gf_main_lobby': Offset(0.468, 0.560),
       'gf_drive_way': Offset(0.468, 0.950),
       'gf_scholarship': Offset(0.435, 0.490),
       'gf_ojt': Offset(0.435, 0.550),

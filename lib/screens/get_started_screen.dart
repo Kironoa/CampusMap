@@ -18,22 +18,11 @@ class GetStartedScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     const SizedBox(height: 32),
-                    Container(
-                      width: 112,
-                      height: 112,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(28),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.2),
-                        ),
-                      ),
-                      child: Image.asset(
-                        'assets/images/ouch.png',
-                        width: 60,
-                        height: 60,
-                        color: Colors.white,
-                      ),
+                    Image.asset(
+                      'assets/images/logo and icon.png',
+                      width: 60,
+                      height: 60,
+                      fit: BoxFit.contain,
                     ),
                     const SizedBox(height: 28),
                     const Text(

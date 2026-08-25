@@ -1,16 +1,23 @@
 // lib/widgets/ai_nav_sheet.dart
 import 'package:flutter/material.dart';
 import '../services/ai_navigation_service.dart';
+import '../services/indoor_positioning/indoor_position.dart';
 import '../services/navigation_graph.dart';
 import '../services/pathfinder.dart';
 import '../services/room_catalog.dart';
+import '../services/route_calculator.dart';
 
 class AINavSheet extends StatefulWidget {
   final String floorImagePath;
   final String? currentFloor;
   final int currentFloorIndex;
   final String? currentRoomId;
-  final void Function(List<Offset> pathOffsets, int floorIndex, String? roomId) onNavigationResult;
+
+  /// Live indoor position, when available. When non-null the sheet skips
+  /// the manual starting-point step and routes from the live position.
+  final IndoorPosition? livePosition;
+
+  final void Function(NavigationResult result) onNavigationResult;
   final void Function(String fromLabel, String toRoomName, String floorName)? onNavigateRequest;
 
   const AINavSheet({
@@ -19,6 +26,7 @@ class AINavSheet extends StatefulWidget {
     this.currentFloor,
     this.currentFloorIndex = 0,
     this.currentRoomId,
+    this.livePosition,
     required this.onNavigationResult,
     this.onNavigateRequest,
   });
@@ -45,6 +53,9 @@ class _AINavSheetState extends State<AINavSheet> with SingleTickerProviderStateM
   void initState() {
     super.initState();
     _selectedFloorIndex = widget.currentFloorIndex;
+    // With live positioning available, jump straight to choosing a
+    // destination (the starting point comes from the indoor position).
+    _step = widget.livePosition != null ? 2 : 1;
     _tabController = TabController(
       length: 3,
       vsync: this,
@@ -86,22 +97,40 @@ class _AINavSheetState extends State<AINavSheet> with SingleTickerProviderStateM
     });
 
     try {
-      final nodes = NavigationGraph.nodesForFloor(floorIndex);
-      final edges = NavigationGraph.edgesForFloor(floorIndex);
+      // Priority for the route start:
+      //  1. A manually selected starting point (user override).
+      //  2. The live indoor position (nearest navigation node).
+      //  3. The default starting point of the floor.
+      NavigationResult? result;
+      final live = widget.livePosition;
+      if (_selectedStartNodeId == null && live != null) {
+        result = RouteCalculator.fromLivePosition(
+          position: live,
+          roomId: roomId,
+          destinationFloor: floorIndex,
+        );
+      } else {
+        final nodes = NavigationGraph.nodesForFloor(floorIndex);
+        final edges = NavigationGraph.edgesForFloor(floorIndex);
+        final startNodeId = _selectedStartNodeId ??
+            NavigationGraph.startingPoints[floorIndex]?.first['nodeId'] ??
+            nodes.first.id;
+        final endNodeId = Pathfinder.findNearestNodeToRoom(roomId, floorIndex);
+        final pathPoints = Pathfinder.findPath(
+          startNodeId: startNodeId,
+          endNodeId: endNodeId,
+          nodes: nodes,
+          edges: edges,
+        );
+        result = NavigationResult(
+          path: pathPoints,
+          floorIndices: List.filled(pathPoints.length, floorIndex),
+          floorIndex: floorIndex,
+          roomId: roomId,
+        );
+      }
 
-      final startNodeId = _selectedStartNodeId ??
-          NavigationGraph.startingPoints[floorIndex]?.first['nodeId'] ??
-          nodes.first.id;
-      final endNodeId = Pathfinder.findNearestNodeToRoom(roomId, floorIndex);
-
-      final pathPoints = Pathfinder.findPath(
-        startNodeId: startNodeId,
-        endNodeId: endNodeId,
-        nodes: nodes,
-        edges: edges,
-      );
-
-      if (pathPoints.isEmpty) {
+      if (result == null || result.path.isEmpty) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -116,7 +145,8 @@ class _AINavSheetState extends State<AINavSheet> with SingleTickerProviderStateM
         return;
       }
 
-      final fromLabel = _selectedStartLabel ?? 'your location';
+      final fromLabel = _selectedStartLabel ??
+          (live != null ? 'your live location' : 'your location');
       final floorName = _floorKeys[floorIndex];
 
       AINavigationService.getDirectionsText(
@@ -134,7 +164,7 @@ class _AINavSheetState extends State<AINavSheet> with SingleTickerProviderStateM
         }
       });
 
-      widget.onNavigationResult(pathPoints, floorIndex, roomId);
+      widget.onNavigationResult(result);
       Navigator.of(context).pop();
     } catch (e) {
       if (!mounted) return;
@@ -188,14 +218,67 @@ class _AINavSheetState extends State<AINavSheet> with SingleTickerProviderStateM
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              _step == 1 ? '📍 Where are you starting from?' : '🏁 Where do you want to go?',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    _step == 1
+                        ? '📍 Where are you starting from?'
+                        : '🏁 Where do you want to go?',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                if (_step == 2 &&
+                    widget.livePosition != null &&
+                    _selectedStartNodeId == null)
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _step = 1;
+                      });
+                    },
+                    child: const Text(
+                      'Change start',
+                      style: TextStyle(fontFamily: 'Poppins', fontSize: 12),
+                    ),
+                  ),
+              ],
             ),
           ),
           const SizedBox(height: 12),
+          if (_step == 2 &&
+              widget.livePosition != null &&
+              _selectedStartNodeId == null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.my_location,
+                    size: 14,
+                    color: Color(0xFF3B82F6),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Starting from your live location '
+                      '(${widget.livePosition!.x.toStringAsFixed(2)}, '
+                      '${widget.livePosition!.y.toStringAsFixed(2)} · '
+                      '${_floorKeys[widget.livePosition!.floor]})',
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 12,
+                        fontFamily: 'Poppins',
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           if (_step == 1)
             _buildStartPointSelector()
           else ...[

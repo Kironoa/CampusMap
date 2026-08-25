@@ -13,7 +13,78 @@ class NavEdge {
   const NavEdge(this.from, this.to);
 }
 
+/// A connection between two floors (stairs / elevator).
+///
+/// PLACEHOLDER DATA — the node pairs below were derived from the existing
+/// "starting point" nodes of each floor and MUST be verified against the
+/// real building (which staircase connects to which landing). Adjust
+/// `fromNode`/`toNode` after a physical survey.
+class FloorTransition {
+  final int fromFloor;
+  final String fromNode;
+  final int toFloor;
+  final String toNode;
+
+  const FloorTransition({
+    required this.fromFloor,
+    required this.fromNode,
+    required this.toFloor,
+    required this.toNode,
+  });
+}
+
 class NavigationGraph {
+
+  /// Cross-floor transitions (stairs) used by multi-floor routing.
+  ///
+  /// PLACEHOLDER — verify each staircase connection on site before
+  /// relying on cross-floor routes.
+  static const List<FloorTransition> floorTransitions = [
+    // Ground → 2nd floor
+    FloorTransition(
+      fromFloor: 0,
+      fromNode: 'gf_start_stairs_left_top',
+      toFloor: 1,
+      toNode: 'sf_start_left_mid',
+    ),
+    FloorTransition(
+      fromFloor: 0,
+      fromNode: 'gf_start_stairs_right_top',
+      toFloor: 1,
+      toNode: 'sf_start_right_mid',
+    ),
+    FloorTransition(
+      fromFloor: 0,
+      fromNode: 'gf_start_lobby_left',
+      toFloor: 1,
+      toNode: 'sf_start_bot_left',
+    ),
+    FloorTransition(
+      fromFloor: 0,
+      fromNode: 'gf_start_lobby_right',
+      toFloor: 1,
+      toNode: 'sf_start_bot_right',
+    ),
+    // 2nd → 3rd floor
+    FloorTransition(
+      fromFloor: 1,
+      fromNode: 'sf_start_left_mid',
+      toFloor: 2,
+      toNode: 'tf_start_left',
+    ),
+    FloorTransition(
+      fromFloor: 1,
+      fromNode: 'sf_start_right_mid',
+      toFloor: 2,
+      toNode: 'tf_start_right',
+    ),
+    FloorTransition(
+      fromFloor: 1,
+      fromNode: 'sf_start_center',
+      toFloor: 2,
+      toNode: 'tf_start_top_left',
+    ),
+  ];
 
   // ════════════════════════════════════════════════════
   //  GROUND FLOOR
@@ -58,6 +129,7 @@ class NavigationGraph {
     NavNode('gf_v_020', Offset(0.468, 0.430)),
     NavNode('gf_v_030', Offset(0.468, 0.480)),
     NavNode('gf_v_040', Offset(0.468, 0.530)),
+    NavNode('gf_v_main_lobby_entrance', Offset(0.468, 0.560)),
     NavNode('gf_v_050', Offset(0.468, 0.580)),
     NavNode('gf_v_060', Offset(0.468, 0.640)),
     NavNode('gf_v_070', Offset(0.468, 0.720)),
@@ -137,8 +209,8 @@ class NavigationGraph {
     // ── Vertical spine (gf_h_100 == gf_v_000, share position) ──
     NavEdge('gf_h_100','gf_v_010'),
     NavEdge('gf_v_010','gf_v_020'), NavEdge('gf_v_020','gf_v_030'),
-    NavEdge('gf_v_030','gf_v_040'), NavEdge('gf_v_040','gf_v_050'),
-    NavEdge('gf_v_050','gf_v_060'), NavEdge('gf_v_060','gf_v_070'),
+    NavEdge('gf_v_030','gf_v_040'), NavEdge('gf_v_040','gf_v_main_lobby_entrance'),
+    NavEdge('gf_v_main_lobby_entrance','gf_v_050'), NavEdge('gf_v_050','gf_v_060'), NavEdge('gf_v_060','gf_v_070'),
     NavEdge('gf_v_070','gf_v_080'), NavEdge('gf_v_080','gf_v_090'),
     NavEdge('gf_v_090','gf_v_100'),
     // ── Top-row room stubs (off horizontal corridor going up) ──
@@ -164,7 +236,7 @@ class NavigationGraph {
     NavEdge('gf_h_190','gf_room_cr_r2'),
     // ── Bottom-row room stubs (off horizontal corridor going down) ──
     NavEdge('gf_h_000','gf_room_sldo'),
-    NavEdge('gf_h_010','gf_room_icje'),
+    NavEdge('gf_h_020','gf_room_icje'),
     NavEdge('gf_h_040','gf_room_crim_lab'),
     NavEdge('gf_h_060','gf_room_vp_admin'),
     NavEdge('gf_h_080','gf_room_registrar'),
@@ -180,7 +252,7 @@ class NavigationGraph {
     NavEdge('gf_v_030','gf_room_scholarship'),
     NavEdge('gf_v_040','gf_room_ojt'),
     NavEdge('gf_v_030','gf_room_accreditation'),
-    NavEdge('gf_v_050','gf_room_main_lobby'),
+    NavEdge('gf_v_main_lobby_entrance','gf_room_main_lobby'),
   ];
 
   // ════════════════════════════════════════════════════
@@ -468,7 +540,7 @@ class NavigationGraph {
   // ════════════════════════════════════════════════════
   static const Map<String, String> roomToNode = {
     // Ground floor
-    'gf_main_lobby':       'gf_room_main_lobby',
+    'gf_main_lobby':       'gf_v_main_lobby_entrance',
     'gf_drive_way':        'gf_v_100',
     'gf_scholarship':      'gf_room_scholarship',
     'gf_ojt':              'gf_room_ojt',
@@ -477,7 +549,7 @@ class NavigationGraph {
     'gf_registrar':        'gf_room_registrar',
     'gf_vp_admin':         'gf_room_vp_admin',
     'gf_crim_lab':         'gf_room_crim_lab',
-    'gf_icje':             'gf_room_icje',
+    'gf_icje':             'gf_h_020',
     'gf_sldo':             'gf_room_sldo',
     'gf_ciso':             'gf_room_ciso',
     'gf_avr':              'gf_room_avr',

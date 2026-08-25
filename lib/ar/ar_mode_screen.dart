@@ -255,12 +255,12 @@ class _ArModeScreenState extends State<ArModeScreen> {
       backgroundColor: Colors.transparent,
       builder: (_) => AINavSheet(
         currentFloorIndex: 0,
-        onNavigationResult: (pathOffsets, floorIndex, roomId) {
+        onNavigationResult: (result) {
           if (!mounted) return;
           final route = ArRouteData(
-            path: pathOffsets,
-            floorIndex: floorIndex,
-            roomId: roomId,
+            path: result.path,
+            floorIndex: result.floorIndex,
+            roomId: result.roomId,
           );
           setState(() {
             _route = route;

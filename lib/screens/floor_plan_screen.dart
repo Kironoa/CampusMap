@@ -1,15 +1,23 @@
 // lib/screens/floor_plan_screen.dart
+import 'dart:async';
 import 'dart:math';
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:naviapp/widgets/ai_nav_sheet.dart';
+import 'package:naviapp/services/indoor_positioning/indoor_position.dart';
+import 'package:naviapp/services/indoor_positioning/indoor_position_provider.dart';
 import 'package:naviapp/services/navigation_graph.dart';
 import 'package:naviapp/services/pathfinder.dart';
+import 'package:naviapp/services/route_calculator.dart';
+import 'package:naviapp/widgets/ai_nav_sheet.dart';
 
 class FloorPlanScreen extends StatefulWidget {
   final int initialFloor;
-  const FloorPlanScreen({super.key, this.initialFloor = 0});
+  final IndoorPositionProvider? positionProvider;
+  const FloorPlanScreen({
+    super.key,
+    this.initialFloor = 0,
+    this.positionProvider,
+  });
 
   @override
   State<FloorPlanScreen> createState() => _FloorPlanScreenState();
@@ -25,8 +33,14 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
   List<Offset> _navigationPath = [];
   bool _isNavigating = false;
   List<int> _pathFloorIndices = [];
-  ui.Image? _pawImage;
-  bool _pawImageLoaded = false;
+
+  // Track if user manually selected a floor
+  bool _userSelectedFloor = false;
+
+  // Indoor positioning
+  IndoorPositionProvider? _positionProvider;
+  StreamSubscription<IndoorPosition>? _positionSubscription;
+  IndoorPosition? _currentPosition;
 
   static const List<String> _floorNames = ['Ground', '2nd Floor', '3rd Floor'];
   static const List<String> _floorImagePaths = [
@@ -68,27 +82,115 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
     _pathAnimationController.addListener(() {
       setState(() {});
     });
-    _loadPawImage();
+    _initPositioning();
   }
 
-  Future<void> _loadPawImage() async {
-    try {
-      final byteData = await rootBundle.load('assets/images/dog_paw.png');
-      final bytes = byteData.buffer.asUint8List();
-      final codec = await ui.instantiateImageCodec(bytes);
-      final frameInfo = await codec.getNextFrame();
-      if (mounted) {
-        setState(() {
-          _pawImage = frameInfo.image;
-          _pawImageLoaded = true;
-        });
+  void _initPositioning() {
+    _positionProvider = widget.positionProvider ?? createPositionProvider();
+    _positionSubscription = _positionProvider!.positions.listen(
+      _onIndoorPosition,
+      onError: (Object error) {
+        if (!mounted) return;
+        debugPrint('Indoor positioning error: $error');
+      },
+    );
+    _positionProvider!.start();
+  }
+
+  void _onIndoorPosition(IndoorPosition position) {
+    if (!mounted) return;
+    setState(() {
+      _currentPosition = position;
+      // Auto-switch floor only if user hasn't manually selected a floor
+      if (!_userSelectedFloor && position.floor != _currentFloor) {
+        _currentFloor = position.floor;
       }
-    } catch (e) {
-      debugPrint('Failed to load paw image: $e');
-    }
+    });
   }
 
   void navigateTo(String roomId) {
+    final destinationFloor = _findFloorForRoom(roomId);
+
+    if (_currentPosition != null && _currentPosition!.floor == destinationFloor) {
+      // Same floor with live position
+      _navigateSameFloor(roomId, destinationFloor);
+    } else if (_currentPosition != null) {
+      // Cross-floor with live position
+      _navigateCrossFloor(roomId, destinationFloor);
+    } else {
+      // No live position - use default start node
+      _navigateDefault(roomId);
+    }
+  }
+
+  int _findFloorForRoom(String roomId) {
+    final mappedNodeId = NavigationGraph.roomToNode[roomId];
+    if (mappedNodeId != null) {
+      for (int f = 0; f < 3; f++) {
+        final nodes = NavigationGraph.nodesForFloor(f);
+        if (nodes.any((n) => n.id == mappedNodeId)) {
+          return f;
+        }
+      }
+    }
+    return _currentFloor;
+  }
+
+  void _navigateSameFloor(String roomId, int floor) {
+    final floorIndex = floor;
+    final nodes = NavigationGraph.getNodes(floorIndex);
+    final edges = NavigationGraph.getEdges(floorIndex);
+
+    final startNodeId = _currentPosition != null
+        ? Pathfinder.findNearestNodeToPosition(
+            Offset(_currentPosition!.x, _currentPosition!.y),
+            floorIndex,
+          )
+        : NavigationGraph.getDefaultStartNode(floorIndex) ?? nodes.first.id;
+
+    final endNodeId = Pathfinder.findNearestNodeToRoom(roomId, floorIndex);
+
+    final pathPoints = Pathfinder.findPath(
+      startNodeId: startNodeId,
+      endNodeId: endNodeId,
+      nodes: nodes,
+      edges: edges,
+    );
+
+    if (pathPoints.isNotEmpty) {
+      setState(() {
+        _navigationPath = pathPoints;
+        _pathFloorIndices = List.filled(pathPoints.length, floorIndex);
+        _isNavigating = true;
+      });
+      _pathAnimationController.forward(from: 0);
+    }
+  }
+
+  void _navigateCrossFloor(String roomId, int destinationFloor) {
+    final pos = _currentPosition;
+    if (pos == null) {
+      _navigateDefault(roomId);
+      return;
+    }
+    final result = RouteCalculator.fromLivePosition(
+      position: pos,
+      roomId: roomId,
+      destinationFloor: destinationFloor,
+    );
+    if (result != null && result.hasPath) {
+      setState(() {
+        _navigationPath = result.path;
+        _pathFloorIndices = result.floorIndices;
+        _isNavigating = true;
+      });
+      _pathAnimationController.forward(from: 0);
+      return;
+    }
+    _navigateDefault(roomId);
+  }
+
+  void _navigateDefault(String roomId) {
     final floorIndex = _currentFloor;
     final nodes = NavigationGraph.getNodes(floorIndex);
     final edges = NavigationGraph.getEdges(floorIndex);
@@ -140,6 +242,8 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
 
   @override
   void dispose() {
+    _positionSubscription?.cancel();
+    _positionProvider?.stop();
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     _transformationController.dispose();
@@ -201,8 +305,7 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
                         pathProgress: _pathAnimation.value,
                         isNavigating: _isNavigating,
                         imageOriginalSize: imageSize,
-                        pawImage: _pawImage,
-                        pawImageLoaded: _pawImageLoaded,
+                        livePosition: _currentPosition,
                       ),
                     ),
                   ],
@@ -217,6 +320,7 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
         onDestinationSelected: (index) {
           setState(() {
             _currentFloor = index;
+            _userSelectedFloor = true;
           });
         },
         destinations: const [
@@ -251,12 +355,13 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
       backgroundColor: Colors.transparent,
       builder: (_) => AINavSheet(
         currentFloorIndex: _currentFloor,
-        onNavigationResult: (pathOffsets, floorIndex, roomId) {
+        livePosition: _currentPosition,
+        onNavigationResult: (result) {
           setState(() {
-            _currentFloor = floorIndex;
-            if (pathOffsets.isNotEmpty) {
-              _navigationPath = pathOffsets;
-              _pathFloorIndices = List.filled(pathOffsets.length, floorIndex);
+            _currentFloor = result.floorIndex;
+            if (result.hasPath) {
+              _navigationPath = result.path;
+              _pathFloorIndices = result.floorIndices;
               _isNavigating = true;
               _pathAnimationController.forward(from: 0);
             }
@@ -275,8 +380,7 @@ class FloorPlanPainter extends CustomPainter {
   final double pathProgress;
   final bool isNavigating;
   final Size imageOriginalSize;
-  final ui.Image? pawImage;
-  final bool pawImageLoaded;
+  final IndoorPosition? livePosition;
 
   FloorPlanPainter({
     required this.isDark,
@@ -286,8 +390,7 @@ class FloorPlanPainter extends CustomPainter {
     this.pathProgress = 0,
     this.isNavigating = false,
     this.imageOriginalSize = const Size(1464, 720),
-    this.pawImage,
-    this.pawImageLoaded = false,
+    this.livePosition,
   });
 
   @override
@@ -310,7 +413,65 @@ class FloorPlanPainter extends CustomPainter {
       _drawNavigationPath(canvas, baseSize, height, scaleFactor);
     }
 
+    if (livePosition != null && livePosition!.floor == currentFloor) {
+      _drawLiveMarker(canvas, baseSize, height, scaleFactor);
+    }
+
     canvas.restore();
+  }
+
+  void _drawLiveMarker(
+    Canvas canvas,
+    double baseSize,
+    double height,
+    double scaleFactor,
+  ) {
+    final pos = livePosition!;
+    final x = pos.x * baseSize;
+    final y = pos.y * height;
+    final inv = 1.0 / scaleFactor;
+
+    // Accuracy circle
+    if (pos.accuracy < 20.0) {
+      final accuracyPx = pos.accuracy * baseSize / 50.0;
+      canvas.drawCircle(
+        Offset(x, y),
+        accuracyPx.clamp(8.0, 160.0),
+        Paint()..color = const Color(0x332563EB),
+      );
+    }
+
+    // Pulsing outer ring (using a simple static ring for now)
+    canvas.drawCircle(
+      Offset(x, y),
+      11.0 * inv,
+      Paint()
+        ..color = const Color(0xAA3B82F6)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.5 * inv,
+    );
+
+    // White outer ring
+    canvas.drawCircle(
+      Offset(x, y),
+      8.5 * inv,
+      Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3 * inv,
+    );
+
+    // Blue fill + white center dot
+    canvas.drawCircle(
+      Offset(x, y),
+      6.5 * inv,
+      Paint()..color = const Color(0xFF2563EB),
+    );
+    canvas.drawCircle(
+      Offset(x, y),
+      1.8 * inv,
+      Paint()..color = Colors.white,
+    );
   }
 
   void _drawNavigationPath(Canvas canvas, double baseSize, double height, double scaleFactor) {
@@ -321,8 +482,7 @@ class FloorPlanPainter extends CustomPainter {
     if (progressDistance <= 0) return;
 
     double traveledDistance = 0;
-    final useImage = pawImageLoaded && pawImage != null;
-    final pawSize = 12.0 / scaleFactor;
+    final dotRadius = 3.0 / scaleFactor;
     final pixelSpacing = (totalPathLength / 50.0).clamp(3.0, 20.0);
 
     for (int i = 0; i < navigationPath.length - 1; i++) {
@@ -355,24 +515,10 @@ class FloorPlanPainter extends CustomPainter {
         final currentPixel = traveledDistance + t * segmentLength;
         if (currentPixel > progressDistance) break;
 
-        if (useImage && pawImage != null) {
-          canvas.drawImageRect(
-            pawImage!,
-            Rect.fromLTWH(0, 0, pawImage!.width.toDouble(), pawImage!.height.toDouble()),
-            Rect.fromCenter(center: Offset(x, y), width: pawSize, height: pawSize),
-            Paint(),
-          );
-        } else {
-          final pawFillPaint = Paint()
-            ..color = const Color(0xFF0A7040)
-            ..style = PaintingStyle.fill;
-          final pawBorderPaint = Paint()
-            ..color = Colors.white
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 1.5 / scaleFactor;
-          canvas.drawCircle(Offset(x, y), pawSize / 2, pawFillPaint);
-          canvas.drawCircle(Offset(x, y), pawSize / 2, pawBorderPaint);
-        }
+        final paint = Paint()
+          ..color = const Color(0xFF0A7040)
+          ..style = PaintingStyle.fill;
+        canvas.drawCircle(Offset(x, y), dotRadius, paint);
       }
 
       traveledDistance += segmentLength;
@@ -461,6 +607,6 @@ class FloorPlanPainter extends CustomPainter {
         oldDelegate.currentFloor != currentFloor ||
         oldDelegate.pathProgress != pathProgress ||
         oldDelegate.isNavigating != isNavigating ||
-        oldDelegate.pawImageLoaded != pawImageLoaded;
+        oldDelegate.livePosition != livePosition;
   }
 }

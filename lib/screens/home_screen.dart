@@ -22,6 +22,11 @@ class HomeScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
+        leading: Image.asset(
+          'assets/images/logo and icon.png',
+          width: 24,
+          height: 24,
+        ),
         title: const Text(
           'TCGC Guide',
           style: TextStyle(
@@ -90,7 +95,7 @@ class HomeScreen extends StatelessWidget {
                 backgroundColor: Colors.transparent,
                 builder: (_) => AINavSheet(
                   currentFloorIndex: 0,
-                  onNavigationResult: (pathOffsets, floorIndex, roomId) {},
+                  onNavigationResult: (result) {},
                 ),
               ),
             ),
