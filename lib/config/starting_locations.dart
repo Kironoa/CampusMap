@@ -24,6 +24,12 @@ class StartingLocations {
   /// Floor index of the Ground Floor.
   static const int groundFloor = 0;
 
+  /// Floor index of the 2nd Floor.
+  static const int secondFloor = 1;
+
+  /// Floor index of the 3rd Floor.
+  static const int thirdFloor = 2;
+
   /// All Ground Floor QR starting locations.
   ///
   /// Each entry maps 1:1 to a unique QR code; never reuse qrData across
@@ -94,9 +100,176 @@ class StartingLocations {
     ),
   ];
 
-  /// Looks a starting location up by its unique location ID.
+/// All 2nd Floor QR starting locations.
+  ///
+  /// Each entry maps 1:1 to a unique QR code; never reuse qrData across
+  /// locations.
+  static const List<StartingLocation> secondFloorLocations = [
+    // QR START 1 — UPPER LEFT: SHS Lobby / upper-left entrance
+    // Pixel: x=124, y=166 → Normalized: 0.08470, 0.23056
+    // QR Payload: 2F_START_01
+    StartingLocation(
+      id: '2F_START_01',
+      name: 'Upper Left / SHS Lobby',
+      building: mainBuilding,
+      floor: secondFloor,
+      x: 0.08470,
+      y: 0.23056,
+      navNodeId: 'sf_start_qr_01',
+    ),
+
+    // QR START 2 — UPPER RIGHT: Sub-Lobby / upper-right entrance
+    // Pixel: x=1349, y=166 → Normalized: 0.92145, 0.23056
+    // QR Payload: 2F_START_02
+    StartingLocation(
+      id: '2F_START_02',
+      name: 'Upper Right / Sub-Lobby',
+      building: mainBuilding,
+      floor: secondFloor,
+      x: 0.92145,
+      y: 0.23056,
+      navNodeId: 'sf_start_qr_02',
+    ),
+
+    // QR START 3 — LOWER LEFT: Lower-left staircase entrance
+    // Pixel: x=111, y=285 → Normalized: 0.07582, 0.39583
+    // QR Payload: 2F_START_03
+    StartingLocation(
+      id: '2F_START_03',
+      name: 'Lower Left Staircase',
+      building: mainBuilding,
+      floor: secondFloor,
+      x: 0.07582,
+      y: 0.39583,
+      navNodeId: 'sf_start_qr_03',
+    ),
+
+    // QR START 4 — LOWER RIGHT: Lower-right staircase entrance
+    // Pixel: x=1360, y=284 → Normalized: 0.92896, 0.39444
+    // QR Payload: 2F_START_04
+    StartingLocation(
+      id: '2F_START_04',
+      name: 'Lower Right Staircase',
+      building: mainBuilding,
+      floor: secondFloor,
+      x: 0.92896,
+      y: 0.39444,
+      navNodeId: 'sf_start_qr_04',
+    ),
+
+    // QR START 5 — CENTER: Central staircase / central lower entrance
+    // Pixel: x=718, y=375 → Normalized: 0.49029, 0.52083
+    // QR Payload: 2F_START_05
+    StartingLocation(
+      id: '2F_START_05',
+      name: 'Central Staircase',
+      building: mainBuilding,
+      floor: secondFloor,
+      x: 0.49029,
+      y: 0.52083,
+      navNodeId: 'sf_start_qr_05',
+    ),
+
+    // LEGACY STARTING POINTS (kept for floor transitions compatibility)
+    StartingLocation(
+      id: 'SF_LEFT_STAIRCASE',
+      name: 'Left Staircase (Legacy)',
+      building: mainBuilding,
+      floor: secondFloor,
+      x: 0.065,
+      y: 0.500,
+      navNodeId: 'sf_start_left_mid',
+    ),
+    StartingLocation(
+      id: 'SF_RIGHT_STAIRCASE',
+      name: 'Right Staircase (Legacy)',
+      building: mainBuilding,
+      floor: secondFloor,
+      x: 0.960,
+      y: 0.500,
+      navNodeId: 'sf_start_right_mid',
+    ),
+    StartingLocation(
+      id: 'SF_CENTER_STAIRCASE',
+      name: 'Center Staircase (Legacy)',
+      building: mainBuilding,
+      floor: secondFloor,
+      x: 0.468,
+      y: 0.415,
+      navNodeId: 'sf_start_center',
+    ),
+    StartingLocation(
+      id: 'SF_BOTTOM_LEFT_STAIRCASE',
+      name: 'Bottom Left Staircase (Legacy)',
+      building: mainBuilding,
+      floor: secondFloor,
+      x: 0.435,
+      y: 0.760,
+      navNodeId: 'sf_start_bot_left',
+    ),
+    StartingLocation(
+      id: 'SF_BOTTOM_RIGHT_STAIRCASE',
+      name: 'Bottom Right Staircase (Legacy)',
+      building: mainBuilding,
+      floor: secondFloor,
+      x: 0.595,
+      y: 0.760,
+      navNodeId: 'sf_start_bot_right',
+    ),
+  ];
+
+  /// All 3rd Floor QR starting locations.
+  ///
+  /// Each entry maps 1:1 to a unique QR code; never reuse qrData across
+  /// locations.
+  static const List<StartingLocation> thirdFloorLocations = [
+    StartingLocation(
+      id: 'TF_LEFT_STAIRCASE',
+      name: 'Left Staircase',
+      building: mainBuilding,
+      floor: thirdFloor,
+      x: 0.065, // CALIBRATE
+      y: 0.420, // CALIBRATE
+      navNodeId: 'tf_start_left',
+    ),
+    StartingLocation(
+      id: 'TF_ELEVATOR',
+      name: 'Elevator',
+      building: mainBuilding,
+      floor: thirdFloor,
+      x: 0.490, // CALIBRATE
+      y: 0.300, // CALIBRATE
+      navNodeId: 'tf_start_elevator',
+    ),
+    StartingLocation(
+      id: 'TF_RIGHT_STAIRCASE',
+      name: 'Right Staircase',
+      building: mainBuilding,
+      floor: thirdFloor,
+      x: 0.960, // CALIBRATE
+      y: 0.420, // CALIBRATE
+      navNodeId: 'tf_start_right',
+    ),
+    StartingLocation(
+      id: 'TF_TOP_LEFT_STAIRCASE',
+      name: 'Top Left Staircase',
+      building: mainBuilding,
+      floor: thirdFloor,
+      x: 0.380, // CALIBRATE
+      y: 0.080, // CALIBRATE
+      navNodeId: 'tf_start_top_left',
+    ),
+  ];
+
+  /// Looks a starting location up by its unique location ID across all floors.
   static StartingLocation? byId(String locationId) {
     for (final location in groundFloorLocations) {
+      if (location.id == locationId) return location;
+    }
+    for (final location in secondFloorLocations) {
+      if (location.id == locationId) return location;
+    }
+    for (final location in thirdFloorLocations) {
       if (location.id == locationId) return location;
     }
     return null;

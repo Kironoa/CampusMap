@@ -266,7 +266,30 @@ class NavigationGraph {
   // ════════════════════════════════════════════════════
   static const List<NavNode> secondNodes = [
     // =========================================================
-    // STARTING / STAIR POINTS
+    // QR STARTING POINTS (User current location from QR scan)
+    // =========================================================
+    // START 1 — UPPER LEFT: SHS Lobby / upper-left entrance
+    // Pixel: x=124, y=166 → Normalized: 124/1464=0.08470, 166/720=0.23056
+    NavNode('sf_start_qr_01', Offset(0.08470, 0.23056)),
+
+    // START 2 — UPPER RIGHT: Sub-Lobby / upper-right entrance
+    // Pixel: x=1349, y=166 → Normalized: 1349/1464=0.92145, 166/720=0.23056
+    NavNode('sf_start_qr_02', Offset(0.92145, 0.23056)),
+
+    // START 3 — LOWER LEFT: Lower-left staircase entrance
+    // Pixel: x=111, y=285 → Normalized: 111/1464=0.07582, 285/720=0.39583
+    NavNode('sf_start_qr_03', Offset(0.07582, 0.39583)),
+
+    // START 4 — LOWER RIGHT: Lower-right staircase entrance
+    // Pixel: x=1360, y=284 → Normalized: 1360/1464=0.92896, 284/720=0.39444
+    NavNode('sf_start_qr_04', Offset(0.92896, 0.39444)),
+
+    // START 5 — CENTER: Central staircase / central lower entrance
+    // Pixel: x=718, y=375 → Normalized: 718/1464=0.49029, 375/720=0.52083
+    NavNode('sf_start_qr_05', Offset(0.49029, 0.52083)),
+
+    // =========================================================
+    // LEGACY STARTING / STAIR POINTS (kept for floor transitions)
     // =========================================================
     NavNode('sf_start_left_mid', Offset(0.0745, 0.3542)),
 
@@ -421,6 +444,24 @@ class NavigationGraph {
   ];
 
   static const List<NavEdge> secondEdges = [
+    // =========================================================
+    // QR STARTING POINT CONNECTIONS
+    // =========================================================
+    // START 1 — UPPER LEFT (SHS Lobby) → connects to main corridor near left end
+    NavEdge('sf_start_qr_01', 'sf_h_010'),
+
+    // START 2 — UPPER RIGHT (Sub-Lobby) → connects to main corridor near right end
+    NavEdge('sf_start_qr_02', 'sf_h_180'),
+
+    // START 3 — LOWER LEFT (Lower-left staircase) → connects to lower corridor area
+    NavEdge('sf_start_qr_03', 'sf_h_010'),
+
+    // START 4 — LOWER RIGHT (Lower-right staircase) → connects to lower corridor area
+    NavEdge('sf_start_qr_04', 'sf_h_180'),
+
+    // START 5 — CENTER (Central staircase) → connects to central lower corridor
+    NavEdge('sf_start_qr_05', 'sf_cv_030'),
+
     // =========================================================
     // MAIN HORIZONTAL CORRIDOR
     // =========================================================
