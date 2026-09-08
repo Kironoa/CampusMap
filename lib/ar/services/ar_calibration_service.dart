@@ -43,8 +43,10 @@ class ArCalibrationService {
     assert(isCalibrated, 'Calibrate before mapping points to world space');
     final origin = _originWorld!;
     final originMap = _originMap!;
-    final dx = (mapPoint.dx - originMap.dx) * ArConfig.metersPerUnitX(floorIndex);
-    final dy = (mapPoint.dy - originMap.dy) * ArConfig.metersPerUnitY(floorIndex);
+    final dx =
+        (mapPoint.dx - originMap.dx) * ArConfig.metersPerUnitX(floorIndex);
+    final dy =
+        (mapPoint.dy - originMap.dy) * ArConfig.metersPerUnitY(floorIndex);
     return Vector3(
       origin.x + dx * ArConfig.worldScale,
       ArConfig.placeHeight,

@@ -32,13 +32,13 @@ class BleIndoorPositionProvider implements IndoorPositionProvider {
     Future<void> Function()? stopScan,
     Stream<List<fbp.ScanResult>>? scanResults,
     RssiBuffer? buffer,
-  })  : _ensurePermissionsOverride = ensurePermissions,
-        _platformIsSupportedOverride = platformIsSupported,
-        _adapterIsOnOverride = adapterIsOn,
-        _startScanOverride = startScan,
-        _stopScanOverride = stopScan,
-        _scanResultsOverride = scanResults,
-        _buffer = buffer ?? RssiBuffer();
+  }) : _ensurePermissionsOverride = ensurePermissions,
+       _platformIsSupportedOverride = platformIsSupported,
+       _adapterIsOnOverride = adapterIsOn,
+       _startScanOverride = startScan,
+       _stopScanOverride = stopScan,
+       _scanResultsOverride = scanResults,
+       _buffer = buffer ?? RssiBuffer();
 
   final StreamController<IndoorPosition> _controller =
       StreamController<IndoorPosition>.broadcast();
@@ -68,10 +68,13 @@ class BleIndoorPositionProvider implements IndoorPositionProvider {
   Future<void> start() async {
     if (_running) return;
 
-    final ensurePermissions = _ensurePermissionsOverride ?? _defaultEnsurePermissions;
+    final ensurePermissions =
+        _ensurePermissionsOverride ?? _defaultEnsurePermissions;
     if (!await ensurePermissions()) {
-      _fail('Bluetooth or location permission was denied. '
-          'Indoor positioning needs it to scan for beacons.');
+      _fail(
+        'Bluetooth or location permission was denied. '
+        'Indoor positioning needs it to scan for beacons.',
+      );
       return;
     }
 
@@ -108,8 +111,7 @@ class BleIndoorPositionProvider implements IndoorPositionProvider {
       return;
     }
 
-    _scanSub =
-        (_scanResultsOverride ?? fbp.FlutterBluePlus.scanResults).listen(
+    _scanSub = (_scanResultsOverride ?? fbp.FlutterBluePlus.scanResults).listen(
       _onScanResults,
       onError: (Object e) => _fail('Bluetooth scan error: $e'),
     );
@@ -139,8 +141,9 @@ class BleIndoorPositionProvider implements IndoorPositionProvider {
   void _onScanResult(fbp.ScanResult result) {
     if (!PositionEstimator.isUsableRssi(result.rssi.toDouble())) return;
 
-    final packet =
-        BeaconParser.parseIBeacon(result.advertisementData.manufacturerData);
+    final packet = BeaconParser.parseIBeacon(
+      result.advertisementData.manufacturerData,
+    );
     if (packet == null) return;
     if (BeaconConfig.beaconById(packet.beaconId) == null) return;
 
@@ -210,12 +213,12 @@ class BleIndoorPositionProvider implements IndoorPositionProvider {
       fbp.FlutterBluePlus.adapterStateNow == fbp.BluetoothAdapterState.on;
 
   static Future<void> _defaultStartScan() => fbp.FlutterBluePlus.startScan(
-        timeout: Duration.zero, // keep scanning until stop() is called
-        continuousUpdates: true,
-        oneByOne: true,
-        continuousDivisor: 1,
-        androidScanMode: fbp.AndroidScanMode.lowLatency,
-      );
+    timeout: Duration.zero, // keep scanning until stop() is called
+    continuousUpdates: true,
+    oneByOne: true,
+    continuousDivisor: 1,
+    androidScanMode: fbp.AndroidScanMode.lowLatency,
+  );
 
   static Future<void> _defaultStopScan() => fbp.FlutterBluePlus.stopScan();
 

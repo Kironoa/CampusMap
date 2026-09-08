@@ -47,19 +47,22 @@ class GetStartedScreen extends StatelessWidget {
                     _buildFeatureRow(
                       icon: Icons.map_outlined,
                       title: 'Interactive Floor Plans',
-                      subtitle: 'Zoom, explore, and tap any room across all three floors.',
+                      subtitle:
+                          'Zoom, explore, and tap any room across all three floors.',
                     ),
                     const SizedBox(height: 20),
                     _buildFeatureRow(
                       icon: Icons.psychology_outlined,
                       title: 'AI Navigation',
-                      subtitle: 'Ask in English or Filipino and get instant directions.',
+                      subtitle:
+                          'Ask in English or Filipino and get instant directions.',
                     ),
                     const SizedBox(height: 20),
                     _buildFeatureRow(
                       icon: Icons.view_in_ar_outlined,
                       title: 'AR Navigation',
-                      subtitle: 'Follow 3D arrows overlaid on the real campus view.',
+                      subtitle:
+                          'Follow 3D arrows overlaid on the real campus view.',
                     ),
                     const SizedBox(height: 32),
                   ],

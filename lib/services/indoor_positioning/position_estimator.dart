@@ -82,10 +82,7 @@ class PositionEstimator {
       final count = counts[beacon.id];
       if (count == null || count == 0) continue;
       final avgRssi = averages[beacon.id]! / count;
-      final distance = distanceFromRssi(
-        avgRssi,
-        beacon.txPower,
-      );
+      final distance = distanceFromRssi(avgRssi, beacon.txPower);
       contributing.add((beacon, distance));
     }
 
@@ -108,8 +105,7 @@ class PositionEstimator {
       weightSum += weight;
       xSum += beacon.x * weight;
       ySum += beacon.y * weight;
-      floorVotes[beacon.floor] =
-          (floorVotes[beacon.floor] ?? 0.0) + weight;
+      floorVotes[beacon.floor] = (floorVotes[beacon.floor] ?? 0.0) + weight;
     }
 
     final x = IndoorPosition.clampCoordinate(xSum / weightSum);
@@ -129,7 +125,8 @@ class PositionEstimator {
         contributing.map((c) => c.$2).reduce((a, b) => a + b) / beaconCount;
     // 1 beacon ≈ low, 3+ ≈ high; strong signals (small distances) add to it.
     final confidence =
-        ((beaconCount - BeaconConfig.minBeaconsForFix + 1) / 2.0 *
+        ((beaconCount - BeaconConfig.minBeaconsForFix + 1) /
+                2.0 *
                 (1.0 / (1.0 + avgDistance / 10.0)))
             .clamp(0.0, 1.0);
 
@@ -151,10 +148,11 @@ class PositionEstimator {
   /// Rough accuracy in meters: average contributor distance scaled down by
   /// the number of beacons (more beacons → better).
   static double _estimateAccuracy(
-      List<(BeaconDefinition, double)> contributing) {
+    List<(BeaconDefinition, double)> contributing,
+  ) {
     final avgDistance =
         contributing.map((c) => c.$2).reduce((a, b) => a + b) /
-            contributing.length;
+        contributing.length;
     return avgDistance / math.sqrt(contributing.length);
   }
 }

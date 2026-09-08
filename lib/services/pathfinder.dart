@@ -11,7 +11,10 @@ class Pathfinder {
     required List<NavEdge> edges,
   }) {
     if (startNodeId == endNodeId) {
-      final n = nodes.firstWhere((n) => n.id == startNodeId, orElse: () => nodes.first);
+      final n = nodes.firstWhere(
+        (n) => n.id == startNodeId,
+        orElse: () => nodes.first,
+      );
       return [n.pos];
     }
 
@@ -44,12 +47,16 @@ class Pathfinder {
     }
 
     gScore[startNodeId] = 0.0;
-    fScore[startNodeId] = _h(nodeMap[startNodeId]!.pos, nodeMap[endNodeId]!.pos);
+    fScore[startNodeId] = _h(
+      nodeMap[startNodeId]!.pos,
+      nodeMap[endNodeId]!.pos,
+    );
 
     while (openSet.isNotEmpty) {
       String current = openSet.first;
       for (final nodeId in openSet) {
-        if ((fScore[nodeId] ?? double.infinity) < (fScore[current] ?? double.infinity)) {
+        if ((fScore[nodeId] ?? double.infinity) <
+            (fScore[current] ?? double.infinity)) {
           current = nodeId;
         }
       }
@@ -63,13 +70,15 @@ class Pathfinder {
       final neighbors = adj[current] ?? [];
       for (final neighbor in neighbors) {
         if (!nodeMap.containsKey(neighbor)) continue;
-        final tentG = (gScore[current] ?? double.infinity) +
+        final tentG =
+            (gScore[current] ?? double.infinity) +
             _d(nodeMap[current]!.pos, nodeMap[neighbor]!.pos);
 
         if (tentG < (gScore[neighbor] ?? double.infinity)) {
           cameFrom[neighbor] = current;
           gScore[neighbor] = tentG;
-          fScore[neighbor] = tentG + _h(nodeMap[neighbor]!.pos, nodeMap[endNodeId]!.pos);
+          fScore[neighbor] =
+              tentG + _h(nodeMap[neighbor]!.pos, nodeMap[endNodeId]!.pos);
           openSet.add(neighbor);
         }
       }
@@ -134,6 +143,22 @@ class Pathfinder {
   }
 
   static Offset getRoomApproxPos(String roomId, int floor) {
+    // First try to get position from NavigationGraph room node (authoritative).
+    // This avoids duplicating coordinate data between pathfinder and nav graph.
+    final mappedNodeId = NavigationGraph.roomToNode[roomId];
+    if (mappedNodeId != null) {
+      final nodes = NavigationGraph.nodesForFloor(floor);
+      for (final n in nodes) {
+        if (n.id == mappedNodeId) {
+          return n.pos;
+        }
+      }
+    }
+
+    // Fallback: hardcoded approximate room centers for rooms not in roomToNode.
+    // These coordinates mirror the NavigationGraph room node positions.
+    // If a room is missing from roomToNode, its position here is the fallback
+    // used by findNearestNodeToRoom when the graph lookup fails.
     const positions = {
       'gf_main_lobby': Offset(0.468, 0.560),
       'gf_drive_way': Offset(0.468, 0.950),

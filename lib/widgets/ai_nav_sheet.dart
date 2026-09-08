@@ -22,7 +22,8 @@ class AINavSheet extends StatefulWidget {
   final String? currentLocationName;
 
   final void Function(NavigationResult result) onNavigationResult;
-  final void Function(String fromLabel, String toRoomName, String floorName)? onNavigateRequest;
+  final void Function(String fromLabel, String toRoomName, String floorName)?
+  onNavigateRequest;
 
   const AINavSheet({
     super.key,
@@ -40,27 +41,17 @@ class AINavSheet extends StatefulWidget {
   State<AINavSheet> createState() => _AINavSheetState();
 }
 
-class _AINavSheetState extends State<AINavSheet> with SingleTickerProviderStateMixin {
+class _AINavSheetState extends State<AINavSheet>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
   bool _isLoading = false;
   String? _loadingRoomName;
 
-  int _step = 1;
-  int? _selectedFloorIndex;
-  String? _selectedStartNodeId;
-  String? _selectedStartLabel;
-
-  final List<String> _floorKeys = ['Ground Floor', '2nd Floor', '3rd Floor'];
+  List<String> get _floorKeys => RoomCatalog.floorKeys;
 
   @override
   void initState() {
     super.initState();
-    _selectedFloorIndex = widget.currentFloorIndex;
-    // With live positioning available, jump straight to choosing a
-    // destination (the starting point comes from the indoor position).
-    _step = widget.livePosition != null ? 2 : 1;
     _tabController = TabController(
       length: 3,
       vsync: this,
@@ -76,19 +67,12 @@ class _AINavSheetState extends State<AINavSheet> with SingleTickerProviderStateM
   @override
   void dispose() {
     _tabController.dispose();
-    _searchController.dispose();
     super.dispose();
   }
 
   List<Map<String, String>> _getFilteredRooms() {
     final floor = _floorKeys[_tabController.index];
-    final rooms = RoomCatalog.allRooms[floor]!;
-    if (_searchQuery.isEmpty) {
-      return rooms;
-    }
-    final query = _searchQuery.toLowerCase();
-    return rooms.where((room) =>
-      room['name']!.toLowerCase().contains(query)).toList();
+    return RoomCatalog.allRooms[floor]!;
   }
 
   Future<void> _onRoomTap(Map<String, String> room) async {
@@ -103,12 +87,11 @@ class _AINavSheetState extends State<AINavSheet> with SingleTickerProviderStateM
 
     try {
       // Priority for the route start:
-      //  1. A manually selected starting point (user override).
-      //  2. The live indoor position (nearest navigation node).
-      //  3. The default starting point of the floor.
+      //  1. The live indoor position (nearest navigation node).
+      //  2. The default starting point of the floor.
       NavigationResult? result;
       final live = widget.livePosition;
-      if (_selectedStartNodeId == null && live != null) {
+      if (live != null) {
         result = RouteCalculator.fromLivePosition(
           position: live,
           roomId: roomId,
@@ -117,7 +100,7 @@ class _AINavSheetState extends State<AINavSheet> with SingleTickerProviderStateM
       } else {
         final nodes = NavigationGraph.nodesForFloor(floorIndex);
         final edges = NavigationGraph.edgesForFloor(floorIndex);
-        final startNodeId = _selectedStartNodeId ??
+        final startNodeId =
             NavigationGraph.startingPoints[floorIndex]?.first['nodeId'] ??
             nodes.first.id;
         final endNodeId = Pathfinder.findNearestNodeToRoom(roomId, floorIndex);
@@ -150,7 +133,7 @@ class _AINavSheetState extends State<AINavSheet> with SingleTickerProviderStateM
         return;
       }
 
-      final fromLabel = _selectedStartLabel ??
+      final fromLabel =
           widget.currentLocationName ??
           (live != null ? 'your live location' : 'your location');
       final floorName = _floorKeys[floorIndex];
@@ -163,7 +146,9 @@ class _AINavSheetState extends State<AINavSheet> with SingleTickerProviderStateM
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(directions ?? 'Following the paw trail to $roomName'),
+              content: Text(
+                directions ?? 'Following the paw trail to $roomName',
+              ),
               duration: const Duration(seconds: 3),
             ),
           );
@@ -188,15 +173,6 @@ class _AINavSheetState extends State<AINavSheet> with SingleTickerProviderStateM
         });
       }
     }
-  }
-
-  void _onStartPointSelected(int floorIndex, Map<String, String> start) {
-    setState(() {
-      _selectedFloorIndex = floorIndex;
-      _selectedStartNodeId = start['nodeId'];
-      _selectedStartLabel = start['label'];
-      _step = 2;
-    });
   }
 
   @override
@@ -229,114 +205,31 @@ class _AINavSheetState extends State<AINavSheet> with SingleTickerProviderStateM
               children: [
                 Expanded(
                   child: Text(
-                    _step == 1
-                        ? '📍 Where are you starting from?'
-                        : '🏁 Where do you want to go?',
+                    '🏁 Where do you want to go?',
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
-                if (_step == 2 &&
-                    widget.livePosition != null &&
-                    _selectedStartNodeId == null)
-                  TextButton(
-                    onPressed: () {
-                      setState(() {
-                        _step = 1;
-                      });
-                    },
-                    child: const Text(
-                      'Change start',
-                      style: TextStyle(fontFamily: 'Poppins', fontSize: 12),
-                    ),
-                  ),
               ],
             ),
           ),
           const SizedBox(height: 12),
-          if (_step == 2 &&
-              widget.livePosition != null &&
-              _selectedStartNodeId == null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.my_location,
-                    size: 14,
-                    color: Color(0xFF3B82F6),
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      widget.currentLocationName != null
-                          ? 'Starting from ${widget.currentLocationName} '
-                              '(${_floorKeys[widget.livePosition!.floor]})'
-                          : 'Starting from your live location '
-                              '(${widget.livePosition!.x.toStringAsFixed(2)}, '
-                              '${widget.livePosition!.y.toStringAsFixed(2)} · '
-                              '${_floorKeys[widget.livePosition!.floor]})',
-                      style: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: 12,
-                        fontFamily: 'Poppins',
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          if (_step == 1)
-            _buildStartPointSelector()
-          else ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Search rooms...',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: _searchQuery.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear),
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() {
-                              _searchQuery = '';
-                            });
-                          },
-                        )
-                      : null,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  filled: true,
-                  fillColor: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
-                ),
-                onChanged: (value) {
-                  setState(() {
-                    _searchQuery = value;
-                  });
-                },
-              ),
-            ),
-            const SizedBox(height: 12),
-            TabBar(
-              controller: _tabController,
-              labelColor: const Color(0xFF0A7040),
-              unselectedLabelColor: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-              indicatorColor: const Color(0xFF0A7040),
-              indicatorWeight: 3,
-              tabs: const [
-                Tab(text: 'Ground'),
-                Tab(text: '2nd Floor'),
-                Tab(text: '3rd Floor'),
-              ],
-            ),
-            const SizedBox(height: 8),
-          ],
+          TabBar(
+            controller: _tabController,
+            labelColor: const Color(0xFF0A7040),
+            unselectedLabelColor: isDark
+                ? Colors.grey.shade400
+                : Colors.grey.shade600,
+            indicatorColor: const Color(0xFF0A7040),
+            indicatorWeight: 3,
+            tabs: const [
+              Tab(text: 'Ground'),
+              Tab(text: '2nd Floor'),
+              Tab(text: '3rd Floor'),
+            ],
+          ),
+          const SizedBox(height: 8),
           Expanded(
             child: _isLoading
                 ? Center(
@@ -354,51 +247,7 @@ class _AINavSheetState extends State<AINavSheet> with SingleTickerProviderStateM
                       ],
                     ),
                   )
-                : _step == 1
-                    ? const SizedBox.shrink()
-                    : _buildRoomList(filteredRooms),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStartPointSelector() {
-    _selectedFloorIndex ??= widget.currentFloorIndex;
-    final floorStartPoints = NavigationGraph.startingPoints[_selectedFloorIndex!] ?? [];
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Select your current location:',
-            style: TextStyle(
-              color: Colors.grey.shade600,
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: floorStartPoints.map((start) {
-              final isSelected = _selectedStartNodeId == start['nodeId'];
-              return ChoiceChip(
-                label: Text(start['label']!),
-                selected: isSelected,
-                selectedColor: const Color(0xFF0A7040),
-                labelStyle: TextStyle(
-                  color: isSelected ? Colors.white : null,
-                ),
-                onSelected: (selected) {
-                  if (selected) {
-                    _onStartPointSelected(_selectedFloorIndex!, start);
-                  }
-                },
-              );
-            }).toList(),
+                : _buildRoomList(filteredRooms),
           ),
         ],
       ),

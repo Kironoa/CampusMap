@@ -14,8 +14,14 @@ void main() {
 
       final readings = buffer.readings();
       expect(readings, hasLength(2));
-      expect(readings.firstWhere((r) => r.beaconId == 'b1').rssi, closeTo(-61, 0.001));
-      expect(readings.firstWhere((r) => r.beaconId == 'b2').rssi, closeTo(-70, 0.001));
+      expect(
+        readings.firstWhere((r) => r.beaconId == 'b1').rssi,
+        closeTo(-61, 0.001),
+      );
+      expect(
+        readings.firstWhere((r) => r.beaconId == 'b2').rssi,
+        closeTo(-70, 0.001),
+      );
     });
 
     test('drops samples older than the window', () {

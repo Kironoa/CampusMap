@@ -45,13 +45,13 @@ class FakeIndoorPositionProvider extends IndoorPositionProvider {
 }
 
 IndoorPosition decoyLivePosition() => IndoorPosition(
-      x: 0.5,
-      y: 0.5,
-      floor: 1,
-      accuracy: 2,
-      timestamp: DateTime(2026, 8, 25, 12),
-      source: PositionSource.mock,
-    );
+  x: 0.5,
+  y: 0.5,
+  floor: 1,
+  accuracy: 2,
+  timestamp: DateTime(2026, 8, 25, 12),
+  source: PositionSource.mock,
+);
 
 FloorPlanPainter painterOf(WidgetTester tester) {
   final customPaint = tester.widget<CustomPaint>(
@@ -75,7 +75,9 @@ Future<FloorPlanPainter> simulateQrScan(
       key: UniqueKey(),
       home: MultiProvider(
         providers: [
-          ChangeNotifierProvider<UserLocationProvider>.value(value: userLocation),
+          ChangeNotifierProvider<UserLocationProvider>.value(
+            value: userLocation,
+          ),
         ],
         child: FloorPlanScreen(positionProvider: fake),
       ),
@@ -100,37 +102,49 @@ Future<FloorPlanPainter> simulateQrScan(
 }
 
 void main() {
-  testWidgets('each of the seven QR codes pins the marker to its own spot',
-      (tester) async {
+  testWidgets('each of the seven QR codes pins the marker to its own spot', (
+    tester,
+  ) async {
     for (final location in StartingLocations.groundFloorLocations) {
       final painter = await simulateQrScan(tester, scanned: location);
 
       expect(painter.livePosition, isNotNull, reason: location.id);
-      expect(painter.livePosition!.x, location.x,
-          reason:
-              '${location.id} marker must sit at its configured x (got '
-              '${painter.livePosition!.x}, expected ${location.x})');
-      expect(painter.livePosition!.y, location.y,
-          reason:
-              '${location.id} marker must sit at its configured y (got '
-              '${painter.livePosition!.y}, expected ${location.y})');
-      expect(painter.livePosition!.floor, 0,
-          reason: '${location.id} is a ground-floor starting point');
+      expect(
+        painter.livePosition!.x,
+        location.x,
+        reason:
+            '${location.id} marker must sit at its configured x (got '
+            '${painter.livePosition!.x}, expected ${location.x})',
+      );
+      expect(
+        painter.livePosition!.y,
+        location.y,
+        reason:
+            '${location.id} marker must sit at its configured y (got '
+            '${painter.livePosition!.y}, expected ${location.y})',
+      );
+      expect(
+        painter.livePosition!.floor,
+        0,
+        reason: '${location.id} is a ground-floor starting point',
+      );
       // The Ground Floor is displayed after scanning.
       expect(painter.currentFloor, 0, reason: location.id);
     }
   });
 
-  testWidgets('a pinned QR location survives later live updates',
-      (tester) async {
+  testWidgets('a pinned QR location survives later live updates', (
+    tester,
+  ) async {
     final location = StartingLocations.byId('GF_LOBBY_LEFT_STAIRCASE')!;
     final painter = await simulateQrScan(tester, scanned: location);
     expect(painter.livePosition!.x, location.x);
     expect(painter.livePosition!.y, location.y);
   });
 
-  testWidgets('invalid QR content never changes the current location',
-      (tester) async {
+  testWidgets('invalid QR content never changes the current location', (
+    tester,
+  ) async {
     const invalidPayloads = [
       'https://unrelated-site.example.com',
       '{"type": "other_app", "location_id": "GF_MAIN_ENTRANCE"}',
@@ -166,8 +180,9 @@ void main() {
     }
   });
 
-  testWidgets('scanning a second code moves the marker to the new location',
-      (tester) async {
+  testWidgets('scanning a second code moves the marker to the new location', (
+    tester,
+  ) async {
     final first = StartingLocations.byId('GF_LEFT_SIDE_DOOR')!;
     final second = StartingLocations.byId('GF_RIGHT_WING_STAIRCASE')!;
 

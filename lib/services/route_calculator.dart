@@ -121,8 +121,8 @@ class RouteCalculator {
     while (queue.isNotEmpty) {
       final floor = queue.removeAt(0);
       if (floor == destinationFloor) break;
-      for (final (next, t) in neighbors[floor] ??
-          const <(int, FloorTransition)>[]) {
+      for (final (next, t)
+          in neighbors[floor] ?? const <(int, FloorTransition)>[]) {
         if (!visited.contains(next)) {
           visited.add(next);
           cameFrom[next] = (floor, t, t.fromFloor == floor);

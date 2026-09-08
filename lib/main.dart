@@ -19,10 +19,12 @@ void main() async {
   );
   final themeProvider = ThemeProvider();
   await themeProvider.loadTheme();
-  runApp(NaviApp(
-    themeProvider: themeProvider,
-    userLocationProvider: UserLocationProvider(),
-  ));
+  runApp(
+    NaviApp(
+      themeProvider: themeProvider,
+      userLocationProvider: UserLocationProvider(),
+    ),
+  );
 }
 
 class NaviApp extends StatelessWidget {
@@ -51,9 +53,7 @@ class NaviApp extends StatelessWidget {
             theme: _buildTheme(Brightness.light),
             darkTheme: _buildTheme(Brightness.dark),
             home: const GetStartedScreen(),
-            routes: {
-  '/home': (context) => const HomeScreen(),
-},
+            routes: {'/home': (context) => const HomeScreen()},
           );
         },
       ),

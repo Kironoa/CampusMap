@@ -19,9 +19,6 @@ class ArConfig {
   /// Base size (meters) of the guide arrows in the AR scene.
   static const double arrowSize = 0.42;
 
-  /// Size (meters) of the destination marker in the AR scene.
-  static const double destinationSize = 0.55;
-
   /// Size (meters) of room marker spheres in the AR scene.
   static const double roomMarkerSize = 0.22;
 
@@ -39,7 +36,6 @@ class ArConfig {
 
   /// Relative model URIs (resolved against the app's asset root).
   static const String arrowModel = 'ar_models/arrow.gltf';
-  static const String destinationModel = 'ar_models/destination.gltf';
   static const String roomMarkerModel = 'ar_models/marker.gltf';
 
   /// Original pixel dimensions of each floor map image (indexed by floor).

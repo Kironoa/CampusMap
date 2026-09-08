@@ -1,4 +1,5 @@
 // lib/services/indoor_positioning/floor_helpers.dart
+import '../room_catalog.dart';
 
 /// Conversion helpers between zero-based floor indexes (0=Ground, 1=2nd,
 /// 2=3rd) and human-readable floor names.
@@ -8,14 +9,16 @@
 class FloorInfo {
   FloorInfo._();
 
-  static const List<String> names = ['Ground Floor', '2nd Floor', '3rd Floor'];
+  static const List<String> names = RoomCatalog.floorKeys;
 
   /// Short labels used in tabs/chips.
   static const List<String> shortNames = ['Ground', '2nd', '3rd'];
 
   /// Human-readable floor name for a zero-based index.
   static String name(int floorIndex) {
-    if (floorIndex < 0 || floorIndex >= names.length) return 'Floor $floorIndex';
+    if (floorIndex < 0 || floorIndex >= names.length) {
+      return 'Floor $floorIndex';
+    }
     return names[floorIndex];
   }
 

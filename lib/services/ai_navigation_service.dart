@@ -23,27 +23,27 @@ class AINavigationService {
       }
     }
 
-    final prompt = 'Give 1-2 friendly walking directions sentences from $fromLabel to $toRoomName on the $floorName of Tangub City Global College. Be brief.';
+    final prompt =
+        'Give 1-2 friendly walking directions sentences from $fromLabel to $toRoomName on the $floorName of Tangub City Global College. Be brief.';
 
     try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/chat/completions'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $_apiKey',
-        },
-        body: jsonEncode({
-          'model': 'google/gemini-2.0-flash-001',
-          'messages': [
-            {
-              'role': 'user',
-              'content': prompt,
-            }
-          ],
-          'temperature': 0.2,
-          'max_tokens': 150,
-        }),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .post(
+            Uri.parse('$_baseUrl/chat/completions'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $_apiKey',
+            },
+            body: jsonEncode({
+              'model': 'google/gemini-2.0-flash-001',
+              'messages': [
+                {'role': 'user', 'content': prompt},
+              ],
+              'temperature': 0.2,
+              'max_tokens': 150,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 429 || response.statusCode != 200) {
         return 'From $fromLabel, follow the paw trail to $toRoomName on the $floorName.';

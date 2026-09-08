@@ -37,7 +37,8 @@ class Room {
   });
 
   String get wingName => wing.name[0].toUpperCase() + wing.name.substring(1);
-  String get rowName => row != null ? row!.name[0].toUpperCase() + row!.name.substring(1) : '';
+  String get rowName =>
+      row != null ? row!.name[0].toUpperCase() + row!.name.substring(1) : '';
 
   static Wing wingFromString(String wing) {
     const map = {

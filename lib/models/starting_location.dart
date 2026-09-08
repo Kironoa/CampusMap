@@ -31,11 +31,11 @@ class CampusGuideQr {
   });
 
   Map<String, dynamic> toJson() => {
-        'type': type,
-        'building': building,
-        'floor': floor,
-        'location_id': locationId,
-      };
+    'type': type,
+    'building': building,
+    'floor': floor,
+    'location_id': locationId,
+  };
 
   String encode() => jsonEncode(toJson());
 
@@ -124,22 +124,22 @@ class StartingLocation {
 
   /// The exact data to encode in this location's QR code.
   String get qrData => CampusGuideQr(
-        type: CampusGuideQr.validType,
-        building: building,
-        floor: floor,
-        locationId: id,
-      ).encode();
+    type: CampusGuideQr.validType,
+    building: building,
+    floor: floor,
+    locationId: id,
+  ).encode();
 
   /// Converts this location into an exact indoor position used as the
   /// route origin / map marker anchor.
   IndoorPosition toIndoorPosition({double accuracy = 0.5}) => IndoorPosition(
-        x: IndoorPosition.clampCoordinate(x),
-        y: IndoorPosition.clampCoordinate(y),
-        floor: floor,
-        accuracy: accuracy,
-        timestamp: DateTime.now(),
-        source: PositionSource.manual,
-      );
+    x: IndoorPosition.clampCoordinate(x),
+    y: IndoorPosition.clampCoordinate(y),
+    floor: floor,
+    accuracy: accuracy,
+    timestamp: DateTime.now(),
+    source: PositionSource.manual,
+  );
 
   @override
   bool operator ==(Object other) =>

@@ -39,9 +39,11 @@ void main() {
         expect(location.x, inInclusiveRange(0.0, 1.0), reason: location.id);
         expect(location.y, inInclusiveRange(0.0, 1.0), reason: location.id);
         final key = '${location.x},${location.y}';
-        expect(seen.contains(key), isFalse,
-            reason:
-                '${location.id} shares its coordinates with another location');
+        expect(
+          seen.contains(key),
+          isFalse,
+          reason: '${location.id} shares its coordinates with another location',
+        );
         seen.add(key);
       }
     });
@@ -66,8 +68,11 @@ void main() {
         final json = jsonDecode(location.qrData) as Map<String, dynamic>;
         expect(json['type'], CampusGuideQr.validType, reason: location.id);
         expect(json['location_id'], location.id, reason: location.id);
-        expect(payloads.contains(location.qrData), isFalse,
-            reason: "${location.id} reuses another location's QR data");
+        expect(
+          payloads.contains(location.qrData),
+          isFalse,
+          reason: "${location.id} reuses another location's QR data",
+        );
         payloads.add(location.qrData);
       }
       expect(payloads.length, 7);
@@ -151,14 +156,16 @@ void main() {
       final entrance = StartingLocations.byId('GF_MAIN_ENTRANCE')!;
       provider.setFromStartingLocation(entrance);
 
-      provider.updateFromLivePosition(IndoorPosition(
-        x: 0.1,
-        y: 0.9,
-        floor: 2,
-        accuracy: 3,
-        timestamp: DateTime(2026, 8, 25),
-        source: PositionSource.mock,
-      ));
+      provider.updateFromLivePosition(
+        IndoorPosition(
+          x: 0.1,
+          y: 0.9,
+          floor: 2,
+          accuracy: 3,
+          timestamp: DateTime(2026, 8, 25),
+          source: PositionSource.mock,
+        ),
+      );
 
       expect(provider.position!.x, entrance.x);
       expect(provider.position!.y, entrance.y);

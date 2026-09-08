@@ -58,8 +58,7 @@ class BeaconParser {
 
   /// Formats 16 raw uuid bytes as the canonical 8-4-4-4-12 hex string.
   static String _formatUuid(List<int> bytes) {
-    final hex =
-        bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+    final hex = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
     return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-'
         '${hex.substring(12, 16)}-${hex.substring(16, 20)}-'
         '${hex.substring(20)}';

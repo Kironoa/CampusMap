@@ -8,8 +8,7 @@ import '../../services/pathfinder.dart';
 import '../ar_config.dart';
 import 'ar_calibration_service.dart';
 
-/// One placed element in the AR scene: either a guide arrow, the
-/// destination marker, or a room marker.
+/// One placed element in the AR scene: either a guide arrow, or a room marker.
 class ArAnchorPoint {
   ArAnchorPoint({
     required this.position,
@@ -27,7 +26,7 @@ class ArAnchorPoint {
   /// Unique node name; room markers use their room id.
   final String? nodeName;
 
-  /// Room id for room markers (null for arrows/destination).
+  /// Room id for room markers (null for arrows).
   final String? roomId;
 }
 
@@ -64,29 +63,18 @@ class ArAnchorMapper {
       final direction = (to - from)..normalize();
       while (arrowSlot <= segmentLength - 0.2) {
         final position = from + direction * arrowSlot;
-        points.add(ArAnchorPoint(
-          position: Vector3(
-            position.x,
-            ArConfig.placeHeight,
-            position.z,
+        points.add(
+          ArAnchorPoint(
+            position: Vector3(position.x, ArConfig.placeHeight, position.z),
+            yaw: yawBetween(from, to),
           ),
-          yaw: yawBetween(from, to),
-        ));
+        );
         arrowSlot += ArConfig.arrowSpacingMeters;
       }
       arrowSlot -= segmentLength;
     }
 
     return points;
-  }
-
-  /// The destination marker sits on the last route point, slightly raised.
-  ArAnchorPoint? buildDestinationPoint(List<Offset> path) {
-    if (path.isEmpty) return null;
-    final world = calibration.mapToWorld(path.last);
-    return ArAnchorPoint(
-      position: Vector3(world.x, ArConfig.placeHeight + 0.08, world.z),
-    );
   }
 
   /// Room markers for rooms whose position lies within [ArConfig.roomMarkerRadius]
@@ -107,18 +95,28 @@ class ArAnchorMapper {
 
       if (!_isWithinRadiusOfPolyline(roomWorld, worldPoints)) continue;
 
-      markers.add(ArAnchorPoint(
-        position: Vector3(roomWorld.x, ArConfig.placeHeight + 0.04, roomWorld.z),
-        nodeName: 'room_$roomId',
-        roomId: roomId,
-      ));
+      markers.add(
+        ArAnchorPoint(
+          position: Vector3(
+            roomWorld.x,
+            ArConfig.placeHeight + 0.04,
+            roomWorld.z,
+          ),
+          nodeName: 'room_$roomId',
+          roomId: roomId,
+        ),
+      );
     }
     return markers;
   }
 
   bool _isWithinRadiusOfPolyline(Vector3 point, List<Vector3> worldPoints) {
     for (var i = 0; i < worldPoints.length - 1; i++) {
-      final dist = _distancePointToSegment(point, worldPoints[i], worldPoints[i + 1]);
+      final dist = _distancePointToSegment(
+        point,
+        worldPoints[i],
+        worldPoints[i + 1],
+      );
       if (dist <= ArConfig.roomMarkerRadius) return true;
     }
     return false;

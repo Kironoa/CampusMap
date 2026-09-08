@@ -53,11 +53,13 @@ class RssiBuffer {
     _samples.forEach((beaconId, list) {
       if (list.isEmpty) return;
       final sum = list.fold<double>(0.0, (acc, s) => acc + s.rssi);
-      out.add(RssiReading(
-        beaconId: beaconId,
-        rssi: sum / list.length,
-        timestamp: list.last.at,
-      ));
+      out.add(
+        RssiReading(
+          beaconId: beaconId,
+          rssi: sum / list.length,
+          timestamp: list.last.at,
+        ),
+      );
     });
     return out;
   }

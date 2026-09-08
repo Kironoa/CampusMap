@@ -69,8 +69,11 @@ class _QrScannerScreenState extends State<QrScannerScreen>
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => AlertDialog(
-        icon: const Icon(Icons.warning_amber_rounded,
-            size: 40, color: Color(0xFFDC2626)),
+        icon: const Icon(
+          Icons.warning_amber_rounded,
+          size: 40,
+          color: Color(0xFFDC2626),
+        ),
         title: const Text(
           _invalidTitle,
           textAlign: TextAlign.center,
@@ -85,8 +88,10 @@ class _QrScannerScreenState extends State<QrScannerScreen>
         actions: [
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Try Again',
-                style: TextStyle(fontFamily: 'Poppins')),
+            child: const Text(
+              'Try Again',
+              style: TextStyle(fontFamily: 'Poppins'),
+            ),
           ),
         ],
       ),
@@ -98,6 +103,8 @@ class _QrScannerScreenState extends State<QrScannerScreen>
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final side = screenWidth * 0.72;
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -124,24 +131,24 @@ class _QrScannerScreenState extends State<QrScannerScreen>
             },
           ),
           // Scan-window frame.
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final side = constraints.maxWidth * 0.72;
-              return SizedBox(
-                width: side,
-                height: side,
-                child: FadeTransition(
-                  opacity: Tween<double>(begin: 0.45, end: 1.0)
-                      .animate(_pulseController),
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: const Color(0xFF16A34A), width: 3),
-                      borderRadius: BorderRadius.circular(24),
-                    ),
+          SizedBox(
+            width: side,
+            height: side,
+            child: FadeTransition(
+              opacity: Tween<double>(
+                begin: 0.45,
+                end: 1.0,
+              ).animate(_pulseController),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: const Color(0xFF16A34A),
+                    width: 3,
                   ),
+                  borderRadius: BorderRadius.circular(24),
                 ),
-              );
-            },
+              ),
+            ),
           ),
           Positioned(
             left: 32,
@@ -183,8 +190,11 @@ class _ScannerErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.no_photography_outlined,
-                size: 56, color: Colors.white54),
+            const Icon(
+              Icons.no_photography_outlined,
+              size: 56,
+              color: Colors.white54,
+            ),
             const SizedBox(height: 16),
             const Text(
               'Camera unavailable',

@@ -19,12 +19,12 @@ void main() {
   ]);
 
   List<int> payload(int major, int minor, int txPower) => [
-        0x02, 0x15, //
-        ...uuidBytes,
-        (major >> 8) & 0xFF, major & 0xFF,
-        (minor >> 8) & 0xFF, minor & 0xFF,
-        txPower & 0xFF,
-      ];
+    0x02, 0x15, //
+    ...uuidBytes,
+    (major >> 8) & 0xFF, major & 0xFF,
+    (minor >> 8) & 0xFF, minor & 0xFF,
+    txPower & 0xFF,
+  ];
 
   fbp.ScanResult advertisement({
     required String beaconId,
@@ -35,9 +35,7 @@ void main() {
     final major = int.parse(parts[1]);
     final minor = int.parse(parts[2]);
     return fbp.ScanResult(
-      device: fbp.BluetoothDevice(
-        remoteId: fbp.DeviceIdentifier(beaconId),
-      ),
+      device: fbp.BluetoothDevice(remoteId: fbp.DeviceIdentifier(beaconId)),
       advertisementData: fbp.AdvertisementData(
         advName: '',
         txPowerLevel: null,
@@ -72,7 +70,10 @@ void main() {
     final controller = StreamController<List<fbp.ScanResult>>();
     final provider = providerWith(controller);
     final positions = <dynamic>[];
-    final sub = provider.positions.listen(positions.add, onError: (Object e) => fail('$e'));
+    final sub = provider.positions.listen(
+      positions.add,
+      onError: (Object e) => fail('$e'),
+    );
 
     await provider.start();
     expect(provider.isRunning, isTrue);
@@ -105,7 +106,10 @@ void main() {
     final controller = StreamController<List<fbp.ScanResult>>();
     final provider = providerWith(controller);
     final positions = <dynamic>[];
-    final sub = provider.positions.listen(positions.add, onError: (Object e) => fail('$e'));
+    final sub = provider.positions.listen(
+      positions.add,
+      onError: (Object e) => fail('$e'),
+    );
 
     await provider.start();
     // Unknown major/minor: not in BeaconConfig.
@@ -125,7 +129,10 @@ void main() {
     final controller = StreamController<List<fbp.ScanResult>>();
     final provider = providerWith(controller);
     final positions = <dynamic>[];
-    final sub = provider.positions.listen(positions.add, onError: (Object e) => fail('$e'));
+    final sub = provider.positions.listen(
+      positions.add,
+      onError: (Object e) => fail('$e'),
+    );
 
     await provider.start();
     controller.add([
@@ -142,7 +149,10 @@ void main() {
 
   test('surfaces an error when permissions are denied', () async {
     final controller = StreamController<List<fbp.ScanResult>>();
-    final provider = providerWith(controller, ensurePermissions: () async => false);
+    final provider = providerWith(
+      controller,
+      ensurePermissions: () async => false,
+    );
     final errors = <Object>[];
     final sub = provider.positions.listen((_) {}, onError: errors.add);
 
@@ -158,10 +168,11 @@ void main() {
     // never completes in the test VM. Production code never closes it.
   });
 
-  test('the factory creates a BleIndoorPositionProvider in ble mode',
-      () async {
+  test('the factory creates a BleIndoorPositionProvider in ble mode', () async {
     PositioningSettings.instance.mode = IndoorPositioningMode.ble;
-    addTearDown(() => PositioningSettings.instance.mode = IndoorPositioningMode.mock);
+    addTearDown(
+      () => PositioningSettings.instance.mode = IndoorPositioningMode.mock,
+    );
 
     final provider = createPositionProvider();
     expect(provider, isA<BleIndoorPositionProvider>());

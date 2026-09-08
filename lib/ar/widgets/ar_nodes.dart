@@ -23,17 +23,6 @@ class ArNodes {
     );
   }
 
-  /// The pulsing destination marker.
-  static ARNode destination(ArAnchorPoint point) {
-    return ARNode(
-      type: NodeType.localGLTF2,
-      uri: ArConfig.destinationModel,
-      name: 'destination',
-      position: point.position,
-      scale: Vector3.all(ArConfig.destinationSize),
-    );
-  }
-
   /// A small marker over a nearby room.
   static ARNode roomMarker(ArAnchorPoint point) {
     return ARNode(

@@ -51,9 +51,7 @@ flutter:
     - assets/images/ground_floor.png
     - assets/images/second_floor.png
     - assets/images/third_floor.png
-    - assets/images/ouch.png
     - assets/images/logo and icon.png
-    - assets/images/dog_paw.png
     
     - assets/ar_models/
     - .env

@@ -46,15 +46,14 @@ IndoorPosition fakePosition(
   double y,
   int floor, {
   double accuracy = 2.0,
-}) =>
-    IndoorPosition(
-      x: x,
-      y: y,
-      floor: floor,
-      accuracy: accuracy,
-      timestamp: DateTime(2026, 8, 20, 12, 0, 0),
-      source: PositionSource.mock,
-    );
+}) => IndoorPosition(
+  x: x,
+  y: y,
+  floor: floor,
+  accuracy: accuracy,
+  timestamp: DateTime(2026, 8, 20, 12, 0, 0),
+  source: PositionSource.mock,
+);
 
 FloorPlanPainter painterOf(WidgetTester tester) {
   final customPaint = tester.widget<CustomPaint>(
@@ -69,18 +68,29 @@ void main() {
   testWidgets('no marker before any position is available', (tester) async {
     final fake = FakeIndoorPositionProvider();
     await tester.pumpWidget(
-      MaterialApp(home: ChangeNotifierProvider.value(value: UserLocationProvider(), child: FloorPlanScreen(positionProvider: fake))),
+      MaterialApp(
+        home: ChangeNotifierProvider.value(
+          value: UserLocationProvider(),
+          child: FloorPlanScreen(positionProvider: fake),
+        ),
+      ),
     );
     await tester.pump();
 
     expect(painterOf(tester).livePosition, isNull);
   });
 
-  testWidgets('blue location marker appears when a position arrives',
-      (tester) async {
+  testWidgets('blue location marker appears when a position arrives', (
+    tester,
+  ) async {
     final fake = FakeIndoorPositionProvider();
     await tester.pumpWidget(
-      MaterialApp(home: ChangeNotifierProvider.value(value: UserLocationProvider(), child: FloorPlanScreen(positionProvider: fake))),
+      MaterialApp(
+        home: ChangeNotifierProvider.value(
+          value: UserLocationProvider(),
+          child: FloorPlanScreen(positionProvider: fake),
+        ),
+      ),
     );
     await tester.pump();
 
@@ -97,7 +107,12 @@ void main() {
   testWidgets('marker moves when the IndoorPosition changes', (tester) async {
     final fake = FakeIndoorPositionProvider();
     await tester.pumpWidget(
-      MaterialApp(home: ChangeNotifierProvider.value(value: UserLocationProvider(), child: FloorPlanScreen(positionProvider: fake))),
+      MaterialApp(
+        home: ChangeNotifierProvider.value(
+          value: UserLocationProvider(),
+          child: FloorPlanScreen(positionProvider: fake),
+        ),
+      ),
     );
     await tester.pump();
     fake.emit(fakePosition(0.20, 0.40, 1));
@@ -111,11 +126,17 @@ void main() {
     expect(painter.livePosition!.y, 0.40);
   });
 
-  testWidgets('floor switches automatically when the position floor changes',
-      (tester) async {
+  testWidgets('floor switches automatically when the position floor changes', (
+    tester,
+  ) async {
     final fake = FakeIndoorPositionProvider();
     await tester.pumpWidget(
-      MaterialApp(home: ChangeNotifierProvider.value(value: UserLocationProvider(), child: FloorPlanScreen(positionProvider: fake))),
+      MaterialApp(
+        home: ChangeNotifierProvider.value(
+          value: UserLocationProvider(),
+          child: FloorPlanScreen(positionProvider: fake),
+        ),
+      ),
     );
     await tester.pump();
     fake.emit(fakePosition(0.5, 0.5, 0));
@@ -133,11 +154,17 @@ void main() {
     expect(navBar.selectedIndex, 2);
   });
 
-  testWidgets('marker is not drawn when the position is on another floor',
-      (tester) async {
+  testWidgets('marker is not drawn when the position is on another floor', (
+    tester,
+  ) async {
     final fake = FakeIndoorPositionProvider();
     await tester.pumpWidget(
-      MaterialApp(home: ChangeNotifierProvider.value(value: UserLocationProvider(), child: FloorPlanScreen(positionProvider: fake))),
+      MaterialApp(
+        home: ChangeNotifierProvider.value(
+          value: UserLocationProvider(),
+          child: FloorPlanScreen(positionProvider: fake),
+        ),
+      ),
     );
     await tester.pump();
     fake.emit(fakePosition(0.5, 0.5, 2));
@@ -153,11 +180,17 @@ void main() {
     expect(painter.livePosition!.floor, 2);
   });
 
-  testWidgets('provider is stopped when the screen is disposed',
-      (tester) async {
+  testWidgets('provider is stopped when the screen is disposed', (
+    tester,
+  ) async {
     final fake = FakeIndoorPositionProvider();
     await tester.pumpWidget(
-      MaterialApp(home: ChangeNotifierProvider.value(value: UserLocationProvider(), child: FloorPlanScreen(positionProvider: fake))),
+      MaterialApp(
+        home: ChangeNotifierProvider.value(
+          value: UserLocationProvider(),
+          child: FloorPlanScreen(positionProvider: fake),
+        ),
+      ),
     );
     await tester.pump();
     expect(fake.isRunning, isTrue);
@@ -166,4 +199,3 @@ void main() {
     expect(fake.isRunning, isFalse);
   });
 }
-

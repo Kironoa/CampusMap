@@ -100,7 +100,7 @@ class StartingLocations {
     ),
   ];
 
-/// All 2nd Floor QR starting locations.
+  /// All 2nd Floor QR starting locations.
   ///
   /// Each entry maps 1:1 to a unique QR code; never reuse qrData across
   /// locations.

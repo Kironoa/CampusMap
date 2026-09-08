@@ -64,10 +64,7 @@ void main() {
     });
 
     test('returns null when the company id does not match', () {
-      expect(
-        BeaconParser.parseIBeacon({0x1234: iBeaconPayload()}),
-        isNull,
-      );
+      expect(BeaconParser.parseIBeacon({0x1234: iBeaconPayload()}), isNull);
     });
 
     test('returns null for an empty manufacturer data map', () {

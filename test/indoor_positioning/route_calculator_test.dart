@@ -4,12 +4,7 @@ import 'package:naviapp/services/navigation_graph.dart';
 import 'package:naviapp/services/pathfinder.dart';
 import 'package:naviapp/services/route_calculator.dart';
 
-IndoorPosition live(
-  double x,
-  double y,
-  int floor, {
-  double accuracy = 2.0,
-}) =>
+IndoorPosition live(double x, double y, int floor, {double accuracy = 2.0}) =>
     IndoorPosition(
       x: x,
       y: y,
@@ -36,15 +31,14 @@ void main() {
       expect(result!.hasPath, isTrue);
       expect(result.floorIndex, 0);
 
-      final expectedStart =
-          Pathfinder.findNearestNodeToPosition(const Offset(0.10, 0.30), 0);
+      final expectedStart = Pathfinder.findNearestNodeToPosition(
+        const Offset(0.10, 0.30),
+        0,
+      );
       expect(result.path.first, nodePos(expectedStart, 0));
 
       // It must NOT start from the default entrance node.
-      expect(
-        result.path.first,
-        isNot(nodePos('gf_v_100', 0)),
-      );
+      expect(result.path.first, isNot(nodePos('gf_v_100', 0)));
       expect(result.floorIndices.every((f) => f == 0), isTrue);
     });
 
@@ -86,8 +80,7 @@ void main() {
   });
 
   group('RouteCalculator (cross floor)', () {
-    test('walks Ground → stairs → 2nd → stairs → 3rd for a 3rd-floor room',
-        () {
+    test('walks Ground → stairs → 2nd → stairs → 3rd for a 3rd-floor room', () {
       final position = live(0.45, 0.55, 0);
       final result = RouteCalculator.fromLivePosition(
         position: position,
@@ -111,8 +104,10 @@ void main() {
       // Ends at the destination room node on the 3rd floor.
       expect(result.path.last, nodePos('tf_room_library', 2));
       // Starts at the nearest node to the live position on the ground floor.
-      final expectedStart =
-          Pathfinder.findNearestNodeToPosition(const Offset(0.45, 0.55), 0);
+      final expectedStart = Pathfinder.findNearestNodeToPosition(
+        const Offset(0.45, 0.55),
+        0,
+      );
       expect(result.path.first, nodePos(expectedStart, 0));
     });
 

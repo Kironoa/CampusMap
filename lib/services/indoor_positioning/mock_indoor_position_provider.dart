@@ -18,12 +18,14 @@ class MockIndoorPositionProvider extends IndoorPositionProvider {
     Duration? updateInterval,
     double? walkSpeedUnitsPerSecond,
     double? accuracyMeters,
-  })  : updateInterval =
-            updateInterval ?? PositioningSettings.instance.positionUpdateInterval,
-        _walkSpeed = walkSpeedUnitsPerSecond ??
-            PositioningSettings.instance.mockWalkSpeedUnitsPerSecond,
-        _accuracy = accuracyMeters ??
-            PositioningSettings.instance.mockAccuracyMeters;
+  }) : updateInterval =
+           updateInterval ??
+           PositioningSettings.instance.positionUpdateInterval,
+       _walkSpeed =
+           walkSpeedUnitsPerSecond ??
+           PositioningSettings.instance.mockWalkSpeedUnitsPerSecond,
+       _accuracy =
+           accuracyMeters ?? PositioningSettings.instance.mockAccuracyMeters;
 
   final Duration updateInterval;
   final double _walkSpeed;
@@ -133,8 +135,7 @@ class MockIndoorPositionProvider extends IndoorPositionProvider {
     final currentOffset = Offset(current.x, current.y);
     final remaining = (target - currentOffset).distance;
 
-    final stepSize =
-        _walkSpeed * updateInterval.inMilliseconds / 1000.0;
+    final stepSize = _walkSpeed * updateInterval.inMilliseconds / 1000.0;
 
     if (remaining <= stepSize) {
       _current = IndoorPosition(

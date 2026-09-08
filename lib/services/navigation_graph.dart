@@ -93,6 +93,10 @@ class NavigationGraph {
   //  GROUND FLOOR
   // ════════════════════════════════════════════════════
   static const List<NavNode> groundNodes = [
+    // Ground-floor destination coordinates are normalized from the supplied
+    // 1485 x 704 floor-plan image. Room endpoints are placed at the geometric
+    // center of each visible room/area, not at the doorway.
+
     // ── Entry / Starting points (yellow) ──
     NavNode('gf_start_stairs_left_top', Offset(0.095, 0.130)),
     NavNode('gf_start_stairs_right_top', Offset(0.895, 0.075)),
@@ -138,52 +142,52 @@ class NavigationGraph {
     NavNode('gf_v_070', Offset(0.468, 0.720)),
     NavNode('gf_v_080', Offset(0.468, 0.800)),
     NavNode('gf_v_090', Offset(0.468, 0.870)),
-    NavNode('gf_v_100', Offset(0.468, 0.950)),
+    NavNode('gf_v_100', Offset(0.503704, 0.910511)),
 
     // ── Entry connections from yellow starts into corridor ──
     NavNode('gf_conn_stairs_lt', Offset(0.095, 0.305)),
     NavNode('gf_conn_stairs_rt', Offset(0.895, 0.305)),
 
     // ── Room stub nodes (accessible directly from corridor) ──
-    NavNode('gf_room_ics', Offset(0.130, 0.190)),
-    NavNode('gf_room_training', Offset(0.180, 0.190)),
-    NavNode('gf_room_ihs', Offset(0.240, 0.190)),
-    NavNode('gf_room_ibfs', Offset(0.295, 0.190)),
-    NavNode('gf_room_ite', Offset(0.360, 0.190)),
-    NavNode('gf_room_restroom_tc', Offset(0.468, 0.190)),
-    NavNode('gf_room_ias', Offset(0.468, 0.130)),
-    NavNode('gf_room_medical', Offset(0.630, 0.190)),
-    NavNode('gf_room_restroom_tr', Offset(0.895, 0.190)),
-    NavNode('gf_room_mb105', Offset(0.720, 0.190)),
-    NavNode('gf_room_mb103', Offset(0.775, 0.190)),
-    NavNode('gf_room_mpr', Offset(0.830, 0.190)),
-    NavNode('gf_room_midwifery', Offset(0.885, 0.190)),
-    NavNode('gf_room_pfom', Offset(0.960, 0.190)),
-    NavNode('gf_room_toilet_left', Offset(0.050, 0.130)),
-    NavNode('gf_room_toilet_right', Offset(0.960, 0.075)),
-    NavNode('gf_room_cr_l1', Offset(0.170, 0.130)),
-    NavNode('gf_room_cr_l2', Offset(0.195, 0.130)),
-    NavNode('gf_room_cr_r1', Offset(0.895, 0.130)),
-    NavNode('gf_room_cr_r2', Offset(0.920, 0.130)),
+    NavNode('gf_room_ics', Offset(0.079798, 0.200994)),
+    NavNode('gf_room_training', Offset(0.129293, 0.200994)),
+    NavNode('gf_room_ihs', Offset(0.178451, 0.200994)),
+    NavNode('gf_room_ibfs', Offset(0.226936, 0.200994)),
+    NavNode('gf_room_ite', Offset(0.275758, 0.200994)),
+    NavNode('gf_room_restroom_tc', Offset(0.373064, 0.200994)),
+    NavNode('gf_room_ias', Offset(0.424916, 0.200994)),
+    NavNode('gf_room_medical', Offset(0.577104, 0.200994)),
+    NavNode('gf_room_restroom_tr', Offset(0.629630, 0.200994)),
+    NavNode('gf_room_mb105', Offset(0.678788, 0.200994)),
+    NavNode('gf_room_mb103', Offset(0.727609, 0.200994)),
+    NavNode('gf_room_mpr', Offset(0.777104, 0.200994)),
+    NavNode('gf_room_midwifery', Offset(0.850842, 0.200994)),
+    NavNode('gf_room_pfom', Offset(0.923569, 0.200994)),
+    NavNode('gf_room_toilet_left', Offset(0.030640, 0.062500)),
+    NavNode('gf_room_toilet_right', Offset(0.971044, 0.062500)),
+    NavNode('gf_room_cr_l1', Offset(0.165320, 0.062500)),
+    NavNode('gf_room_cr_l2', Offset(0.189899, 0.062500)),
+    NavNode('gf_room_cr_r1', Offset(0.813805, 0.062500)),
+    NavNode('gf_room_cr_r2', Offset(0.838384, 0.062500)),
     // Bottom row (y≈0.420, accessed by stepping off corridor downward)
-    NavNode('gf_room_sldo', Offset(0.030, 0.420)),
-    NavNode('gf_room_icje', Offset(0.095, 0.420)),
-    NavNode('gf_room_crim_lab', Offset(0.185, 0.420)),
-    NavNode('gf_room_vp_admin', Offset(0.300, 0.420)),
-    NavNode('gf_room_registrar', Offset(0.375, 0.420)),
-    NavNode('gf_room_record', Offset(0.438, 0.420)),
-    NavNode('gf_room_ciso', Offset(0.595, 0.420)),
-    NavNode('gf_room_avr', Offset(0.670, 0.420)),
-    NavNode('gf_room_dressing', Offset(0.745, 0.420)),
-    NavNode('gf_room_music', Offset(0.815, 0.420)),
-    NavNode('gf_room_dance', Offset(0.885, 0.420)),
-    NavNode('gf_room_barracks', Offset(0.960, 0.420)),
-    NavNode('gf_room_elevator', Offset(0.468, 0.370)),
+    NavNode('gf_room_sldo', Offset(0.031313, 0.419034)),
+    NavNode('gf_room_icje', Offset(0.129630, 0.419034)),
+    NavNode('gf_room_crim_lab', Offset(0.203030, 0.419034)),
+    NavNode('gf_room_vp_admin', Offset(0.300673, 0.419034)),
+    NavNode('gf_room_registrar', Offset(0.373401, 0.419034)),
+    NavNode('gf_room_record', Offset(0.425589, 0.419034)),
+    NavNode('gf_room_ciso', Offset(0.578114, 0.419034)),
+    NavNode('gf_room_avr', Offset(0.667003, 0.419034)),
+    NavNode('gf_room_dressing', Offset(0.740404, 0.419034)),
+    NavNode('gf_room_music', Offset(0.777441, 0.419034)),
+    NavNode('gf_room_dance', Offset(0.851178, 0.419034)),
+    NavNode('gf_room_barracks', Offset(0.972391, 0.419034)),
+    NavNode('gf_room_elevator', Offset(0.502020, 0.419034)),
     // Lobby section (accessed via vertical spine)
-    NavNode('gf_room_scholarship', Offset(0.435, 0.490)),
-    NavNode('gf_room_ojt', Offset(0.435, 0.550)),
-    NavNode('gf_room_accreditation', Offset(0.595, 0.490)),
-    NavNode('gf_room_main_lobby', Offset(0.595, 0.560)),
+    NavNode('gf_room_scholarship', Offset(0.420202, 0.591619)),
+    NavNode('gf_room_ojt', Offset(0.420202, 0.700284)),
+    NavNode('gf_room_accreditation', Offset(0.584848, 0.647017)),
+    NavNode('gf_room_main_lobby', Offset(0.502357, 0.688210)),
   ];
 
   static const List<NavEdge> groundEdges = [
@@ -226,7 +230,7 @@ class NavigationGraph {
     NavEdge('gf_h_060', 'gf_room_ibfs'),
     NavEdge('gf_h_080', 'gf_room_ite'),
     NavEdge('gf_h_100', 'gf_room_restroom_tc'),
-    NavEdge('gf_room_restroom_tc', 'gf_room_ias'),
+    NavEdge('gf_h_090', 'gf_room_ias'),
     NavEdge('gf_h_130', 'gf_room_medical'),
     NavEdge('gf_h_190', 'gf_room_restroom_tr'),
     NavEdge('gf_h_150', 'gf_room_mb105'),
@@ -356,91 +360,92 @@ class NavigationGraph {
 
     // =========================================================
     // TOP-ROW ROOMS
-    // Destination nodes are placed near the accessible side
-    // / doorway area rather than blindly using room centers.
+    // Destination nodes are placed at the geometric center of each
+    // visible room/area. Path edges may cross the room interior; the
+    // destination endpoint is intentionally NOT placed at the doorway.
     // =========================================================
-    NavNode('sf_room_guidance_test', Offset(0.058, 0.320)),
+    NavNode('sf_room_guidance_test', Offset(0.033811, 0.261111)),
 
-    NavNode('sf_room_sub_lobby', Offset(0.089, 0.320)),
+    NavNode('sf_room_sub_lobby', Offset(0.082992, 0.261111)),
 
-    NavNode('sf_room_comp_lab', Offset(0.107, 0.320)),
+    NavNode('sf_room_comp_lab', Offset(0.153347, 0.261111)),
 
-    NavNode('sf_room_comp_room1', Offset(0.203, 0.320)),
+    NavNode('sf_room_comp_room1', Offset(0.225751, 0.261111)),
 
-    NavNode('sf_room_comp_room2', Offset(0.253, 0.320)),
+    NavNode('sf_room_comp_room2', Offset(0.274249, 0.261111)),
 
-    NavNode('sf_room_comp_room3', Offset(0.303, 0.320)),
+    NavNode('sf_room_comp_room3', Offset(0.322746, 0.261111)),
 
-    NavNode('sf_room_restroom_l1', Offset(0.361, 0.320)),
+    NavNode('sf_room_restroom_l1', Offset(0.359290, 0.261111)),
 
-    NavNode('sf_room_restroom_l2', Offset(0.395, 0.320)),
+    NavNode('sf_room_restroom_l2', Offset(0.383538, 0.261111)),
 
-    NavNode('sf_room_vip_lounge', Offset(0.500, 0.285)),
+    NavNode('sf_room_vip_lounge', Offset(0.526639, 0.261111)),
 
-    NavNode('sf_room_restroom_r1', Offset(0.625, 0.320)),
+    NavNode('sf_room_restroom_r1', Offset(0.614413, 0.261111)),
 
-    NavNode('sf_room_restroom_r2', Offset(0.657, 0.320)),
+    NavNode('sf_room_restroom_r2', Offset(0.639003, 0.261111)),
 
-    NavNode('sf_room_faculty_lounge', Offset(0.700, 0.320)),
+    NavNode('sf_room_faculty_lounge', Offset(0.699795, 0.261111)),
 
-    NavNode('sf_room_speech_lab', Offset(0.845, 0.320)),
+    NavNode('sf_room_speech_lab', Offset(0.821721, 0.261111)),
 
-    NavNode('sf_room_bseed_top', Offset(0.929, 0.320)),
+    NavNode('sf_room_bseed_top', Offset(0.967213, 0.261111)),
 
     // =========================================================
     // MAIN STAGE
     // =========================================================
-    NavNode('sf_room_main_stage', Offset(0.500, 0.180)),
+    NavNode('sf_room_main_stage', Offset(0.498975, 0.127778)),
 
     // =========================================================
     // BLEACHERS
     // =========================================================
-    NavNode('sf_room_bleacher_left', Offset(0.250, 0.125)),
+    NavNode('sf_room_bleacher_left', Offset(0.250683, 0.127778)),
 
-    NavNode('sf_room_bleacher_right', Offset(0.750, 0.125)),
+    NavNode('sf_room_bleacher_right', Offset(0.748634, 0.127778)),
 
     // =========================================================
     // BOTTOM-ROW ROOMS
     // =========================================================
-    NavNode('sf_room_guidance_counsel', Offset(0.059, 0.382)),
+    NavNode('sf_room_guidance_counsel', Offset(0.033811, 0.448611)),
 
-    NavNode('sf_room_moot_court', Offset(0.107, 0.382)),
+    NavNode('sf_room_moot_court', Offset(0.081626, 0.448611)),
 
-    NavNode('sf_room_business', Offset(0.203, 0.382)),
+    NavNode('sf_room_business', Offset(0.153347, 0.448611)),
 
-    NavNode('sf_room_classroom_l', Offset(0.302, 0.382)),
+    NavNode('sf_room_classroom_l', Offset(0.250000, 0.448611)),
 
-    NavNode('sf_room_classroom_c', Offset(0.352, 0.382)),
+    NavNode('sf_room_classroom_c', Offset(0.322746, 0.448611)),
 
-    NavNode('sf_room_classroom_r', Offset(0.401, 0.382)),
+    NavNode('sf_room_classroom_r', Offset(0.371243, 0.448611)),
 
-    NavNode('sf_room_board', Offset(0.549, 0.382)),
+    NavNode('sf_room_board', Offset(0.574795, 0.448611)),
 
-    NavNode('sf_room_hrmo', Offset(0.659, 0.382)),
+    NavNode('sf_room_hrmo', Offset(0.626708, 0.448611)),
 
-    NavNode('sf_room_faculty', Offset(0.749, 0.382)),
+    NavNode('sf_room_faculty', Offset(0.699795, 0.448611)),
 
-    NavNode('sf_room_supply', Offset(0.805, 0.382)),
+    NavNode('sf_room_supply', Offset(0.772883, 0.448611)),
 
-    NavNode('sf_room_vp_planning', Offset(0.848, 0.382)),
+    NavNode('sf_room_vp_planning', Offset(0.821721, 0.448611)),
 
-    NavNode('sf_room_evp', Offset(0.900, 0.382)),
+    NavNode('sf_room_evp', Offset(0.870560, 0.448611)),
 
-    NavNode('sf_room_bseed_bot', Offset(0.929, 0.382)),
+    NavNode('sf_room_bseed_bot', Offset(0.967213, 0.448611)),
 
     // =========================================================
     // LOWER CENTRAL OFFICES
     // =========================================================
-    NavNode('sf_room_deans', Offset(0.456, 0.528)),
+    NavNode('sf_room_deans', Offset(0.423156, 0.582639)),
 
-    NavNode('sf_room_vpaa', Offset(0.456, 0.653)),
+    NavNode('sf_room_vpaa', Offset(0.423156, 0.705556)),
 
-    NavNode('sf_room_president', Offset(0.553, 0.597)),
+    NavNode('sf_room_president', Offset(0.574795, 0.645139)),
 
     // =========================================================
     // DECK CANOPY
     // =========================================================
-    NavNode('sf_room_deck_canopy', Offset(0.500, 0.920)),
+    NavNode('sf_room_deck_canopy', Offset(0.498975, 0.918750)),
   ];
 
   static const List<NavEdge> secondEdges = [
@@ -601,123 +606,132 @@ class NavigationGraph {
   //  3RD FLOOR
   // ════════════════════════════════════════════════════
   static const List<NavNode> thirdNodes = [
-    // ── Entry / Starting points (yellow) ──
-    NavNode('tf_start_left', Offset(0.065, 0.420)),
-    NavNode('tf_start_elevator', Offset(0.490, 0.300)),
-    NavNode('tf_start_right', Offset(0.960, 0.420)),
-    NavNode('tf_start_top_left', Offset(0.380, 0.080)),
+    // ── Yellow starting points taken directly from the supplied floor plan ──
+    NavNode('tf_start_left', Offset(0.075, 0.423)),
+    NavNode('tf_start_elevator', Offset(0.503, 0.617)),
+    NavNode('tf_start_right', Offset(0.928, 0.423)),
 
-    // ── Single horizontal corridor (y≈0.420) ──
-    NavNode('tf_h_000', Offset(0.030, 0.420)),
-    NavNode('tf_h_010', Offset(0.065, 0.420)),
-    NavNode('tf_h_020', Offset(0.110, 0.420)),
-    NavNode('tf_h_030', Offset(0.160, 0.420)),
-    NavNode('tf_h_040', Offset(0.220, 0.420)),
-    NavNode('tf_h_050', Offset(0.290, 0.420)),
-    NavNode('tf_h_060', Offset(0.350, 0.420)),
-    NavNode('tf_h_070', Offset(0.380, 0.420)),
-    NavNode('tf_h_080', Offset(0.435, 0.420)),
-    NavNode('tf_h_090', Offset(0.490, 0.420)),
-    NavNode('tf_h_100', Offset(0.560, 0.420)),
-    NavNode('tf_h_110', Offset(0.620, 0.420)),
-    NavNode('tf_h_120', Offset(0.680, 0.420)),
-    NavNode('tf_h_130', Offset(0.730, 0.420)),
-    NavNode('tf_h_140', Offset(0.785, 0.420)),
-    NavNode('tf_h_150', Offset(0.840, 0.420)),
-    NavNode('tf_h_160', Offset(0.895, 0.420)),
-    NavNode('tf_h_170', Offset(0.940, 0.420)),
-    NavNode('tf_h_180', Offset(0.980, 0.420)),
+    // Legacy transition point retained for the existing floor-transition map.
+    NavNode('tf_start_top_left', Offset(0.503, 0.617)),
 
-    // ── Left vertical protrusion (x≈0.380, going UP from corridor) ──
-    NavNode('tf_lp_000', Offset(0.380, 0.420)),
-    NavNode('tf_lp_010', Offset(0.380, 0.340)),
-    NavNode('tf_lp_020', Offset(0.380, 0.260)),
-    NavNode('tf_lp_030', Offset(0.380, 0.180)),
-    NavNode('tf_lp_040', Offset(0.380, 0.100)),
-    NavNode('tf_lp_top', Offset(0.380, 0.050)),
+    // ── Main horizontal pathway following the red centerline ──
+    NavNode('tf_h_000', Offset(0.030, 0.423)),
+    NavNode('tf_h_010', Offset(0.075, 0.423)),
+    NavNode('tf_h_020', Offset(0.110, 0.423)),
+    NavNode('tf_h_030', Offset(0.160, 0.423)),
+    NavNode('tf_h_040', Offset(0.220, 0.423)),
+    NavNode('tf_h_050', Offset(0.290, 0.423)),
+    NavNode('tf_h_060', Offset(0.350, 0.423)),
+    NavNode('tf_h_070', Offset(0.400, 0.423)),
+    NavNode('tf_h_080', Offset(0.445, 0.423)),
+    NavNode('tf_h_090', Offset(0.503, 0.423)),
+    NavNode('tf_h_100', Offset(0.560, 0.423)),
+    NavNode('tf_h_110', Offset(0.620, 0.423)),
+    NavNode('tf_h_120', Offset(0.680, 0.423)),
+    NavNode('tf_h_130', Offset(0.730, 0.423)),
+    NavNode('tf_h_140', Offset(0.785, 0.423)),
+    NavNode('tf_h_150', Offset(0.840, 0.423)),
+    NavNode('tf_h_160', Offset(0.895, 0.423)),
+    NavNode('tf_h_170', Offset(0.940, 0.423)),
+    NavNode('tf_h_180', Offset(0.980, 0.423)),
 
-    // ── Right vertical protrusion (x≈0.620, going UP from corridor) ──
-    NavNode('tf_rp_000', Offset(0.620, 0.420)),
-    NavNode('tf_rp_010', Offset(0.620, 0.340)),
-    NavNode('tf_rp_020', Offset(0.620, 0.260)),
-    NavNode('tf_rp_030', Offset(0.620, 0.180)),
-    NavNode('tf_rp_040', Offset(0.620, 0.100)),
-    NavNode('tf_rp_top', Offset(0.620, 0.050)),
+    // ── Central route from the elevator/yellow point ──
+    NavNode('tf_c_000', Offset(0.503, 0.423)),
+    NavNode('tf_c_010', Offset(0.503, 0.500)),
+    NavNode('tf_c_020', Offset(0.503, 0.560)),
+    NavNode('tf_c_030', Offset(0.503, 0.617)),
 
-    // ── Horizontal connector at mid-protrusion height (y≈0.300) ──
-    NavNode('tf_mid_left', Offset(0.380, 0.300)),
-    NavNode('tf_mid_elev', Offset(0.490, 0.300)),
-    NavNode('tf_mid_right', Offset(0.620, 0.300)),
+    // ── Branches following the marked red pathway ──
+    NavNode('tf_branch_left', Offset(0.579, 0.617)),
+    NavNode('tf_branch_right', Offset(0.419, 0.617)),
+    NavNode('tf_activity_access', Offset(0.503, 0.730)),
+    NavNode('tf_prayer_access', Offset(0.579, 0.730)),
+    NavNode('tf_research_access', Offset(0.419, 0.730)),
 
-    // ── Room stubs ──
-    NavNode('tf_room_lrc1', Offset(0.065, 0.300)),
-    NavNode('tf_room_library', Offset(0.260, 0.300)),
-    NavNode('tf_room_lrc2', Offset(0.430, 0.300)),
-    NavNode('tf_room_prayer', Offset(0.380, 0.185)),
-    NavNode('tf_room_activity', Offset(0.490, 0.150)),
-    NavNode('tf_room_research', Offset(0.620, 0.185)),
-    NavNode('tf_room_restroom_l', Offset(0.560, 0.300)),
-    NavNode('tf_room_restroom_r', Offset(0.590, 0.300)),
-    NavNode('tf_room_classroom_1', Offset(0.650, 0.300)),
-    NavNode('tf_room_classroom_2', Offset(0.700, 0.300)),
-    NavNode('tf_room_classroom_3', Offset(0.750, 0.300)),
-    NavNode('tf_room_classroom_4', Offset(0.800, 0.300)),
-    NavNode('tf_room_classroom_5', Offset(0.855, 0.300)),
-    NavNode('tf_room_sci_lab', Offset(0.920, 0.300)),
-    NavNode('tf_room_classroom_6', Offset(0.975, 0.300)),
-    NavNode('tf_room_bleacher_l', Offset(0.250, 0.600)),
-    NavNode('tf_room_bleacher_r', Offset(0.750, 0.600)),
-    NavNode('tf_room_main_stage', Offset(0.500, 0.750)),
+    // ── Room destinations: centered inside the actual rooms ──
+    NavNode('tf_room_lrc1', Offset(0.968750, 0.512668)),
+    NavNode('tf_room_library', Offset(0.752500, 0.512668)),
+    NavNode('tf_room_lrc2', Offset(0.579375, 0.512668)),
+
+    NavNode('tf_room_prayer', Offset(0.579375, 0.783905)),
+    NavNode('tf_room_activity', Offset(0.503125, 0.828614)),
+    NavNode('tf_room_research', Offset(0.418750, 0.783905)),
+
+    NavNode('tf_room_restroom_l', Offset(0.443750, 0.512668)),
+    NavNode('tf_room_restroom_r', Offset(0.417500, 0.512668)),
+    NavNode('tf_room_classroom_1', Offset(0.368750, 0.512668)),
+    NavNode('tf_room_classroom_2', Offset(0.334375, 0.512668)),
+    NavNode('tf_room_classroom_3', Offset(0.296875, 0.512668)),
+    NavNode('tf_room_classroom_4', Offset(0.256250, 0.512668)),
+    NavNode('tf_room_classroom_5', Offset(0.215625, 0.512668)),
+    NavNode('tf_room_sci_lab', Offset(0.131250, 0.512668)),
+    NavNode('tf_room_classroom_6', Offset(0.034375, 0.512668)),
+
+    NavNode('tf_room_bleacher_l', Offset(0.803125, 0.217586)),
+    NavNode('tf_room_bleacher_r', Offset(0.225000, 0.217586)),
+    NavNode('tf_room_main_stage', Offset(0.503125, 0.120715)),
   ];
 
   static const List<NavEdge> thirdEdges = [
-    // ── Horizontal corridor ──
-    NavEdge('tf_h_000', 'tf_h_010'), NavEdge('tf_h_010', 'tf_h_020'),
-    NavEdge('tf_h_020', 'tf_h_030'), NavEdge('tf_h_030', 'tf_h_040'),
-    NavEdge('tf_h_040', 'tf_h_050'), NavEdge('tf_h_050', 'tf_h_060'),
-    NavEdge('tf_h_060', 'tf_h_070'), NavEdge('tf_h_070', 'tf_h_080'),
-    NavEdge('tf_h_080', 'tf_h_090'), NavEdge('tf_h_090', 'tf_h_100'),
-    NavEdge('tf_h_100', 'tf_h_110'), NavEdge('tf_h_110', 'tf_h_120'),
-    NavEdge('tf_h_120', 'tf_h_130'), NavEdge('tf_h_130', 'tf_h_140'),
-    NavEdge('tf_h_140', 'tf_h_150'), NavEdge('tf_h_150', 'tf_h_160'),
-    NavEdge('tf_h_160', 'tf_h_170'), NavEdge('tf_h_170', 'tf_h_180'),
-    // ── Entry yellow nodes ──
+    // ── Main horizontal pathway ──
+    NavEdge('tf_h_000', 'tf_h_010'),
+    NavEdge('tf_h_010', 'tf_h_020'),
+    NavEdge('tf_h_020', 'tf_h_030'),
+    NavEdge('tf_h_030', 'tf_h_040'),
+    NavEdge('tf_h_040', 'tf_h_050'),
+    NavEdge('tf_h_050', 'tf_h_060'),
+    NavEdge('tf_h_060', 'tf_h_070'),
+    NavEdge('tf_h_070', 'tf_h_080'),
+    NavEdge('tf_h_080', 'tf_h_090'),
+    NavEdge('tf_h_090', 'tf_h_100'),
+    NavEdge('tf_h_100', 'tf_h_110'),
+    NavEdge('tf_h_110', 'tf_h_120'),
+    NavEdge('tf_h_120', 'tf_h_130'),
+    NavEdge('tf_h_130', 'tf_h_140'),
+    NavEdge('tf_h_140', 'tf_h_150'),
+    NavEdge('tf_h_150', 'tf_h_160'),
+    NavEdge('tf_h_160', 'tf_h_170'),
+    NavEdge('tf_h_170', 'tf_h_180'),
+
+    // ── Yellow starting points ──
     NavEdge('tf_start_left', 'tf_h_010'),
     NavEdge('tf_start_right', 'tf_h_170'),
-    NavEdge('tf_start_elevator', 'tf_mid_elev'),
-    NavEdge('tf_start_top_left', 'tf_lp_top'),
-    // ── Left protrusion (upward from corridor) ──
-    NavEdge('tf_h_070', 'tf_lp_010'),
-    NavEdge('tf_lp_010', 'tf_lp_020'), NavEdge('tf_lp_020', 'tf_lp_030'),
-    NavEdge('tf_lp_030', 'tf_lp_040'), NavEdge('tf_lp_040', 'tf_lp_top'),
-    // ── Right protrusion (upward from corridor) ──
-    NavEdge('tf_h_110', 'tf_rp_010'),
-    NavEdge('tf_rp_010', 'tf_rp_020'), NavEdge('tf_rp_020', 'tf_rp_030'),
-    NavEdge('tf_rp_030', 'tf_rp_040'), NavEdge('tf_rp_040', 'tf_rp_top'),
-    // ── Mid horizontal connector (y≈0.300) linking protrusions and elevator ──
-    NavEdge('tf_lp_020', 'tf_mid_left'),
-    NavEdge('tf_mid_left', 'tf_mid_elev'),
-    NavEdge('tf_mid_elev', 'tf_mid_right'),
-    NavEdge('tf_mid_right', 'tf_rp_020'),
-    // ── Room stubs off protrusions ──
-    NavEdge('tf_lp_030', 'tf_room_prayer'),
-    NavEdge('tf_mid_elev', 'tf_room_activity'),
-    NavEdge('tf_rp_030', 'tf_room_research'),
-    // ── Room stubs off horizontal corridor (and mid connector) ──
-    NavEdge('tf_h_010', 'tf_room_lrc1'),
-    NavEdge('tf_h_040', 'tf_room_library'),
-    NavEdge('tf_h_080', 'tf_room_lrc2'),
-    NavEdge('tf_mid_left', 'tf_room_restroom_l'),
-    NavEdge('tf_mid_elev', 'tf_room_restroom_r'),
-    NavEdge('tf_mid_right', 'tf_room_classroom_1'),
-    NavEdge('tf_h_120', 'tf_room_classroom_2'),
-    NavEdge('tf_h_130', 'tf_room_classroom_3'),
-    NavEdge('tf_h_140', 'tf_room_classroom_4'),
-    NavEdge('tf_h_150', 'tf_room_classroom_5'),
-    NavEdge('tf_h_160', 'tf_room_sci_lab'),
-    NavEdge('tf_h_180', 'tf_room_classroom_6'),
-    NavEdge('tf_h_040', 'tf_room_bleacher_l'),
-    NavEdge('tf_h_140', 'tf_room_bleacher_r'),
+    NavEdge('tf_start_elevator', 'tf_c_030'),
+    NavEdge('tf_start_top_left', 'tf_c_030'),
+
+    // ── Elevator/central pathway ──
+    NavEdge('tf_h_090', 'tf_c_010'),
+    NavEdge('tf_c_010', 'tf_c_020'),
+    NavEdge('tf_c_020', 'tf_c_030'),
+
+    // ── Central branches ──
+    NavEdge('tf_c_030', 'tf_branch_left'),
+    NavEdge('tf_c_030', 'tf_branch_right'),
+    NavEdge('tf_c_030', 'tf_activity_access'),
+    NavEdge('tf_branch_left', 'tf_prayer_access'),
+    NavEdge('tf_branch_right', 'tf_research_access'),
+
+    // ── Exact room-center endpoints ──
+    NavEdge('tf_h_010', 'tf_room_classroom_6'),
+    NavEdge('tf_h_030', 'tf_room_sci_lab'),
+    NavEdge('tf_h_050', 'tf_room_classroom_5'),
+    NavEdge('tf_h_060', 'tf_room_classroom_4'),
+    NavEdge('tf_h_070', 'tf_room_classroom_3'),
+    NavEdge('tf_h_080', 'tf_room_classroom_2'),
+    NavEdge('tf_h_090', 'tf_room_classroom_1'),
+
+    NavEdge('tf_h_100', 'tf_room_restroom_l'),
+    NavEdge('tf_h_100', 'tf_room_restroom_r'),
+    NavEdge('tf_h_110', 'tf_room_lrc2'),
+    NavEdge('tf_h_140', 'tf_room_library'),
+    NavEdge('tf_h_170', 'tf_room_lrc1'),
+
+    NavEdge('tf_prayer_access', 'tf_room_prayer'),
+    NavEdge('tf_activity_access', 'tf_room_activity'),
+    NavEdge('tf_research_access', 'tf_room_research'),
+
+    NavEdge('tf_h_140', 'tf_room_bleacher_l'),
+    NavEdge('tf_h_050', 'tf_room_bleacher_r'),
     NavEdge('tf_h_090', 'tf_room_main_stage'),
   ];
 
@@ -831,8 +845,6 @@ class NavigationGraph {
       {'label': 'Lobby Right Staircase', 'nodeId': 'gf_start_lobby_right'},
       {'label': 'Left Wing Staircase', 'nodeId': 'gf_start_stairs_left_top'},
       {'label': 'Right Wing Staircase', 'nodeId': 'gf_start_stairs_right_top'},
-      {'label': 'Left Side Door', 'nodeId': 'gf_start_left_mid'},
-      {'label': 'Right Side Door', 'nodeId': 'gf_start_right_mid'},
     ],
     1: [
       {'label': 'Left Staircase', 'nodeId': 'sf_start_left_mid'},
@@ -884,11 +896,11 @@ class NavigationGraph {
   }
 
   /// Returns all nodes for a floor formatted for debug visualization.
-  static List<_DebugNodeInfo> getDebugNodes(int floor) {
+  static List<DebugNodeInfo> getDebugNodes(int floor) {
     final nodes = nodesForFloor(floor);
     return nodes
         .map(
-          (n) => _DebugNodeInfo(
+          (n) => DebugNodeInfo(
             id: n.id,
             pos: n.pos,
             isRoom:
@@ -907,10 +919,10 @@ class NavigationGraph {
   }
 
   /// Returns all edges for a floor formatted for debug visualization.
-  static List<_DebugEdgeInfo> getDebugEdges(int floor) {
+  static List<DebugEdgeInfo> getDebugEdges(int floor) {
     return edgesForFloor(
       floor,
-    ).map((e) => _DebugEdgeInfo(from: e.from, to: e.to)).toList();
+    ).map((e) => DebugEdgeInfo(from: e.from, to: e.to)).toList();
   }
 
   /// Validates the graph for a specific floor.
@@ -968,13 +980,13 @@ class NavigationGraph {
 }
 
 /// Debug information for a navigation node.
-class _DebugNodeInfo {
+class DebugNodeInfo {
   final String id;
   final Offset pos;
   final bool isRoom;
   final bool isStair;
 
-  const _DebugNodeInfo({
+  const DebugNodeInfo({
     required this.id,
     required this.pos,
     required this.isRoom,
@@ -983,9 +995,9 @@ class _DebugNodeInfo {
 }
 
 /// Debug information for a navigation edge.
-class _DebugEdgeInfo {
+class DebugEdgeInfo {
   final String from;
   final String to;
 
-  const _DebugEdgeInfo({required this.from, required this.to});
+  const DebugEdgeInfo({required this.from, required this.to});
 }

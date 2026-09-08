@@ -1,4 +1,4 @@
-﻿import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:naviapp/services/indoor_positioning/beacon_config.dart';
 import 'package:naviapp/services/indoor_positioning/indoor_position.dart';
 import 'package:naviapp/services/indoor_positioning/position_estimator.dart';
@@ -85,9 +85,7 @@ void main() {
     test('returns no fix when fewer than minBeaconsForFix are usable', () {
       final estimate = PositionEstimator.estimatePosition(
         beacons: beacons,
-        readings: [
-          RssiReading(beaconId: 'A', rssi: -60, timestamp: now()),
-        ],
+        readings: [RssiReading(beaconId: 'A', rssi: -60, timestamp: now())],
       );
       expect(estimate.hasFix, isFalse);
       expect(estimate.position, isNull);

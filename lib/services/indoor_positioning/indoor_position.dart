@@ -75,8 +75,7 @@ class IndoorPosition {
   }
 
   @override
-  int get hashCode =>
-      Object.hash(x, y, floor, accuracy, timestamp, source);
+  int get hashCode => Object.hash(x, y, floor, accuracy, timestamp, source);
 
   @override
   String toString() =>

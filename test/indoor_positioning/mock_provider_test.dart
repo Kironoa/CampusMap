@@ -33,38 +33,40 @@ void main() {
       await provider.stop();
     });
 
-    test('walkTo moves the simulated user incrementally toward the target',
-        () async {
-      final provider = MockIndoorPositionProvider(
-        updateInterval: const Duration(milliseconds: 10),
-        walkSpeedUnitsPerSecond: 0.1,
-      );
-      await provider.start();
-      provider.setPosition(0.5, 0.5, 0);
+    test(
+      'walkTo moves the simulated user incrementally toward the target',
+      () async {
+        final provider = MockIndoorPositionProvider(
+          updateInterval: const Duration(milliseconds: 10),
+          walkSpeedUnitsPerSecond: 0.1,
+        );
+        await provider.start();
+        provider.setPosition(0.5, 0.5, 0);
 
-      final samples = <IndoorPosition>[];
-      final sub = provider.positions.listen(samples.add);
+        final samples = <IndoorPosition>[];
+        final sub = provider.positions.listen(samples.add);
 
-      provider.walkTo(0.6, 0.5, 0);
+        provider.walkTo(0.6, 0.5, 0);
 
-      final deadline = DateTime.now().add(const Duration(seconds: 5));
-      while (provider.currentPosition!.x < 0.599 &&
-          DateTime.now().isBefore(deadline)) {
-        await Future<void>.delayed(const Duration(milliseconds: 20));
-      }
+        final deadline = DateTime.now().add(const Duration(seconds: 5));
+        while (provider.currentPosition!.x < 0.599 &&
+            DateTime.now().isBefore(deadline)) {
+          await Future<void>.delayed(const Duration(milliseconds: 20));
+        }
 
-      expect(provider.currentPosition!.x, closeTo(0.6, 0.01));
-      expect(provider.currentPosition!.y, closeTo(0.5, 0.01));
-      expect(provider.currentPosition!.floor, 0);
-      // Movement was smooth: multiple intermediate samples, never backwards.
-      expect(samples.length, greaterThan(1));
-      for (int i = 1; i < samples.length; i++) {
-        expect(samples[i].x, greaterThanOrEqualTo(samples[i - 1].x - 0.0001));
-      }
+        expect(provider.currentPosition!.x, closeTo(0.6, 0.01));
+        expect(provider.currentPosition!.y, closeTo(0.5, 0.01));
+        expect(provider.currentPosition!.floor, 0);
+        // Movement was smooth: multiple intermediate samples, never backwards.
+        expect(samples.length, greaterThan(1));
+        for (int i = 1; i < samples.length; i++) {
+          expect(samples[i].x, greaterThanOrEqualTo(samples[i - 1].x - 0.0001));
+        }
 
-      await sub.cancel();
-      await provider.stop();
-    });
+        await sub.cancel();
+        await provider.stop();
+      },
+    );
 
     test('walkTo can change the floor', () async {
       final provider = MockIndoorPositionProvider(

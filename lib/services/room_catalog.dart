@@ -18,7 +18,10 @@ class RoomCatalog {
       {'name': 'Dressing Room', 'id': 'gf_dressing'},
       {'name': 'Music Room', 'id': 'gf_music'},
       {'name': 'Dance Studio', 'id': 'gf_dance'},
-      {'name': 'Maintenance Student Assistant Personnel Barracks', 'id': 'gf_barracks'},
+      {
+        'name': 'Maintenance Student Assistant Personnel Barracks',
+        'id': 'gf_barracks',
+      },
       {'name': 'Medical & Dental Clinic', 'id': 'gf_medical'},
       {'name': 'Rest Room (Left Wing)', 'id': 'gf_restroom_left'},
       {'name': 'Rest Room (Center)', 'id': 'gf_restroom_center'},
@@ -27,7 +30,10 @@ class RoomCatalog {
       {'name': 'MB 103 / Demo Room', 'id': 'gf_mb103'},
       {'name': 'Multi-Purpose Room', 'id': 'gf_mpr'},
       {'name': 'Midwifery Laboratory', 'id': 'gf_midwifery'},
-      {'name': 'Physical Facilities Operation & Maintenance (PFOM)', 'id': 'gf_pfom'},
+      {
+        'name': 'Physical Facilities Operation & Maintenance (PFOM)',
+        'id': 'gf_pfom',
+      },
       {'name': 'Institute of Arts & Sciences', 'id': 'gf_ias'},
       {'name': 'Institute of Teacher Education', 'id': 'gf_ite'},
       {'name': 'Institute of Business & Financial Services', 'id': 'gf_ibfs'},
@@ -99,7 +105,11 @@ class RoomCatalog {
     ],
   };
 
-  static const List<String> floorKeys = ['Ground Floor', '2nd Floor', '3rd Floor'];
+  static const List<String> floorKeys = [
+    'Ground Floor',
+    '2nd Floor',
+    '3rd Floor',
+  ];
 
   static String? roomNameById(String roomId) {
     for (final rooms in allRooms.values) {
