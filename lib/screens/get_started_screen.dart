@@ -1,6 +1,7 @@
 // lib/screens/get_started_screen.dart
 import 'package:flutter/material.dart';
 import 'package:naviapp/screens/home_screen.dart';
+import 'package:naviapp/widgets/app_ui.dart';
 
 class GetStartedScreen extends StatelessWidget {
   const GetStartedScreen({super.key});
@@ -18,11 +19,22 @@ class GetStartedScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     const SizedBox(height: 32),
-                    Image.asset(
-                      'assets/images/logo and icon.png',
-                      width: 60,
-                      height: 60,
-                      fit: BoxFit.contain,
+                    Container(
+                      width: 96,
+                      height: 96,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(28),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.25),
+                        ),
+                        boxShadow: AppShadows.card,
+                      ),
+                      padding: const EdgeInsets.all(14),
+                      child: Image.asset(
+                        'assets/images/logo and icon.png',
+                        fit: BoxFit.contain,
+                      ),
                     ),
                     const SizedBox(height: 28),
                     const Text(
@@ -46,23 +58,26 @@ class GetStartedScreen extends StatelessWidget {
                     const SizedBox(height: 40),
                     _buildFeatureRow(
                       icon: Icons.map_outlined,
+                      iconColor: const Color(0xFF7DE3A8),
                       title: 'Interactive Floor Plans',
                       subtitle:
                           'Zoom, explore, and tap any room across all three floors.',
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 12),
                     _buildFeatureRow(
                       icon: Icons.psychology_outlined,
-                      title: 'AI Navigation',
+                      iconColor: const Color(0xFFFFDAB9),
+                      title: 'In-App Help Chat',
                       subtitle:
-                          'Ask in English or Filipino and get instant directions.',
+                          'Ask how to scan, navigate, and use every feature.',
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 12),
                     _buildFeatureRow(
-                      icon: Icons.view_in_ar_outlined,
-                      title: 'AR Navigation',
+                      icon: Icons.navigation_outlined,
+                      iconColor: const Color(0xFFBCD8FF),
+                      title: 'Live GPS Navigation',
                       subtitle:
-                          'Follow 3D arrows overlaid on the real campus view.',
+                          'Outdoor turn-by-turn that hands off to indoor maps.',
                     ),
                     const SizedBox(height: 32),
                   ],
@@ -90,7 +105,15 @@ class GetStartedScreen extends StatelessWidget {
                   onPressed: () => Navigator.of(context).pushReplacement(
                     MaterialPageRoute(builder: (_) => const HomeScreen()),
                   ),
-                  child: const Text('Get Started'),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('Get Started'),
+                      SizedBox(width: 8),
+                      Icon(Icons.arrow_forward_rounded, size: 20),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -102,15 +125,16 @@ class GetStartedScreen extends StatelessWidget {
 
   Widget _buildFeatureRow({
     required IconData icon,
+    required Color iconColor,
     required String title,
     required String subtitle,
   }) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppRadius.card),
         border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
       ),
       child: Row(
@@ -120,9 +144,9 @@ class GetStartedScreen extends StatelessWidget {
             height: 48,
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(14),
             ),
-            child: Icon(icon, size: 26, color: Colors.white),
+            child: Icon(icon, size: 26, color: iconColor),
           ),
           const SizedBox(width: 16),
           Expanded(

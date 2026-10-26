@@ -11,7 +11,6 @@ dependencies:
     sdk: flutter
 
   # UI and Icons
-  cupertino_icons: ^1.0.8
   provider: ^6.1.1
 
   # Data
@@ -20,15 +19,21 @@ dependencies:
 
   # AI API
   http: ^1.2.1
+  flutter_tts: ^4.2.5
 
-  # AR (vendored copy with position/rotation/scale transform fix)
-  ar_flutter_plugin_2:
-    path: third_party/ar_flutter_plugin_2
+  # BLE indoor positioning + QR scanning
   permission_handler: ^11.3.1
-  vector_math: ^2.2.0
   flutter_blue_plus: ^2.3.12
   mobile_scanner: ^7.4.0
   qr_flutter: ^4.1.0
+  google_fonts: ^8.2.1
+  flutter_animate: ^4.5.2
+  shimmer: ^3.0.0
+  flutter_svg: ^2.3.0
+  haptic_feedback: ^0.6.5
+  flutter_staggered_animations: ^1.1.1
+  geolocator: ^14.1.1
+  maplibre: ^0.3.5
 
 dev_dependencies:
   flutter_test:
@@ -52,8 +57,10 @@ flutter:
     - assets/images/second_floor.png
     - assets/images/third_floor.png
     - assets/images/logo and icon.png
-    
-    - assets/ar_models/
+    - assets/Main Building.jpg
+    - assets/Annex Building.jpg
+    - assets/Tangub Asenso Building.jpg
+
     - .env
 
   fonts:

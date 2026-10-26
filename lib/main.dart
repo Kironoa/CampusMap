@@ -2,7 +2,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:naviapp/providers/theme_provider.dart';
 import 'package:naviapp/providers/user_location_provider.dart';
 import 'package:naviapp/screens/get_started_screen.dart';
@@ -10,7 +12,15 @@ import 'package:naviapp/screens/home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: '.env');
+  // .env is gitignored and may not exist on fresh clones/builds — a missing
+  // file must not kill the app on first launch. Env.openrouterApiKey already
+  // returns '' when dotenv was never loaded, and AI features fall back to
+  // bundled text in that case.
+  try {
+    await dotenv.load(fileName: '.env');
+  } catch (_) {
+    // No .env (first clone, CI, keyless install) — continue without it.
+  }
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -62,14 +72,22 @@ class NaviApp extends StatelessWidget {
 
   ThemeData _buildTheme(Brightness brightness) {
     final isDark = brightness == Brightness.dark;
-    return ThemeData(
+    const seed = Color(0xFF0A7040);
+    final colorScheme = ColorScheme.fromSeed(
+      seedColor: seed,
+      brightness: brightness,
+    );
+    // Apply Poppins once via the text theme for both light and dark.
+    final base = ThemeData(
       useMaterial3: true,
       brightness: brightness,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFF0A7040),
-        brightness: brightness,
-      ),
-      fontFamily: 'Poppins',
+      colorScheme: colorScheme,
+    );
+    final poppinsTextTheme = GoogleFonts.poppinsTextTheme(base.textTheme);
+    return base.copyWith(
+      colorScheme: colorScheme,
+      textTheme: poppinsTextTheme,
+      primaryTextTheme: poppinsTextTheme,
       scaffoldBackgroundColor: isDark
           ? const Color(0xFF0D1711)
           : const Color(0xFFF0F6EF),
@@ -95,10 +113,10 @@ class NaviApp extends StatelessWidget {
         ).withValues(alpha: isDark ? 0.25 : 0.12),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
+          // Font family comes from ThemeData.textTheme (Poppins) — no hardcode.
           return TextStyle(
             fontSize: 11,
             fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-            fontFamily: 'Poppins',
             color: selected
                 ? const Color(0xFF0A7040)
                 : (isDark ? const Color(0xFFA8C8B0) : const Color(0xFF1E4934)),
@@ -165,6 +183,7 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     return Scaffold(
       backgroundColor: const Color(0xFF0A7040),
       body: Center(
@@ -180,7 +199,14 @@ class _SplashScreenState extends State<SplashScreen>
                   height: 96,
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.08),
+                        blurRadius: 24,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
                   ),
                   child: Image.asset(
                     'assets/images/logo and icon.png',
@@ -191,32 +217,31 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                 ),
                 const SizedBox(height: 24),
-                const Text(
+                Text(
                   'NaviApp',
-                  style: TextStyle(
+                  style: textTheme.headlineSmall?.copyWith(
                     color: Colors.white,
-                    fontSize: 28,
                     fontWeight: FontWeight.bold,
-                    fontFamily: 'Poppins',
                   ),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   'Your Campus Navigator',
-                  style: TextStyle(
+                  style: textTheme.bodyMedium?.copyWith(
                     color: Colors.white.withValues(alpha: 0.7),
-                    fontSize: 14,
-                    fontFamily: 'Poppins',
                   ),
                 ),
                 const SizedBox(height: 48),
-                SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.5,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      Colors.white.withValues(alpha: 0.7),
+                // Premium shimmer skeleton instead of a spinner.
+                Shimmer.fromColors(
+                  baseColor: Colors.white.withValues(alpha: 0.25),
+                  highlightColor: Colors.white.withValues(alpha: 0.55),
+                  child: Container(
+                    width: 120,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
                     ),
                   ),
                 ),

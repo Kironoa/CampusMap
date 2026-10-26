@@ -1,6 +1,7 @@
 // lib/models/starting_location.dart
 import 'dart:convert';
 
+import '../features/live_navigation/models/geo_math.dart';
 import '../services/indoor_positioning/indoor_position.dart';
 
 /// Structured payload encoded inside a Campus Guide starting-point QR code.
@@ -112,6 +113,11 @@ class StartingLocation {
   /// Optional navigation-graph node this point is anchored to.
   final String? navNodeId;
 
+  /// Outdoor GPS coordinate (latitude, longitude) for this starting point.
+  /// Used when this location is scanned as a starting point for Live Navigation (outdoor).
+  /// Should be the nearest campus entrance/gate or building outdoor coordinate.
+  final NavLatLng? outdoorPosition;
+
   const StartingLocation({
     required this.id,
     required this.name,
@@ -120,6 +126,7 @@ class StartingLocation {
     required this.x,
     required this.y,
     this.navNodeId,
+    this.outdoorPosition,
   });
 
   /// The exact data to encode in this location's QR code.
@@ -149,12 +156,13 @@ class StartingLocation {
       other.building == building &&
       other.floor == floor &&
       other.x == x &&
-      other.y == y;
+      other.y == y &&
+      other.outdoorPosition == outdoorPosition;
 
   @override
-  int get hashCode => Object.hash(id, name, building, floor, x, y);
+  int get hashCode => Object.hash(id, name, building, floor, x, y, outdoorPosition);
 
   @override
   String toString() =>
-      'StartingLocation($id, "$name", floor $floor, x: $x, y: $y)';
+      'StartingLocation($id, "$name", floor $floor, x: $x, y: $y, outdoor: $outdoorPosition)';
 }

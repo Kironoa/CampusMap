@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>NSCameraUsageDescription</key>
-	<string>This application requires camera access for augmented reality navigation.</string>
+	<string>This application requires camera access to scan QR codes for setting your starting location.</string>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>This application scans for Bluetooth beacons to estimate your indoor location on the campus map.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>

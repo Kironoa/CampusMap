@@ -2,8 +2,10 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET"/>
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30"/>
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" android:maxSdkVersion="30"/>
+    <!-- Fine/coarse location for Live Navigation GPS (uncapped: needed on
+         all API levels; also covers the legacy BLE use case). -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30"/>
@@ -11,7 +13,6 @@
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN"/>
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
 
-    <uses-feature android:name="android.hardware.camera.ar" android:required="false"/>
     <uses-feature android:name="android.hardware.camera" android:required="true"/>
 
     <application
@@ -19,14 +20,6 @@
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon"
         android:enableOnBackInvokedCallback="true">
-
-        <meta-data
-            android:name="com.google.android.geo.API_KEY"
-            tools:node="remove" />
-
-        <meta-data
-            android:name="com.google.ar.core"
-            android:value="optional" />
 
         <activity
             android:name="io.flutter.embedding.android.FlutterActivity"
@@ -61,6 +54,10 @@
         <intent>
             <action android:name="android.intent.action.SENDTO"/>
             <data android:scheme="mailto"/>
+        </intent>
+        <!-- Text-to-speech engine visibility for spoken AI replies -->
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE"/>
         </intent>
     </queries>
 </manifest>

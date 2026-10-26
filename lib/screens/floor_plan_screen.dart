@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:naviapp/config/staircase_locations.dart';
 import 'package:naviapp/models/starting_location.dart';
 import 'package:naviapp/providers/user_location_provider.dart';
 import 'package:naviapp/screens/qr_scanner_screen.dart';
@@ -14,6 +15,9 @@ import 'package:naviapp/services/navigation_service.dart';
 import 'package:naviapp/services/pathfinder.dart';
 import 'package:naviapp/services/route_calculator.dart';
 import 'package:naviapp/widgets/ai_nav_sheet.dart';
+import 'package:naviapp/widgets/staircase_qr_sheet.dart';
+import '../features/live_navigation/ui/navigation_screen.dart'
+    show LiveNavigationScreen;
 
 class FloorPlanScreen extends StatefulWidget {
   final int initialFloor;
@@ -340,6 +344,61 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
     );
   }
 
+  /// Opens the QR scanner; on a valid Campus Guide code, uses the scanned
+  /// location's outdoor GPS coordinate to launch Live Navigation (outdoor).
+  Future<void> _scanForLiveNavigation() async {
+    final location = await Navigator.of(context).push<StartingLocation>(
+      MaterialPageRoute(builder: (_) => const QrScannerScreen()),
+    );
+    if (!mounted || location == null) return;
+
+    final outdoorPos = location.outdoorPosition;
+    if (outdoorPos == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('This QR location has no outdoor position configured.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => LiveNavigationScreen(initialPosition: outdoorPos),
+      ),
+    );
+  }
+
+  /// Shows the QR code for a single staircase (opened from its map label).
+  void _showStaircaseQr(StartingLocation staircase) {
+    StaircaseQrSheet.show(
+      context,
+      floorName: _floorNames[staircase.floor],
+      staircases: [staircase],
+    );
+  }
+
+  /// Shows every staircase QR code for the floor currently on screen.
+  void _showFloorStaircaseQrs() {
+    final staircases = StaircaseLocations.forFloor(_currentFloor);
+    if (staircases.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No staircases configured for this floor.'),
+        ),
+      );
+      return;
+    }
+    StaircaseQrSheet.show(
+      context,
+      floorName: _currentFloorName,
+      staircases: staircases,
+    );
+  }
+
   /// Pans/zooms the InteractiveViewer so the normalized point sits at the
   /// center of the viewport. Works for any viewport size / resolution.
   void _centerOnPosition(double x, double y) {
@@ -388,8 +447,7 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
         child: AppBar(
           title: Text(
             _currentFloorName,
-            style: const TextStyle(
-              fontFamily: 'Poppins',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.w600,
               fontSize: 18,
             ),
@@ -403,6 +461,13 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
           ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.qr_code_2, color: Colors.white, size: 24),
+              tooltip: 'Staircase QR codes',
+              onPressed: _showFloorStaircaseQrs,
+            ),
+          ],
           toolbarHeight: 52,
         ),
       ),
@@ -428,37 +493,74 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
                     height: scaledHeight,
                     child: GestureDetector(
                       child: Stack(
+                        clipBehavior: Clip.none,
                         children: [
                           Positioned.fill(
-                            child: Image.asset(
-                              _currentFloorImage,
-                              fit: BoxFit.fill,
+                            // Smooth cross-fade when switching floors.
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 400),
+                              switchInCurve: Curves.ease,
+                              switchOutCurve: Curves.ease,
+                              transitionBuilder: (child, animation) =>
+                                  FadeTransition(
+                                    opacity: animation,
+                                    child: child,
+                                  ),
+                              child: Image.asset(
+                                _currentFloorImage,
+                                key: ValueKey<String>(_currentFloorImage),
+                                fit: BoxFit.fill,
+                              ),
                             ),
                           ),
-                          CustomPaint(
-                            size: Size(scaledWidth, scaledHeight),
-                            painter: FloorPlanPainter(
-                              isDark:
-                                  Theme.of(context).brightness ==
-                                  Brightness.dark,
-                              navigationPath: _navigationPath,
-                              pathFloorIndices: _pathFloorIndices,
-                              currentFloor: _currentFloor,
-                              pathProgress: _pathAnimation.value,
-                              isNavigating: _isNavigating,
-                              imageOriginalSize: imageSize,
-                              livePosition: _activePosition,
-                              routeDots:
-                                  _navigationService
-                                      .currentRoute
-                                      ?.dotPositions ??
-                              [],
-                              routeDotFloorIndices:
-                                  _navigationService
-                                      .currentRoute
-                                      ?.dotFloorIndices ??
-                              [],
-                              isFlipped: false,
+                          // Premium 400ms ease-in for newly drawn routes,
+                          // layered over the existing path-progress painter.
+                          TweenAnimationBuilder<double>(
+                            tween: Tween<double>(
+                              begin: 0,
+                              end: _isNavigating ? 1 : 1,
+                            ),
+                            duration: const Duration(milliseconds: 400),
+                            curve: Curves.ease,
+                            builder: (context, opacity, child) => Opacity(
+                              opacity: opacity.clamp(0.0, 1.0),
+                              child: child,
+                            ),
+                            child: CustomPaint(
+                              size: Size(scaledWidth, scaledHeight),
+                              painter: FloorPlanPainter(
+                                isDark:
+                                    Theme.of(context).brightness ==
+                                    Brightness.dark,
+                                navigationPath: _navigationPath,
+                                pathFloorIndices: _pathFloorIndices,
+                                currentFloor: _currentFloor,
+                                pathProgress: _pathAnimation.value,
+                                isNavigating: _isNavigating,
+                                imageOriginalSize: imageSize,
+                                livePosition: _activePosition,
+                                routeDots:
+                                    _navigationService
+                                        .currentRoute
+                                        ?.dotPositions ??
+                                    [],
+                                routeDotFloorIndices:
+                                    _navigationService
+                                        .currentRoute
+                                        ?.dotFloorIndices ??
+                                    [],
+                                isFlipped: false,
+                              ),
+                            ),
+                          ),
+                          Positioned.fill(
+                            child: _StaircaseLabelLayer(
+                              controller: _transformationController,
+                              staircases: StaircaseLocations.forFloor(
+                                _currentFloor,
+                              ),
+                              mapSize: Size(scaledWidth, scaledHeight),
+                              onTap: _showStaircaseQr,
                             ),
                           ),
                         ],
@@ -470,7 +572,7 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
               if (pinnedLocation != null)
                 Positioned(
                   left: 12,
-                  bottom: 12,
+                  bottom: 72, // Account for bottom NavigationBar (56) + margin
                   width: min(constraints.maxWidth * 0.5, 280),
                   child: _CurrentLocationCard(
                     locationName: pinnedLocation.name,
@@ -485,10 +587,11 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
               // Left side button panel
               Positioned(
                 left: 8,
-                bottom: 8,
+                bottom: 68, // Account for bottom NavigationBar (56) + margin
                 child: _ActionButtonPanel(
                   onScanStartingPoint: _scanStartingPoint,
                   onOpenNavigation: _openNavigation,
+                  onScanForLiveNavigation: _scanForLiveNavigation,
                 ),
               ),
             ],
@@ -570,50 +673,190 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
             }
           });
         },
+        onExternalBuildingSelected: (building) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) =>
+                  LiveNavigationScreen(initialPosition: building.labelPoint),
+            ),
+          );
+        },
       ),
     );
   }
+}
 
+/// Renders tappable staircase labels at their normalized floor-plan points.
+///
+/// Labels are counter-scaled against the [InteractiveViewer] transform so
+/// they stay legible (and tappable) at every zoom level while still panning
+/// and zooming with the map.
+class _StaircaseLabelLayer extends StatelessWidget {
+  final TransformationController controller;
+  final List<StartingLocation> staircases;
+  final Size mapSize;
+  final ValueChanged<StartingLocation> onTap;
+
+  const _StaircaseLabelLayer({
+    required this.controller,
+    required this.staircases,
+    required this.mapSize,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        final zoom = controller.value.getMaxScaleOnAxis();
+        final inverseZoom = zoom > 0 ? 1 / zoom : 1.0;
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            for (final staircase in staircases)
+              Positioned(
+                left: staircase.x * mapSize.width,
+                top: staircase.y * mapSize.height,
+                child: FractionalTranslation(
+                  translation: Offset(_anchorX(staircase.x), -0.5),
+                  child: Transform.scale(
+                    scale: inverseZoom,
+                    child: _StaircaseLabel(
+                      staircase: staircase,
+                      onTap: () => onTap(staircase),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Keeps labels inside the plan edges and points paired staircases apart.
+  double _anchorX(double x) {
+    if (x < 0.18) return 0;
+    if (x > 0.82) return -1;
+    if (x < 0.5) return -1;
+    return 0;
+  }
+}
+
+class _StaircaseLabel extends StatelessWidget {
+  final StartingLocation staircase;
+  final VoidCallback onTap;
+
+  const _StaircaseLabel({required this.staircase, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: '${StaircaseLocations.labelFor(staircase)} QR code',
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(99),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0A7040).withValues(alpha: 0.94),
+              borderRadius: BorderRadius.circular(99),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.85),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.22),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.stairs, size: 12, color: Colors.white),
+                const SizedBox(width: 4),
+                Text(
+                  StaircaseLocations.labelFor(staircase),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10.5,
+                    height: 1.1,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                const Icon(Icons.qr_code_2, size: 12, color: Colors.white),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// Action button panel on the left side of the map.
 class _ActionButtonPanel extends StatelessWidget {
   final VoidCallback onScanStartingPoint;
   final VoidCallback onOpenNavigation;
+  final VoidCallback onScanForLiveNavigation;
 
   const _ActionButtonPanel({
     required this.onScanStartingPoint,
     required this.onOpenNavigation,
+    required this.onScanForLiveNavigation,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        color: isDark ? const Color(0xFF1B2E20) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isDark
+              ? const Color(0xFF2B4A36)
+              : const Color(0xFFB8DCC8).withValues(alpha: 0.6),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.15),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.14),
+            blurRadius: 28,
+            offset: const Offset(0, 12),
           ),
         ],
       ),
+      padding: const EdgeInsets.all(6),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           _ActionButton(
             icon: Icons.qr_code_scanner,
-            label: 'Scan',
+            label: 'Scan (Indoor)',
             color: const Color(0xFF2563EB),
             onPressed: onScanStartingPoint,
           ),
+          const SizedBox(height: 6),
           _ActionButton(
             icon: Icons.navigation_outlined,
-            label: 'Navigate',
-            color: const Color(0xFF16A34A),
+            label: 'Navigate (Indoor)',
+            color: const Color(0xFF0A7040),
             onPressed: onOpenNavigation,
+          ),
+          const SizedBox(height: 6),
+          _ActionButton(
+            icon: Icons.gps_fixed,
+            label: 'Live Nav (Outdoor)',
+            color: const Color(0xFF1A73E8),
+            onPressed: onScanForLiveNavigation,
           ),
         ],
       ),
@@ -636,16 +879,24 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onPressed,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
             color: color,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -654,8 +905,7 @@ class _ActionButton extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 label,
-                style: const TextStyle(
-                  fontFamily: 'Poppins',
+                style: textTheme.labelLarge?.copyWith(
                   fontWeight: FontWeight.w600,
                   fontSize: 13,
                   color: Colors.white,
@@ -686,12 +936,23 @@ class _CurrentLocationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: Colors.white,
-      elevation: 6,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: Color(0xFF2563EB), width: 1.5),
+    final textTheme = Theme.of(context).textTheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1B2E20) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isDark ? const Color(0xFF2B4A36) : const Color(0xFF2563EB),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.14),
+            blurRadius: 28,
+            offset: const Offset(0, 12),
+          ),
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -701,17 +962,29 @@ class _CurrentLocationCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Text('📍', style: TextStyle(fontSize: 18)),
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2563EB).withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.my_location,
+                    size: 18,
+                    color: Color(0xFF2563EB),
+                  ),
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Current Location',
-                    style: TextStyle(
-                      fontSize: 11,
-                      letterSpacing: 0.5,
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey.shade600,
+                    style: textTheme.labelSmall?.copyWith(
+                      letterSpacing: 0.8,
+                      fontWeight: FontWeight.w700,
+                      color: isDark
+                          ? const Color(0xFFA8C8B0)
+                          : Colors.grey.shade600,
                     ),
                   ),
                 ),
@@ -725,23 +998,21 @@ class _CurrentLocationCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
             Text(
               locationName,
-              style: const TextStyle(
-                fontSize: 16,
+              style: textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
-                fontFamily: 'Poppins',
-                color: Color(0xFF0E2B1C),
+                color: isDark
+                    ? const Color(0xFFE7F4EA)
+                    : const Color(0xFF0E2B1C),
               ),
             ),
             const SizedBox(height: 2),
             Text(
               floorName,
-              style: TextStyle(
-                fontSize: 12,
-                fontFamily: 'Poppins',
-                color: Colors.grey.shade700,
+              style: textTheme.bodySmall?.copyWith(
+                color: isDark ? const Color(0xFFA8C8B0) : Colors.grey.shade700,
               ),
             ),
             const SizedBox(height: 10),
@@ -750,10 +1021,7 @@ class _CurrentLocationCard extends StatelessWidget {
               child: FilledButton.icon(
                 onPressed: onStartNavigation,
                 icon: const Icon(Icons.navigation_outlined, size: 18),
-                label: const Text(
-                  'Start Navigation',
-                  style: TextStyle(fontFamily: 'Poppins'),
-                ),
+                label: const Text('Start Navigation'),
                 style: FilledButton.styleFrom(
                   backgroundColor: const Color(0xFF2563EB),
                 ),

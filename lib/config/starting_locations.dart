@@ -1,5 +1,6 @@
 // lib/config/starting_locations.dart
 import '../models/starting_location.dart';
+import '../features/live_navigation/models/geo_math.dart';
 
 /// Centralized configuration of all QR starting locations.
 ///
@@ -43,6 +44,7 @@ class StartingLocations {
       x: 0.468, // CALIBRATE
       y: 0.950, // CALIBRATE
       navNodeId: 'gf_v_100',
+      outdoorPosition: NavLatLng(8.06548, 123.75611), // Gate 3
     ),
     StartingLocation(
       id: 'GF_LOBBY_LEFT_STAIRCASE',
@@ -52,6 +54,7 @@ class StartingLocations {
       x: 0.435, // CALIBRATE
       y: 0.560, // CALIBRATE
       navNodeId: 'gf_start_lobby_left',
+      outdoorPosition: NavLatLng(8.06525, 123.75586), // Gate 2
     ),
     StartingLocation(
       id: 'GF_LOBBY_RIGHT_STAIRCASE',
@@ -61,6 +64,7 @@ class StartingLocations {
       x: 0.565, // CALIBRATE
       y: 0.560, // CALIBRATE
       navNodeId: 'gf_start_lobby_right',
+      outdoorPosition: NavLatLng(8.06594, 123.75665), // Gate 4
     ),
     StartingLocation(
       id: 'GF_LEFT_WING_STAIRCASE',
@@ -70,6 +74,7 @@ class StartingLocations {
       x: 0.095, // CALIBRATE
       y: 0.130, // CALIBRATE
       navNodeId: 'gf_start_stairs_left_top',
+      outdoorPosition: NavLatLng(8.06476, 123.75527), // Gate 1
     ),
     StartingLocation(
       id: 'GF_RIGHT_WING_STAIRCASE',
@@ -79,6 +84,7 @@ class StartingLocations {
       x: 0.895, // CALIBRATE
       y: 0.075, // CALIBRATE
       navNodeId: 'gf_start_stairs_right_top',
+      outdoorPosition: NavLatLng(8.06594, 123.75665), // Gate 4
     ),
     StartingLocation(
       id: 'GF_LEFT_SIDE_DOOR',
@@ -88,6 +94,7 @@ class StartingLocations {
       x: 0.065, // CALIBRATE
       y: 0.370, // CALIBRATE
       navNodeId: 'gf_start_left_mid',
+      outdoorPosition: NavLatLng(8.06476, 123.75527), // Gate 1
     ),
     StartingLocation(
       id: 'GF_RIGHT_SIDE_DOOR',
@@ -97,6 +104,7 @@ class StartingLocations {
       x: 0.960, // CALIBRATE
       y: 0.370, // CALIBRATE
       navNodeId: 'gf_start_right_mid',
+      outdoorPosition: NavLatLng(8.06594, 123.75665), // Gate 4
     ),
   ];
 
@@ -116,6 +124,7 @@ class StartingLocations {
       x: 0.08470,
       y: 0.23056,
       navNodeId: 'sf_start_qr_01',
+      outdoorPosition: NavLatLng(8.06476, 123.75527), // Gate 1
     ),
 
     // QR START 2 — UPPER RIGHT: Sub-Lobby / upper-right entrance
@@ -129,6 +138,7 @@ class StartingLocations {
       x: 0.92145,
       y: 0.23056,
       navNodeId: 'sf_start_qr_02',
+      outdoorPosition: NavLatLng(8.06594, 123.75665), // Gate 4
     ),
 
     // QR START 3 — LOWER LEFT: Lower-left staircase entrance
@@ -142,6 +152,7 @@ class StartingLocations {
       x: 0.07582,
       y: 0.39583,
       navNodeId: 'sf_start_qr_03',
+      outdoorPosition: NavLatLng(8.06476, 123.75527), // Gate 1
     ),
 
     // QR START 4 — LOWER RIGHT: Lower-right staircase entrance
@@ -155,6 +166,7 @@ class StartingLocations {
       x: 0.92896,
       y: 0.39444,
       navNodeId: 'sf_start_qr_04',
+      outdoorPosition: NavLatLng(8.06594, 123.75665), // Gate 4
     ),
 
     // QR START 5 — CENTER: Central staircase / central lower entrance
@@ -168,6 +180,7 @@ class StartingLocations {
       x: 0.49029,
       y: 0.52083,
       navNodeId: 'sf_start_qr_05',
+      outdoorPosition: NavLatLng(8.06548, 123.75611), // Gate 3
     ),
 
     // LEGACY STARTING POINTS (kept for floor transitions compatibility)
@@ -179,6 +192,7 @@ class StartingLocations {
       x: 0.065,
       y: 0.500,
       navNodeId: 'sf_start_left_mid',
+      outdoorPosition: NavLatLng(8.06476, 123.75527), // Gate 1
     ),
     StartingLocation(
       id: 'SF_RIGHT_STAIRCASE',
@@ -188,6 +202,7 @@ class StartingLocations {
       x: 0.960,
       y: 0.500,
       navNodeId: 'sf_start_right_mid',
+      outdoorPosition: NavLatLng(8.06594, 123.75665), // Gate 4
     ),
     StartingLocation(
       id: 'SF_CENTER_STAIRCASE',
@@ -197,6 +212,7 @@ class StartingLocations {
       x: 0.468,
       y: 0.415,
       navNodeId: 'sf_start_center',
+      outdoorPosition: NavLatLng(8.06548, 123.75611), // Gate 3
     ),
     StartingLocation(
       id: 'SF_BOTTOM_LEFT_STAIRCASE',
@@ -206,6 +222,7 @@ class StartingLocations {
       x: 0.435,
       y: 0.760,
       navNodeId: 'sf_start_bot_left',
+      outdoorPosition: NavLatLng(8.06525, 123.75586), // Gate 2
     ),
     StartingLocation(
       id: 'SF_BOTTOM_RIGHT_STAIRCASE',
@@ -215,6 +232,7 @@ class StartingLocations {
       x: 0.595,
       y: 0.760,
       navNodeId: 'sf_start_bot_right',
+      outdoorPosition: NavLatLng(8.06594, 123.75665), // Gate 4
     ),
   ];
 
@@ -231,6 +249,7 @@ class StartingLocations {
       x: 0.065, // CALIBRATE
       y: 0.420, // CALIBRATE
       navNodeId: 'tf_start_left',
+      outdoorPosition: NavLatLng(8.06476, 123.75527), // Gate 1
     ),
     StartingLocation(
       id: 'TF_ELEVATOR',
@@ -240,6 +259,7 @@ class StartingLocations {
       x: 0.490, // CALIBRATE
       y: 0.300, // CALIBRATE
       navNodeId: 'tf_start_elevator',
+      outdoorPosition: NavLatLng(8.06548, 123.75611), // Gate 3
     ),
     StartingLocation(
       id: 'TF_RIGHT_STAIRCASE',
@@ -249,6 +269,7 @@ class StartingLocations {
       x: 0.960, // CALIBRATE
       y: 0.420, // CALIBRATE
       navNodeId: 'tf_start_right',
+      outdoorPosition: NavLatLng(8.06594, 123.75665), // Gate 4
     ),
     StartingLocation(
       id: 'TF_TOP_LEFT_STAIRCASE',
@@ -258,6 +279,7 @@ class StartingLocations {
       x: 0.380, // CALIBRATE
       y: 0.080, // CALIBRATE
       navNodeId: 'tf_start_top_left',
+      outdoorPosition: NavLatLng(8.06476, 123.75527), // Gate 1
     ),
   ];
 

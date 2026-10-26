@@ -145,7 +145,14 @@ class _QrScannerScreenState extends State<QrScannerScreen>
                     color: const Color(0xFF16A34A),
                     width: 3,
                   ),
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(28),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF16A34A).withValues(alpha: 0.35),
+                      blurRadius: 24,
+                      spreadRadius: 2,
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -155,10 +162,16 @@ class _QrScannerScreenState extends State<QrScannerScreen>
             right: 32,
             bottom: 48,
             child: Container(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 18,
+                vertical: 14,
+              ),
               decoration: BoxDecoration(
                 color: Colors.black.withValues(alpha: 0.65),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.18),
+                ),
               ),
               child: const Text(
                 'Point the camera at a Campus Guide starting-point '

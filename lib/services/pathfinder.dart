@@ -10,12 +10,37 @@ class Pathfinder {
     required List<NavNode> nodes,
     required List<NavEdge> edges,
   }) {
+    final ids = findPathNodeIds(
+      startNodeId: startNodeId,
+      endNodeId: endNodeId,
+      nodes: nodes,
+      edges: edges,
+    );
+    if (ids.isEmpty) return [];
+    final nodeMap = <String, NavNode>{};
+    for (final n in nodes) {
+      nodeMap[n.id] = n;
+    }
+    final out = <Offset>[];
+    for (final id in ids) {
+      final n = nodeMap[id];
+      if (n != null) out.add(n.pos);
+    }
+    return out;
+  }
+
+  /// A* over node IDs. Returns the ordered node ID path, preserving the
+  /// single-element same-node behavior relied upon by existing callers.
+  static List<String> findPathNodeIds({
+    required String startNodeId,
+    required String endNodeId,
+    required List<NavNode> nodes,
+    required List<NavEdge> edges,
+  }) {
     if (startNodeId == endNodeId) {
-      final n = nodes.firstWhere(
-        (n) => n.id == startNodeId,
-        orElse: () => nodes.first,
-      );
-      return [n.pos];
+      final exists = nodes.any((n) => n.id == startNodeId);
+      if (!exists) return [];
+      return [startNodeId];
     }
 
     final Map<String, List<String>> adj = {};
@@ -62,7 +87,7 @@ class Pathfinder {
       }
 
       if (current == endNodeId) {
-        return _reconstruct(cameFrom, current, nodeMap);
+        return _reconstructIds(cameFrom, current);
       }
 
       openSet.remove(current);
@@ -92,16 +117,15 @@ class Pathfinder {
 
   static double _d(Offset a, Offset b) => _h(a, b);
 
-  static List<Offset> _reconstruct(
+  static List<String> _reconstructIds(
     Map<String, String> cameFrom,
     String current,
-    Map<String, NavNode> nodeMap,
   ) {
-    final path = <Offset>[nodeMap[current]!.pos];
+    final path = <String>[current];
     String c = current;
     while (cameFrom.containsKey(c)) {
       c = cameFrom[c]!;
-      path.insert(0, nodeMap[c]!.pos);
+      path.insert(0, c);
     }
     return path;
   }

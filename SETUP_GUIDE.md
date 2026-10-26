@@ -1,5 +1,12 @@
 # Campus Map Upgrade - Setup Guide
 
+> NOTE (2026): the Google Maps sections below (`google_maps_flutter`,
+> `GOOGLE_MAPS_API_KEY`, `MAPS_API_KEY`, `GMSServices`) are obsolete. The app
+> no longer uses Google Maps Platform — Live Navigation runs billing-free on
+> MapLibre + OSRM with no keys. See
+> `lib/features/live_navigation/README.md`. The remaining sections describe
+> older, unrelated drafts.
+
 ## New Dependencies Added
 - `google_maps_flutter: ^2.5.0` - Google Maps integration
 - `google_generative_ai: ^0.4.6` - Gemini AI for floor plan analysis

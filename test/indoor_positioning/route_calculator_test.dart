@@ -55,7 +55,9 @@ void main() {
     });
 
     test('returns a route when start and destination are the same node', () {
-      final position = live(0.13, 0.19, 0);
+      // Use a position very close to gf_room_ics (0.080, 0.201) so the
+      // nearest node is gf_room_ics itself, making startNodeId == endNodeId.
+      final position = live(0.08, 0.20, 0);
       final result = RouteCalculator.fromLivePosition(
         position: position,
         roomId: 'gf_ics',
