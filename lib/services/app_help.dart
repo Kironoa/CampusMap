@@ -205,11 +205,11 @@ class AppHelp {
 
   static const String _entrances =
       'CAMPUS GATES — WHO USES WHICH:\n'
-      '- Gate 1: students only.\n'
-      '- Gate 2: vehicles only.\n'
-      '- Gate 3: vehicle exit; visitors, interns and faculty enter on foot; students may also exit here.\n'
-      '- Gate 4: vehicle exit; people may enter or exit on foot too.\n'
-      '- Gate 5: everyone on foot, both directions.\n\n'
+      '- Gate 1: student walk-in entrance only.\n'
+      '- Gate 2: vehicle entrance for anyone with a vehicle.\n'
+      '- Gate 3: walk-in entrance for visitors, OJT, and faculty; vehicle and walk-in exit.\n'
+      '- Gate 4: exit only for vehicles and walk-ins.\n'
+      '- Gate 5: alternative walk-in entrance or exit.\n\n'
       'Green "Gate N" pills mark each gate on the outdoor map — tap one for its rules and a "Navigate here" shortcut.';
 
   static const String _voice =

@@ -53,8 +53,7 @@ class AINavSheet extends StatefulWidget {
   State<AINavSheet> createState() => _AINavSheetState();
 }
 
-class _AINavSheetState extends State<AINavSheet>
-    with SingleTickerProviderStateMixin {
+class _AINavSheetState extends State<AINavSheet> with TickerProviderStateMixin {
   late TabController _tabController;
   late TabController _buildingTabController;
   bool _isLoading = false;
@@ -66,7 +65,7 @@ class _AINavSheetState extends State<AINavSheet>
   List<String> get _floorKeys => RoomCatalog.floorKeys;
   List<CampusBuilding> get _buildings => CampusBuildings.all;
 
-  static   List<BoxShadow> get _softShadow => AppShadows.card;
+  static List<BoxShadow> get _softShadow => AppShadows.card;
 
   @override
   void initState() {
@@ -317,36 +316,9 @@ class _AINavSheetState extends State<AINavSheet>
                 dividerColor: Colors.transparent,
                 onTap: _onBuildingTap,
                 tabs: [
-                  Tab(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.domain, size: 16),
-                        SizedBox(width: 4),
-                        Text('Main Building'),
-                      ],
-                    ),
-                  ),
-                  Tab(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.business, size: 16),
-                        SizedBox(width: 4),
-                        Text('Annex (AB)'),
-                      ],
-                    ),
-                  ),
-                  Tab(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.apartment, size: 16),
-                        SizedBox(width: 4),
-                        Text('Tangub (TAB)'),
-                      ],
-                    ),
-                  ),
+                  _buildingTab(icon: Icons.domain, label: 'Main Building'),
+                  _buildingTab(icon: Icons.business, label: 'Annex (AB)'),
+                  _buildingTab(icon: Icons.apartment, label: 'Tangub (TAB)'),
                 ],
               ),
             ),
@@ -389,11 +361,27 @@ class _AINavSheetState extends State<AINavSheet>
           Expanded(
             child: _selectedBuildingIndex == 0
                 ? (_isLoading
-                    ? _buildLoadingSkeleton(context)
-                    : _buildRoomList(filteredRooms))
+                      ? _buildLoadingSkeleton(context)
+                      : _buildRoomList(filteredRooms))
                 : _buildBuildingInfo(_buildings[_selectedBuildingIndex]),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildingTab({required IconData icon, required String label}) {
+    return Tab(
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16),
+            const SizedBox(width: 4),
+            Text(label),
+          ],
+        ),
       ),
     );
   }
@@ -414,7 +402,7 @@ class _AINavSheetState extends State<AINavSheet>
                 color: AppPalette.brand.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(30),
               ),
-              child: Icon(
+              child: const Icon(
                 Icons.satellite_outlined,
                 size: 50,
                 color: AppPalette.brand,

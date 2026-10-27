@@ -5,6 +5,7 @@ import 'package:naviapp/models/starting_location.dart';
 import 'package:provider/provider.dart';
 import 'package:naviapp/providers/theme_provider.dart';
 import 'package:naviapp/providers/user_location_provider.dart';
+import 'package:naviapp/providers/user_role_provider.dart';
 import 'package:naviapp/screens/floor_plan_screen.dart';
 import 'package:naviapp/screens/qr_scanner_screen.dart';
 import 'package:naviapp/features/live_navigation/live_navigation.dart'
@@ -39,9 +40,7 @@ class HomeScreen extends StatelessWidget {
             actions: [
               IconButton(
                 icon: Icon(
-                  themeProvider.isDarkMode
-                      ? Icons.light_mode
-                      : Icons.dark_mode,
+                  themeProvider.isDarkMode ? Icons.light_mode : Icons.dark_mode,
                   color: Colors.white,
                 ),
                 onPressed: () => themeProvider.toggleTheme(),
@@ -92,36 +91,32 @@ class HomeScreen extends StatelessWidget {
                   ).animate().fadeIn(delay: 100.ms, duration: 350.ms),
                   const SizedBox(height: 12),
                   _buildNavCard(
-                        context: context,
-                        isDark: isDark,
-                        icon: Icons.qr_code_scanner,
-                        iconBgColor: const Color(0xFFEFF6FF),
-                        iconColor: const Color(0xFF2563EB),
-                        title: 'Scan Starting Point',
-                        subtitle: 'Scan a QR code where you are standing',
-                        borderColor: const Color(
-                          0xFF2563EB,
-                        ).withValues(alpha: 0.2),
-                        onTap: () => _scanStartingPoint(context),
-                      ),
+                    context: context,
+                    isDark: isDark,
+                    icon: Icons.qr_code_scanner,
+                    iconBgColor: const Color(0xFFEFF6FF),
+                    iconColor: const Color(0xFF2563EB),
+                    title: 'Scan Starting Point',
+                    subtitle: 'Scan a QR code where you are standing',
+                    borderColor: const Color(0xFF2563EB).withValues(alpha: 0.2),
+                    onTap: () => _scanStartingPoint(context),
+                  ),
                   const SizedBox(height: 12),
                   _buildNavCard(
-                        context: context,
-                        isDark: isDark,
-                        icon: Icons.map_outlined,
-                        iconBgColor: const Color(0xFFE7F4EA),
-                        iconColor: const Color(0xFF0A7040),
-                        title: 'Floor Plan',
-                        subtitle: 'Tap rooms • Zoom • Explore floors',
-                        borderColor: const Color(
-                          0xFF0A7040,
-                        ).withValues(alpha: 0.2),
-                        onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const FloorPlanScreen(),
-                          ),
-                        ),
+                    context: context,
+                    isDark: isDark,
+                    icon: Icons.map_outlined,
+                    iconBgColor: const Color(0xFFE7F4EA),
+                    iconColor: const Color(0xFF0A7040),
+                    title: 'Floor Plan',
+                    subtitle: 'Tap rooms • Zoom • Explore floors',
+                    borderColor: const Color(0xFF0A7040).withValues(alpha: 0.2),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const FloorPlanScreen(),
                       ),
+                    ),
+                  ),
                   // Isolated entry point for Live Navigation.
                   // Hidden when the feature flag is off; nothing else on
                   // this screen depends on the feature.
@@ -140,7 +135,9 @@ class HomeScreen extends StatelessWidget {
                           ).withValues(alpha: 0.2),
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (_) => const LiveNavigationScreen(),
+                              builder: (_) => LiveNavigationScreen(
+                                userRole: context.read<UserRoleProvider>().role,
+                              ),
                             ),
                           ),
                         )
@@ -168,8 +165,8 @@ class HomeScreen extends StatelessWidget {
                         Expanded(
                           child: Text(
                             'Walking into a peach building on the outdoor map? Accept the prompt to jump straight to its indoor floor plan.',
-                            style:
-                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
                                   color: isDark
                                       ? AppPalette.mistSoft
                                       : AppPalette.inkSoft,

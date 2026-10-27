@@ -42,20 +42,24 @@ void main() {
     });
 
     test('building entry handoff', () {
-      final reply = AppHelp.answerFor(
-        'What happens when I enter a building?',
-      );
+      final reply = AppHelp.answerFor('What happens when I enter a building?');
       expect(reply, contains('Continue to the indoor map'));
     });
 
     test('entrances list who-may-use rules', () {
       final reply = AppHelp.answerFor('Which gate can vehicles use?');
-      expect(reply, contains('Gate 2'));
-      expect(reply, contains('Gate 3'));
+      expect(reply, contains('Gate 1: student walk-in entrance only'));
+      expect(reply, contains('Gate 2: vehicle entrance'));
+      expect(reply, contains('Gate 3: walk-in entrance for visitors, OJT'));
+      expect(reply, contains('Gate 4: exit only for vehicles and walk-ins'));
+      expect(reply, contains('Gate 5: alternative walk-in entrance or exit'));
     });
 
     test('voice, dark mode, styles', () {
-      expect(AppHelp.answerFor('how to mute voice replies'), contains('speaker'));
+      expect(
+        AppHelp.answerFor('how to mute voice replies'),
+        contains('speaker'),
+      );
       expect(AppHelp.answerFor('dark mode'), contains('sun/moon'));
       expect(AppHelp.answerFor('change map style'), contains('layers'));
     });

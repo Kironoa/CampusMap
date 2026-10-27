@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:naviapp/providers/theme_provider.dart';
 import 'package:naviapp/providers/user_location_provider.dart';
+import 'package:naviapp/providers/user_role_provider.dart';
 import 'package:naviapp/screens/get_started_screen.dart';
 import 'package:naviapp/screens/home_screen.dart';
 
@@ -28,11 +29,14 @@ void main() async {
     ),
   );
   final themeProvider = ThemeProvider();
+  final userRoleProvider = UserRoleProvider();
   await themeProvider.loadTheme();
+  await userRoleProvider.loadRole();
   runApp(
     NaviApp(
       themeProvider: themeProvider,
       userLocationProvider: UserLocationProvider(),
+      userRoleProvider: userRoleProvider,
     ),
   );
 }
@@ -40,11 +44,13 @@ void main() async {
 class NaviApp extends StatelessWidget {
   final ThemeProvider themeProvider;
   final UserLocationProvider userLocationProvider;
+  final UserRoleProvider userRoleProvider;
 
   const NaviApp({
     super.key,
     required this.themeProvider,
     required this.userLocationProvider,
+    required this.userRoleProvider,
   });
 
   @override
@@ -53,6 +59,7 @@ class NaviApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider.value(value: themeProvider),
         ChangeNotifierProvider.value(value: userLocationProvider),
+        ChangeNotifierProvider.value(value: userRoleProvider),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {

@@ -29,10 +29,7 @@ void main() {
       expect(ring.first, const NavLatLng(8.06543, 123.75679));
       expect(ring.last, ring.first);
       // Outline + closing point == ring.
-      expect(
-        ring.sublist(0, 12),
-        CampusBuildings.mainBuilding.outline,
-      );
+      expect(ring.sublist(0, 12), CampusBuildings.mainBuilding.outline);
     });
 
     test('inside point is detected, far point is outside', () {
@@ -45,10 +42,7 @@ void main() {
         ),
         isTrue,
       );
-      expect(
-        CampusBuildings.containing(inside)?.id,
-        'main',
-      );
+      expect(CampusBuildings.containing(inside)?.id, 'main');
       // Tangub City fallback — far outside the building.
       const outside = NavLatLng(8.0625, 123.7458);
       expect(
@@ -211,26 +205,53 @@ void main() {
         CampusEntrances.entrance1.location,
         const NavLatLng(8.06476, 123.75527),
       );
-      expect(CampusEntrances.entrance1.access, contains('Students only'));
+      expect(
+        CampusEntrances.entrance1.access,
+        'Walk-in entrance for students only.',
+      );
+      expect(CampusEntrances.entrance1.walkInEntry, isTrue);
+      expect(CampusEntrances.entrance1.walkInExit, isFalse);
       expect(
         CampusEntrances.entrance2.location,
         const NavLatLng(8.06525, 123.75586),
       );
-      expect(CampusEntrances.entrance2.access, contains('Vehicles only'));
+      expect(
+        CampusEntrances.entrance2.access,
+        'Vehicle entrance for anyone with a vehicle.',
+      );
+      expect(CampusEntrances.entrance2.walkInEntry, isFalse);
+      expect(CampusEntrances.entrance2.walkInExit, isFalse);
       expect(
         CampusEntrances.entrance3.location,
         const NavLatLng(8.06548, 123.75611),
       );
-      expect(CampusEntrances.entrance3.access, contains('Visitors'));
+      expect(CampusEntrances.entrance3.access, contains('visitors, OJT'));
+      expect(
+        CampusEntrances.entrance3.access,
+        contains('Vehicle and walk-in exit'),
+      );
+      expect(CampusEntrances.entrance3.walkInEntry, isTrue);
+      expect(CampusEntrances.entrance3.walkInExit, isTrue);
       expect(
         CampusEntrances.entrance4.location,
         const NavLatLng(8.06594, 123.75665),
       );
       expect(
+        CampusEntrances.entrance4.access,
+        'Exit only for vehicles and walk-ins.',
+      );
+      expect(CampusEntrances.entrance4.walkInEntry, isFalse);
+      expect(CampusEntrances.entrance4.walkInExit, isTrue);
+      expect(
         CampusEntrances.entrance5.location,
         const NavLatLng(8.06346, 123.75602),
       );
-      expect(CampusEntrances.entrance5.access, contains('everyone'));
+      expect(
+        CampusEntrances.entrance5.access,
+        'Alternative walk-in entrance or exit.',
+      );
+      expect(CampusEntrances.entrance5.walkInEntry, isTrue);
+      expect(CampusEntrances.entrance5.walkInExit, isTrue);
       for (final e in CampusEntrances.all) {
         expect(e.access.isNotEmpty, isTrue);
       }
@@ -238,24 +259,29 @@ void main() {
 
     test('nearestWithin finds the gate, far point finds none', () {
       expect(
-        CampusEntrances.nearestWithin(
-          const NavLatLng(8.06476, 123.75527),
-        )?.id,
+        CampusEntrances.nearestWithin(const NavLatLng(8.06476, 123.75527))?.id,
         'entrance_1',
       );
       expect(
-        CampusEntrances.nearestWithin(
-          const NavLatLng(8.0625, 123.7458),
-        ),
+        CampusEntrances.nearestWithin(const NavLatLng(8.0625, 123.7458)),
         isNull,
       );
       // ~15 m north of Entrance 1 is inside the 30 m tap radius.
       expect(
-        CampusEntrances.nearestWithin(
-          const NavLatLng(8.06490, 123.75527),
-        )?.id,
+        CampusEntrances.nearestWithin(const NavLatLng(8.06490, 123.75527))?.id,
         'entrance_1',
       );
+    });
+  });
+
+  group('CampusLandmarks', () {
+    test('Covered Court label uses the supplied coordinate', () {
+      expect(CampusLandmarks.coveredCourt.name, 'Covered Court');
+      expect(
+        CampusLandmarks.coveredCourt.location,
+        const NavLatLng(8.06391, 123.75579),
+      );
+      expect(CampusLandmarks.all, contains(CampusLandmarks.coveredCourt));
     });
   });
 

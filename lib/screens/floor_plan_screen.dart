@@ -7,17 +7,13 @@ import 'package:provider/provider.dart';
 import 'package:naviapp/config/staircase_locations.dart';
 import 'package:naviapp/models/starting_location.dart';
 import 'package:naviapp/providers/user_location_provider.dart';
-import 'package:naviapp/screens/qr_scanner_screen.dart';
 import 'package:naviapp/services/indoor_positioning/indoor_position.dart';
 import 'package:naviapp/services/indoor_positioning/indoor_position_provider.dart';
 import 'package:naviapp/services/navigation_graph.dart';
 import 'package:naviapp/services/navigation_service.dart';
 import 'package:naviapp/services/pathfinder.dart';
+import 'package:naviapp/services/room_catalog.dart';
 import 'package:naviapp/services/route_calculator.dart';
-import 'package:naviapp/widgets/ai_nav_sheet.dart';
-import 'package:naviapp/widgets/staircase_qr_sheet.dart';
-import '../features/live_navigation/ui/navigation_screen.dart'
-    show LiveNavigationScreen;
 
 class FloorPlanScreen extends StatefulWidget {
   final int initialFloor;
@@ -57,6 +53,10 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
   // ID of the QR location currently applied to this screen.
   String? _appliedPinId;
 
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+  String _searchQuery = '';
+
   late final UserLocationProvider _userLocation;
 
   // Dynamic navigation service
@@ -87,11 +87,10 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
   void initState() {
     super.initState();
     _currentFloor = widget.initialFloor;
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
+    SystemChrome.setPreferredOrientations(const <DeviceOrientation>[]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    _searchController.addListener(_onSearchChanged);
+    _searchFocusNode.addListener(_onSearchFocusChanged);
     _pathAnimationController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 5),
@@ -115,6 +114,47 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
       positionProvider: _positionProvider,
     );
     _navigationService.addListener(_onNavigationRouteChanged);
+  }
+
+  void _onSearchChanged() {
+    if (!mounted) return;
+    setState(() => _searchQuery = _searchController.text);
+  }
+
+  void _onSearchFocusChanged() {
+    if (mounted) setState(() {});
+  }
+
+  List<_RoomSearchMatch> get _roomMatches {
+    final query = _searchQuery.trim().toLowerCase();
+    if (query.isEmpty) return const [];
+
+    final matches = <_RoomSearchMatch>[];
+    for (var floor = 0; floor < RoomCatalog.floorKeys.length; floor++) {
+      for (final room in RoomCatalog.allRooms[RoomCatalog.floorKeys[floor]]!) {
+        final name = room['name']!;
+        if (name.toLowerCase().contains(query)) {
+          matches.add(_RoomSearchMatch(room: room, floor: floor));
+        }
+      }
+    }
+    matches.sort((a, b) {
+      final aStarts = a.name.toLowerCase().startsWith(query) ? 0 : 1;
+      final bStarts = b.name.toLowerCase().startsWith(query) ? 0 : 1;
+      final rank = aStarts.compareTo(bStarts);
+      return rank != 0 ? rank : a.name.compareTo(b.name);
+    });
+    return matches.take(8).toList();
+  }
+
+  void _selectSearchResult(_RoomSearchMatch match) {
+    _searchController.clear();
+    _searchFocusNode.unfocus();
+    setState(() {
+      _currentFloor = match.floor;
+      _userSelectedFloor = true;
+    });
+    navigateTo(match.room['id']!);
   }
 
   /// Reacts to a newly pinned QR starting location: switches to that
@@ -325,80 +365,6 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
     }
   }
 
-  /// Opens the QR scanner and, on a valid Campus Guide starting-point code,
-  /// pins the user's position to that location on the Ground Floor.
-  Future<void> _scanStartingPoint() async {
-    final location = await Navigator.of(context).push<StartingLocation>(
-      MaterialPageRoute(builder: (_) => const QrScannerScreen()),
-    );
-    if (!mounted || location == null) return;
-
-    _userLocation.setFromStartingLocation(location);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('You are here: ${location.name} (Ground Floor)'),
-        backgroundColor: const Color(0xFF0A7040),
-        duration: const Duration(seconds: 3),
-      ),
-    );
-  }
-
-  /// Opens the QR scanner; on a valid Campus Guide code, uses the scanned
-  /// location's outdoor GPS coordinate to launch Live Navigation (outdoor).
-  Future<void> _scanForLiveNavigation() async {
-    final location = await Navigator.of(context).push<StartingLocation>(
-      MaterialPageRoute(builder: (_) => const QrScannerScreen()),
-    );
-    if (!mounted || location == null) return;
-
-    final outdoorPos = location.outdoorPosition;
-    if (outdoorPos == null) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('This QR location has no outdoor position configured.'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
-    if (!mounted) return;
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => LiveNavigationScreen(initialPosition: outdoorPos),
-      ),
-    );
-  }
-
-  /// Shows the QR code for a single staircase (opened from its map label).
-  void _showStaircaseQr(StartingLocation staircase) {
-    StaircaseQrSheet.show(
-      context,
-      floorName: _floorNames[staircase.floor],
-      staircases: [staircase],
-    );
-  }
-
-  /// Shows every staircase QR code for the floor currently on screen.
-  void _showFloorStaircaseQrs() {
-    final staircases = StaircaseLocations.forFloor(_currentFloor);
-    if (staircases.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No staircases configured for this floor.'),
-        ),
-      );
-      return;
-    }
-    StaircaseQrSheet.show(
-      context,
-      floorName: _currentFloorName,
-      staircases: staircases,
-    );
-  }
-
   /// Pans/zooms the InteractiveViewer so the normalized point sits at the
   /// center of the viewport. Works for any viewport size / resolution.
   void _centerOnPosition(double x, double y) {
@@ -431,6 +397,8 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
     _positionProvider?.stop();
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    _searchController.dispose();
+    _searchFocusNode.dispose();
     _transformationController.dispose();
     _pathAnimationController.dispose();
     super.dispose();
@@ -461,13 +429,6 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
           ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.qr_code_2, color: Colors.white, size: 24),
-              tooltip: 'Staircase QR codes',
-              onPressed: _showFloorStaircaseQrs,
-            ),
-          ],
           toolbarHeight: 52,
         ),
       ),
@@ -560,7 +521,6 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
                                 _currentFloor,
                               ),
                               mapSize: Size(scaledWidth, scaledHeight),
-                              onTap: _showStaircaseQr,
                             ),
                           ),
                         ],
@@ -569,31 +529,26 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
                   ),
                 ),
               ),
+              Positioned(
+                top: 10,
+                left: 12,
+                right: 12,
+                child: _buildSearchOverlay(context),
+              ),
               if (pinnedLocation != null)
                 Positioned(
                   left: 12,
                   bottom: 72, // Account for bottom NavigationBar (56) + margin
-                  width: min(constraints.maxWidth * 0.5, 280),
+                  width: min(constraints.maxWidth * 0.58, 230),
                   child: _CurrentLocationCard(
                     locationName: pinnedLocation.name,
                     floorName: _floorNames[pinnedLocation.floor],
-                    onStartNavigation: _openNavigation,
                     onClear: () {
                       userLocation.clear();
                       setState(() => _userSelectedFloor = false);
                     },
                   ),
                 ),
-              // Left side button panel
-              Positioned(
-                left: 8,
-                bottom: 68, // Account for bottom NavigationBar (56) + margin
-                child: _ActionButtonPanel(
-                  onScanStartingPoint: _scanStartingPoint,
-                  onOpenNavigation: _openNavigation,
-                  onScanForLiveNavigation: _scanForLiveNavigation,
-                ),
-              ),
             ],
           );
         },
@@ -627,66 +582,137 @@ class _FloorPlanScreenState extends State<FloorPlanScreen>
     );
   }
 
-  void _openNavigation() {
-    final userLocation = context.read<UserLocationProvider>();
+  Widget _buildSearchOverlay(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surface = isDark ? const Color(0xFF1B2E20) : Colors.white;
+    final surfaceText = isDark
+        ? const Color(0xFFE7F4EA)
+        : const Color(0xFF0E2B1C);
+    final matches = _roomMatches;
+    final showMatches =
+        _searchFocusNode.hasFocus && _searchQuery.trim().isNotEmpty;
 
-    // Determine the starting position: use active position (QR/ble) if available,
-    // otherwise fall back to the default start node for the current floor.
-    IndoorPosition? startPosition = _activePosition;
-    if (startPosition == null) {
-      final defaultStartNodeId = NavigationGraph.getDefaultStartNode(
-        _currentFloor,
-      );
-      if (defaultStartNodeId != null) {
-        final nodes = NavigationGraph.nodesForFloor(_currentFloor);
-        final defaultNode = nodes.firstWhere(
-          (n) => n.id == defaultStartNodeId,
-          orElse: () => nodes.first,
-        );
-        startPosition = IndoorPosition(
-          x: defaultNode.pos.dx,
-          y: defaultNode.pos.dy,
-          floor: _currentFloor,
-          accuracy: 0.0,
-          timestamp: DateTime.now(),
-          source: PositionSource.manual,
-        );
-      }
-    }
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => AINavSheet(
-        currentFloorIndex: _currentFloor,
-        livePosition: startPosition,
-        currentLocationName: userLocation.startingLocation?.name,
-        onNavigationResult: (result) {
-          setState(() {
-            _currentFloor = result.floorIndex;
-            if (result.hasPath) {
-              _navigationPath = result.path;
-              _pathFloorIndices = result.floorIndices;
-              _isNavigating = true;
-              _pathAnimationController.forward(from: 0);
-            }
-          });
-        },
-        onExternalBuildingSelected: (building) {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) =>
-                  LiveNavigationScreen(initialPosition: building.labelPoint),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Material(
+          color: Colors.transparent,
+          child: Container(
+            decoration: BoxDecoration(
+              color: surface,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.16),
+                  blurRadius: 18,
+                  offset: const Offset(0, 6),
+                ),
+              ],
             ),
-          );
-        },
-      ),
+            child: TextField(
+              controller: _searchController,
+              focusNode: _searchFocusNode,
+              textInputAction: TextInputAction.search,
+              onTapOutside: (_) => _searchFocusNode.unfocus(),
+              style: TextStyle(color: surfaceText, fontSize: 14),
+              decoration: InputDecoration(
+                hintText: 'Search a room...',
+                hintStyle: TextStyle(
+                  color: isDark
+                      ? const Color(0xFFA8C8B0)
+                      : Colors.grey.shade600,
+                  fontSize: 14,
+                ),
+                prefixIcon: const Icon(
+                  Icons.search,
+                  size: 20,
+                  color: Color(0xFF0A7040),
+                ),
+                suffixIcon: _searchQuery.isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: 'Clear search',
+                        icon: const Icon(Icons.close, size: 18),
+                        onPressed: _searchController.clear,
+                      ),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(vertical: 13),
+              ),
+            ),
+          ),
+        ),
+        if (showMatches) ...[
+          const SizedBox(height: 6),
+          Material(
+            color: surface,
+            borderRadius: BorderRadius.circular(14),
+            elevation: 8,
+            clipBehavior: Clip.antiAlias,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 280),
+              child: matches.isEmpty
+                  ? Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Text(
+                        'No rooms found',
+                        style: TextStyle(
+                          color: isDark
+                              ? const Color(0xFFA8C8B0)
+                              : Colors.grey.shade700,
+                        ),
+                      ),
+                    )
+                  : ListView.separated(
+                      padding: EdgeInsets.zero,
+                      shrinkWrap: true,
+                      itemCount: matches.length,
+                      separatorBuilder: (_, _) => Divider(
+                        height: 1,
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.08)
+                            : Colors.grey.shade200,
+                      ),
+                      itemBuilder: (context, index) {
+                        final match = matches[index];
+                        return ListTile(
+                          dense: true,
+                          leading: const Icon(
+                            Icons.meeting_room_outlined,
+                            size: 20,
+                            color: Color(0xFF0A7040),
+                          ),
+                          title: Text(
+                            match.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          subtitle: Text(
+                            RoomCatalog.floorKeys[match.floor],
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                          trailing: const Icon(Icons.chevron_right, size: 18),
+                          onTap: () => _selectSearchResult(match),
+                        );
+                      },
+                    ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }
 
-/// Renders tappable staircase labels at their normalized floor-plan points.
+class _RoomSearchMatch {
+  const _RoomSearchMatch({required this.room, required this.floor});
+
+  final Map<String, String> room;
+  final int floor;
+
+  String get name => room['name']!;
+}
+
+/// Renders staircase labels at their normalized floor-plan points.
 ///
 /// Labels are counter-scaled against the [InteractiveViewer] transform so
 /// they stay legible (and tappable) at every zoom level while still panning
@@ -695,13 +721,11 @@ class _StaircaseLabelLayer extends StatelessWidget {
   final TransformationController controller;
   final List<StartingLocation> staircases;
   final Size mapSize;
-  final ValueChanged<StartingLocation> onTap;
 
   const _StaircaseLabelLayer({
     required this.controller,
     required this.staircases,
     required this.mapSize,
-    required this.onTap,
   });
 
   @override
@@ -722,10 +746,7 @@ class _StaircaseLabelLayer extends StatelessWidget {
                   translation: Offset(_anchorX(staircase.x), -0.5),
                   child: Transform.scale(
                     scale: inverseZoom,
-                    child: _StaircaseLabel(
-                      staircase: staircase,
-                      onTap: () => onTap(staircase),
-                    ),
+                    child: _StaircaseLabel(staircase: staircase),
                   ),
                 ),
               ),
@@ -746,191 +767,61 @@ class _StaircaseLabelLayer extends StatelessWidget {
 
 class _StaircaseLabel extends StatelessWidget {
   final StartingLocation staircase;
-  final VoidCallback onTap;
 
-  const _StaircaseLabel({required this.staircase, required this.onTap});
+  const _StaircaseLabel({required this.staircase});
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      button: true,
-      label: '${StaircaseLocations.labelFor(staircase)} QR code',
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
+      label: StaircaseLocations.labelFor(staircase),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0A7040).withValues(alpha: 0.94),
           borderRadius: BorderRadius.circular(99),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-            decoration: BoxDecoration(
-              color: const Color(0xFF0A7040).withValues(alpha: 0.94),
-              borderRadius: BorderRadius.circular(99),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.85),
-                width: 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.22),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
-                ),
-              ],
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.85),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.22),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.stairs, size: 12, color: Colors.white),
-                const SizedBox(width: 4),
-                Text(
-                  StaircaseLocations.labelFor(staircase),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10.5,
-                    height: 1.1,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                const Icon(Icons.qr_code_2, size: 12, color: Colors.white),
-              ],
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.stairs, size: 12, color: Colors.white),
+            const SizedBox(width: 4),
+            Text(
+              StaircaseLocations.labelFor(staircase),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 10.5,
+                height: 1.1,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
   }
 }
 
-/// Action button panel on the left side of the map.
-class _ActionButtonPanel extends StatelessWidget {
-  final VoidCallback onScanStartingPoint;
-  final VoidCallback onOpenNavigation;
-  final VoidCallback onScanForLiveNavigation;
-
-  const _ActionButtonPanel({
-    required this.onScanStartingPoint,
-    required this.onOpenNavigation,
-    required this.onScanForLiveNavigation,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1B2E20) : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isDark
-              ? const Color(0xFF2B4A36)
-              : const Color(0xFFB8DCC8).withValues(alpha: 0.6),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.14),
-            blurRadius: 28,
-            offset: const Offset(0, 12),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(6),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _ActionButton(
-            icon: Icons.qr_code_scanner,
-            label: 'Scan (Indoor)',
-            color: const Color(0xFF2563EB),
-            onPressed: onScanStartingPoint,
-          ),
-          const SizedBox(height: 6),
-          _ActionButton(
-            icon: Icons.navigation_outlined,
-            label: 'Navigate (Indoor)',
-            color: const Color(0xFF0A7040),
-            onPressed: onOpenNavigation,
-          ),
-          const SizedBox(height: 6),
-          _ActionButton(
-            icon: Icons.gps_fixed,
-            label: 'Live Nav (Outdoor)',
-            color: const Color(0xFF1A73E8),
-            onPressed: onScanForLiveNavigation,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ActionButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onPressed;
-
-  const _ActionButton({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: BorderRadius.circular(14),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.08),
-                blurRadius: 24,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: Colors.white, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Card shown after a successful QR scan, confirming the detected starting
-/// location.
+/// Compact card shown after a successful QR scan, confirming the detected
+/// starting location.
 class _CurrentLocationCard extends StatelessWidget {
   final String locationName;
   final String floorName;
-  final VoidCallback onStartNavigation;
   final VoidCallback onClear;
 
   const _CurrentLocationCard({
     required this.locationName,
     required this.floorName,
-    required this.onStartNavigation,
     required this.onClear,
   });
 
@@ -941,91 +832,80 @@ class _CurrentLocationCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1B2E20) : Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: isDark ? const Color(0xFF2B4A36) : const Color(0xFF2563EB),
-          width: 1.5,
+          width: 1.2,
         ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.14),
-            blurRadius: 28,
-            offset: const Offset(0, 12),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.fromLTRB(10, 8, 4, 8),
+        child: Row(
           children: [
-            Row(
-              children: [
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2563EB).withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    Icons.my_location,
-                    size: 18,
-                    color: Color(0xFF2563EB),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Current Location',
+            Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: const Color(0xFF2563EB).withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(9),
+              ),
+              child: const Icon(
+                Icons.my_location,
+                size: 16,
+                color: Color(0xFF2563EB),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'You are here',
                     style: textTheme.labelSmall?.copyWith(
-                      letterSpacing: 0.8,
+                      letterSpacing: 0.5,
                       fontWeight: FontWeight.w700,
-                      color: isDark
-                          ? const Color(0xFFA8C8B0)
-                          : Colors.grey.shade600,
+                      color: const Color(0xFF2563EB),
                     ),
                   ),
-                ),
-                GestureDetector(
-                  onTap: onClear,
-                  child: Icon(
-                    Icons.close,
-                    size: 18,
-                    color: Colors.grey.shade500,
+                  Text(
+                    locationName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: isDark
+                          ? const Color(0xFFE7F4EA)
+                          : const Color(0xFF0E2B1C),
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              locationName,
-              style: textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: isDark
-                    ? const Color(0xFFE7F4EA)
-                    : const Color(0xFF0E2B1C),
+                  Text(
+                    floorName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.labelSmall?.copyWith(
+                      color: isDark
+                          ? const Color(0xFFA8C8B0)
+                          : Colors.grey.shade700,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 2),
-            Text(
-              floorName,
-              style: textTheme.bodySmall?.copyWith(
-                color: isDark ? const Color(0xFFA8C8B0) : Colors.grey.shade700,
-              ),
-            ),
-            const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: onStartNavigation,
-                icon: const Icon(Icons.navigation_outlined, size: 18),
-                label: const Text('Start Navigation'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF2563EB),
-                ),
-              ),
+            IconButton(
+              tooltip: 'Clear location',
+              onPressed: onClear,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+              icon: Icon(Icons.close, size: 16, color: Colors.grey.shade500),
             ),
           ],
         ),

@@ -199,13 +199,32 @@ class CampusBuildings {
       final yj = ring[j].latitude;
       final xj = ring[j].longitude;
       if ((yi > point.latitude) != (yj > point.latitude)) {
-        final xIntersect =
-            (xj - xi) * (point.latitude - yi) / (yj - yi) + xi;
+        final xIntersect = (xj - xi) * (point.latitude - yi) / (yj - yi) + xi;
         if (point.longitude < xIntersect) inside = !inside;
       }
     }
     return inside;
   }
+}
+
+/// A named outdoor map label that is not a building footprint.
+class CampusLandmark {
+  const CampusLandmark({required this.name, required this.location});
+
+  final String name;
+  final NavLatLng location;
+}
+
+class CampusLandmarks {
+  CampusLandmarks._();
+
+  /// Covered Court label — exact supplied coordinate.
+  static const CampusLandmark coveredCourt = CampusLandmark(
+    name: 'Covered Court',
+    location: NavLatLng(8.06391, 123.75579),
+  );
+
+  static const List<CampusLandmark> all = <CampusLandmark>[coveredCourt];
 }
 
 /// One campus gate: who may pass and how.
@@ -215,6 +234,8 @@ class CampusEntrance {
     required this.name,
     required this.location,
     required this.access,
+    this.walkInEntry = false,
+    this.walkInExit = false,
   });
 
   /// Stable id, e.g. 'entrance_1'.
@@ -228,52 +249,64 @@ class CampusEntrance {
 
   /// Who may use it and how (person / vehicle / exit-only ...).
   final String access;
+
+  /// Whether a person on foot may enter the campus through this gate.
+  final bool walkInEntry;
+
+  /// Whether a person on foot may leave the campus through this gate.
+  final bool walkInExit;
 }
 
 class CampusEntrances {
   CampusEntrances._();
 
-  /// Gate 1 — students only.
+  /// Gate 1 — student walk-in entrance.
   static const CampusEntrance entrance1 = CampusEntrance(
     id: 'entrance_1',
     name: 'Gate 1',
     location: NavLatLng(8.06476, 123.75527),
-    access: 'Students only (entrance and exit).',
+    access: 'Walk-in entrance for students only.',
+    walkInEntry: true,
   );
 
-  /// Gate 2 — vehicle only.
+  /// Gate 2 — vehicle entrance for anyone with a vehicle.
   static const CampusEntrance entrance2 = CampusEntrance(
     id: 'entrance_2',
     name: 'Gate 2',
     location: NavLatLng(8.06525, 123.75586),
-    access: 'Vehicles only.',
+    access: 'Vehicle entrance for anyone with a vehicle.',
   );
 
-  /// Gate 3 — vehicle exit; visitors, interns and faculty on foot;
-  /// students may exit here too.
+  /// Gate 3 — visitors, OJT and faculty walk-in entrance; vehicle and
+  /// walk-in exit.
   static const CampusEntrance entrance3 = CampusEntrance(
     id: 'entrance_3',
     name: 'Gate 3',
     location: NavLatLng(8.06548, 123.75611),
     access:
-        'Vehicle exit. Visitors, interns and faculty entrance on foot. '
-        'Students may also exit here.',
+        'Walk-in entrance for visitors, OJT, and faculty. '
+        'Vehicle and walk-in exit.',
+    walkInEntry: true,
+    walkInExit: true,
   );
 
-  /// Gate 4 — vehicle exit; people may enter or exit on foot too.
+  /// Gate 4 — vehicle exit only.
   static const CampusEntrance entrance4 = CampusEntrance(
     id: 'entrance_4',
     name: 'Gate 4',
     location: NavLatLng(8.06594, 123.75665),
-    access: 'Vehicle exit. People may enter or exit on foot too.',
+    access: 'Exit only for vehicles and walk-ins.',
+    walkInExit: true,
   );
 
-  /// Gate 5 — open to everyone on foot, both directions.
+  /// Gate 5 — alternative walk-in entrance or exit.
   static const CampusEntrance entrance5 = CampusEntrance(
     id: 'entrance_5',
     name: 'Gate 5',
     location: NavLatLng(8.06346, 123.75602),
-    access: 'Entrance and exit for everyone on foot.',
+    access: 'Alternative walk-in entrance or exit.',
+    walkInEntry: true,
+    walkInExit: true,
   );
 
   /// All known gates in numbered order.

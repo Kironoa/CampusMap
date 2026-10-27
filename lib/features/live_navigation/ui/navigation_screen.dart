@@ -17,7 +17,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
+import 'package:naviapp/models/user_role.dart';
 import 'package:naviapp/screens/floor_plan_screen.dart';
 
 import '../config/campus_buildings.dart';
@@ -46,6 +48,8 @@ class LiveNavigationScreen extends StatefulWidget {
     LocationProvider? locationProvider,
     RoutingService? routingService,
     this.initialPosition,
+    this.initialDestination,
+    this.userRole,
   }) : _mapProvider = mapProvider,
        _locationProvider = locationProvider,
        _routingService = routingService;
@@ -58,6 +62,12 @@ class LiveNavigationScreen extends StatefulWidget {
   /// When provided, this is used immediately for routing and map centering.
   final NavLatLng? initialPosition;
 
+  /// Optional destination to route to as soon as the current position is known.
+  final NavDestination? initialDestination;
+
+  /// Role selected during onboarding; controls which gates may be used.
+  final UserRole? userRole;
+
   @override
   State<LiveNavigationScreen> createState() => _LiveNavigationScreenState();
 }
@@ -67,7 +77,7 @@ class _LiveNavigationScreenState extends State<LiveNavigationScreen> {
   late final LocationProvider _location =
       widget._locationProvider ?? GeolocatorLocationProvider();
   late final RoutingService _routing =
-      widget._routingService ?? CampusRoutingService();
+      widget._routingService ?? CampusRoutingService(role: widget.userRole);
   final GuidanceEngine _guidance = GuidanceEngine();
 
   NavMapController? _mapController;
@@ -84,10 +94,14 @@ class _LiveNavigationScreenState extends State<LiveNavigationScreen> {
 
   bool _isLoadingRoute = false;
   bool _isRerouting = false;
+  bool _initialRouteRequested = false;
   String? _notice;
 
   TripProgress? _progress;
   bool _followUser = true;
+
+  bool _orientationCaptured = false;
+  bool _restoreLandscape = false;
 
   // --- Building geofence (outdoor -> indoor handoff) -----------------------
   // Consecutive-fix hysteresis + cooldown so a single noisy GPS fix never
@@ -122,14 +136,33 @@ class _LiveNavigationScreenState extends State<LiveNavigationScreen> {
       LiveNavFeatureFlag.enabled,
       'LiveNavigationScreen opened while the feature flag is off.',
     );
+    _destination = widget.initialDestination;
     _restartStyleTimer();
     _initLocation();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_orientationCaptured) return;
+    _orientationCaptured = true;
+    _restoreLandscape =
+        MediaQuery.orientationOf(context) == Orientation.landscape;
+    SystemChrome.setPreferredOrientations(const [DeviceOrientation.portraitUp]);
   }
 
   @override
   void dispose() {
     _styleTimer?.cancel();
     _positionSub?.cancel();
+    SystemChrome.setPreferredOrientations(
+      _restoreLandscape
+          ? const [
+              DeviceOrientation.landscapeLeft,
+              DeviceOrientation.landscapeRight,
+            ]
+          : const [DeviceOrientation.portraitUp],
+    );
     super.dispose();
   }
 
@@ -152,16 +185,13 @@ class _LiveNavigationScreenState extends State<LiveNavigationScreen> {
         _lastFix = initialFix;
         _readiness = LocationReadiness.ready;
       });
-      _mapController?.animateTo(
-        target: widget.initialPosition!,
-        zoom: 16,
+      _mapController?.animateTo(target: widget.initialPosition!, zoom: 16);
+      _showNotice(
+        'Starting from QR location: ${widget.initialPosition!.latitude.toStringAsFixed(6)}, ${widget.initialPosition!.longitude.toStringAsFixed(6)}',
       );
-      _showNotice('Starting from QR location: ${widget.initialPosition!.latitude.toStringAsFixed(6)}, ${widget.initialPosition!.longitude.toStringAsFixed(6)}');
+      _maybeLoadInitialRoute();
       // Still start listening to GPS for live updates during navigation
-      _positionSub = _location.liveFixes().listen(
-        _onFix,
-        onError: (_) {},
-      );
+      _positionSub = _location.liveFixes().listen(_onFix, onError: (_) {});
       return;
     }
 
@@ -188,6 +218,7 @@ class _LiveNavigationScreenState extends State<LiveNavigationScreen> {
         zoom: 16,
       );
       _checkBuildingGeofence(fix);
+      _maybeLoadInitialRoute();
     } on NavError catch (e) {
       _showNotice(e.friendlyMessage);
     }
@@ -206,6 +237,7 @@ class _LiveNavigationScreenState extends State<LiveNavigationScreen> {
     // the building always offers the indoor map. Guidance below stays
     // navigating-only as before.
     _checkBuildingGeofence(fix);
+    _maybeLoadInitialRoute();
 
     if (_phase != NavPhase.navigating || _options.isEmpty) return;
     final now = DateTime.now();
@@ -270,10 +302,7 @@ class _LiveNavigationScreenState extends State<LiveNavigationScreen> {
       return;
     }
     setState(() {
-      _destination = NavDestination(
-        label: 'Dropped pin',
-        location: point,
-      );
+      _destination = NavDestination(label: 'Dropped pin', location: point);
       _notice = null;
     });
     _loadRoutes();
@@ -509,6 +538,13 @@ class _LiveNavigationScreenState extends State<LiveNavigationScreen> {
     });
   }
 
+  void _maybeLoadInitialRoute() {
+    if (widget.initialDestination == null || _initialRouteRequested) return;
+    if (_phase != NavPhase.idle || _isLoadingRoute || _lastFix == null) return;
+    _initialRouteRequested = true;
+    _loadRoutes();
+  }
+
   Future<void> _loadRoutes() async {
     final destination = _destination;
     final origin = _lastFix;
@@ -613,10 +649,6 @@ class _LiveNavigationScreenState extends State<LiveNavigationScreen> {
 
   // --- Map helpers (via the MapProvider abstraction only) ---------------------
 
-  static const double _guideProximityRadius = 80.0;
-
-  static const List<NavLatLng> _mbAbGuidePath = CampusRoutingService.mbToAbPath;
-
   MapViewState get _mapState {
     final fix = _lastFix;
     final routes = <RouteLine>[
@@ -628,26 +660,6 @@ class _LiveNavigationScreenState extends State<LiveNavigationScreen> {
           selected: i == _selectedOption,
         ),
     ];
-
-    if (fix != null) {
-      final userPos = NavLatLng(fix.latitude, fix.longitude);
-      final nearMain = GeoMath.distanceMeters(
-            userPos,
-            CampusBuildings.mainBuilding.labelPoint,
-          ) <=
-          _guideProximityRadius;
-      final nearAnnex = GeoMath.distanceMeters(
-            userPos,
-            CampusBuildings.annexBuilding.labelPoint,
-          ) <=
-          _guideProximityRadius;
-
-      if (nearMain || nearAnnex) {
-        routes.add(
-          const RouteLine(points: _mbAbGuidePath, selected: false),
-        );
-      }
-    }
 
     return MapViewState(
       routes: routes,
@@ -692,8 +704,7 @@ class _LiveNavigationScreenState extends State<LiveNavigationScreen> {
     if (_insideStreak < 2) return;
     final now = DateTime.now();
     if (_lastBuildingPromptAt != null &&
-        now.difference(_lastBuildingPromptAt!) <
-            const Duration(minutes: 2)) {
+        now.difference(_lastBuildingPromptAt!) < const Duration(minutes: 2)) {
       return;
     }
     _showEnterBuildingDialog(building);
@@ -730,9 +741,7 @@ class _LiveNavigationScreenState extends State<LiveNavigationScreen> {
     if (enter == true) {
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => FloorPlanScreen(
-            initialFloor: building.initialFloor,
-          ),
+          builder: (_) => FloorPlanScreen(initialFloor: building.initialFloor),
         ),
       );
     }
@@ -764,11 +773,14 @@ class _LiveNavigationScreenState extends State<LiveNavigationScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Map style: ${_styles[_styleIndex].name} (auto-switch off)'),
+        content: Text(
+          'Map style: ${_styles[_styleIndex].name} (auto-switch off)',
+        ),
         duration: const Duration(seconds: 2),
       ),
     );
   }
+
   void _showNotice(String message) {
     setState(() => _notice = message);
     ScaffoldMessenger.of(context).showSnackBar(
@@ -785,7 +797,9 @@ class _LiveNavigationScreenState extends State<LiveNavigationScreen> {
     final shouldBeTerrain = zoom >= _terrainZoomThreshold;
     if (shouldBeTerrain != _isTerrainMode) {
       _isTerrainMode = shouldBeTerrain;
-      final targetStyleIndex = _styles.indexWhere((s) => s.name == (shouldBeTerrain ? 'Terrain' : 'Satellite'));
+      final targetStyleIndex = _styles.indexWhere(
+        (s) => s.name == (shouldBeTerrain ? 'Terrain' : 'Satellite'),
+      );
       if (targetStyleIndex >= 0 && targetStyleIndex != _styleIndex) {
         setState(() {
           _styleIndex = targetStyleIndex;
@@ -948,10 +962,7 @@ class _LiveNavigationScreenState extends State<LiveNavigationScreen> {
                     if (current == null) return;
                     setState(() => _followUser = true);
                     _mapController?.animateTo(
-                      target: NavLatLng(
-                        current.latitude,
-                        current.longitude,
-                      ),
+                      target: NavLatLng(current.latitude, current.longitude),
                       zoom: 16.5,
                       bearing: current.headingDeg,
                       tilt: 50,
@@ -1024,10 +1035,7 @@ class _LiveNavigationScreenState extends State<LiveNavigationScreen> {
             onPressed: _location.openAppSettings,
             child: const Text('Open Settings'),
           ),
-          TextButton(
-            onPressed: _initLocation,
-            child: const Text('Retry'),
-          ),
+          TextButton(onPressed: _initLocation, child: const Text('Retry')),
         ];
       case LocationReadiness.serviceDisabled:
         title = 'GPS is turned off';
@@ -1039,10 +1047,7 @@ class _LiveNavigationScreenState extends State<LiveNavigationScreen> {
             },
             child: const Text('Open location settings'),
           ),
-          TextButton(
-            onPressed: _initLocation,
-            child: const Text('Retry'),
-          ),
+          TextButton(onPressed: _initLocation, child: const Text('Retry')),
         ];
       case LocationReadiness.ready:
         return const SizedBox.shrink(); // unreachable; guarded by caller
@@ -1059,9 +1064,9 @@ class _LiveNavigationScreenState extends State<LiveNavigationScreen> {
               const SizedBox(height: 12),
               Text(
                 title,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               Text(body, textAlign: TextAlign.center),

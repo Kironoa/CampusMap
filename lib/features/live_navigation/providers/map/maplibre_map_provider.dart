@@ -37,9 +37,7 @@ class MapLibreMapProvider implements MapProvider {
       onEvent: (event) {
         switch (event) {
           case MapEventClick(point: final point):
-            callbacks.onTap(
-              NavLatLng(point.lat, point.lon),
-            );
+            callbacks.onTap(NavLatLng(point.lat, point.lon));
           case MapEventStartMoveCamera(reason: final reason):
             if (reason == CameraChangeReason.apiGesture) {
               callbacks.onUserTakeover();
@@ -62,10 +60,7 @@ class MapLibreMapProvider implements MapProvider {
                 geometry: Polygon.from([
                   [
                     for (final p in building.ringClosed)
-                      Position.create(
-                        x: p.longitude,
-                        y: p.latitude,
-                      ),
+                      Position.create(x: p.longitude, y: p.latitude),
                   ],
                 ]),
               ),
@@ -78,10 +73,7 @@ class MapLibreMapProvider implements MapProvider {
               Feature(
                 geometry: LineString.from([
                   for (final p in building.ringClosed)
-                    Position.create(
-                      x: p.longitude,
-                      y: p.latitude,
-                    ),
+                    Position.create(x: p.longitude, y: p.latitude),
                 ]),
               ),
             ],
@@ -128,42 +120,9 @@ class MapLibreMapProvider implements MapProvider {
         WidgetLayer(
           markers: [
             for (final building in CampusBuildings.all)
-              Marker(
-                point: Geographic(
-                  lon: building.labelPoint.longitude,
-                  lat: building.labelPoint.latitude,
-                ),
-                size: const Size(180, 30),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  decoration: BoxDecoration(
-                    color: NavTheme.buildingLabel,
-                    borderRadius: BorderRadius.circular(15),
-                    border: Border.all(
-                      color: NavTheme.buildingOutline,
-                      width: 1.5,
-                    ),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x40000000),
-                        blurRadius: 4,
-                        offset: Offset(0, 1),
-                      ),
-                    ],
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    building.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: NavTheme.buildingLabelText,
-                    ),
-                  ),
-                ),
-              ),
+              _labelMarker(building.name, building.labelPoint),
+            for (final landmark in CampusLandmarks.all)
+              _labelMarker(landmark.name, landmark.location),
           ],
         ),
         // Entrance gates (numbered pills). Non-interactive widgets — taps
@@ -177,20 +136,17 @@ class MapLibreMapProvider implements MapProvider {
                   lon: entrance.location.longitude,
                   lat: entrance.location.latitude,
                 ),
-                size: const Size(132, 32),
+                size: const Size(72, 22),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: NavTheme.accent,
-                      width: 1.5,
-                    ),
+                    borderRadius: BorderRadius.circular(11),
+                    border: Border.all(color: NavTheme.accent, width: 1),
                     boxShadow: const [
                       BoxShadow(
                         color: Color(0x40000000),
-                        blurRadius: 4,
+                        blurRadius: 3,
                         offset: Offset(0, 1),
                       ),
                     ],
@@ -201,17 +157,17 @@ class MapLibreMapProvider implements MapProvider {
                     children: [
                       const Icon(
                         Icons.login_rounded,
-                        size: 14,
+                        size: 11,
                         color: NavTheme.accent,
                       ),
-                      const SizedBox(width: 4),
+                      const SizedBox(width: 3),
                       Flexible(
                         child: Text(
                           entrance.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            fontSize: 12,
+                            fontSize: 10,
                             fontWeight: FontWeight.w600,
                             color: NavTheme.accent,
                           ),
@@ -262,6 +218,41 @@ class MapLibreMapProvider implements MapProvider {
       ],
     );
   }
+
+  Marker _labelMarker(String name, NavLatLng location) {
+    return Marker(
+      point: Geographic(lon: location.longitude, lat: location.latitude),
+      size: const Size(136, 22),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        decoration: BoxDecoration(
+          color: NavTheme.buildingLabel,
+          borderRadius: BorderRadius.circular(11),
+          border: Border.all(color: NavTheme.buildingOutline, width: 1),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x40000000),
+              blurRadius: 3,
+              offset: Offset(0, 1),
+            ),
+          ],
+        ),
+        alignment: Alignment.center,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            name,
+            maxLines: 1,
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: NavTheme.buildingLabelText,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _MapLibreNavController implements NavMapController {
@@ -304,8 +295,7 @@ class _MapLibreNavController implements NavMapController {
     if (points.isEmpty) return Future.value();
     return _controller.fitBounds(
       bounds: LngLatBounds.fromPoints([
-        for (final p in points)
-          Geographic(lon: p.longitude, lat: p.latitude),
+        for (final p in points) Geographic(lon: p.longitude, lat: p.latitude),
       ]),
       padding: const EdgeInsets.all(72),
     );
